@@ -95,7 +95,7 @@ const Editor = ({ onSaveTrigger, fileId, fileData }: {onSaveTrigger:any,fileId:a
             document: JSON.stringify(outputData),
           }).then(
             (resp) => {
-              toast("document updated!");
+              toast.success('Document saved successfully');
             }
           );
         })

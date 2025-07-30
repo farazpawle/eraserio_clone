@@ -53,32 +53,32 @@ h6.ce-header{
     }
 
     .dark {
-      --background: 240 10% 3.9%;
+      --background: 240 10% 18%;
       --foreground: 0 0% 98%;
 
-      --card: 240 10% 3.9%;
+      --card: 240 10% 18%;
       --card-foreground: 0 0% 98%;
 
-      --popover: 240 10% 3.9%;
+      --popover: 240 10% 22%;
       --popover-foreground: 0 0% 98%;
 
       --primary: 0 0% 98%;
       --primary-foreground: 240 5.9% 10%;
 
-      --secondary: 240 3.7% 15.9%;
+      --secondary: 240 3.7% 25%;
       --secondary-foreground: 0 0% 98%;
 
-      --muted: 240 3.7% 15.9%;
+      --muted: 240 3.7% 25%;
       --muted-foreground: 240 5% 64.9%;
 
-      --accent: 240 3.7% 15.9%;
+      --accent: 240 3.7% 25%;
       --accent-foreground: 0 0% 98%;
 
       --destructive: 0 62.8% 30.6%;
       --destructive-foreground: 0 0% 98%;
 
-      --border: 240 3.7% 15.9%;
-      --input: 240 3.7% 15.9%;
+      --border: 240 3.7% 30%;
+      --input: 240 3.7% 22%;
       --ring: 240 4.9% 83.9%;
     }
   }
@@ -90,4 +90,176 @@ h6.ce-header{
     body {
       @apply bg-background text-foreground;
     }
+  }
+
+  /* EditorJS Dark Mode Styles */
+  .dark .codex-editor {
+    color: #e5e7eb;
+  }
+
+  .dark .codex-editor__redactor {
+    background-color: transparent;
+  }
+
+  .dark .ce-block__content {
+    color: #e5e7eb;
+  }
+
+  .dark .ce-toolbar {
+    background-color: transparent !important;
+    border: none !important;
+  }
+
+  .dark .ce-toolbar__content {
+    background-color: transparent !important;
+  }
+
+  .dark .ce-toolbar__plus {
+    background-color: transparent !important;
+    color: #ffffff !important;
+    border: none !important;
+  }
+
+  .dark .ce-toolbar__plus:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+  }
+
+  .dark .ce-toolbar__settings-btn {
+    background-color: transparent !important;
+    color: #ffffff !important;
+    border: none !important;
+  }
+
+  .dark .ce-toolbar__settings-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+  }
+
+  .dark .ce-popover {
+    background-color: #374151;
+    border: 1px solid #4b5563;
+    color: #e5e7eb;
+  }
+
+  .dark .ce-popover__item {
+    color: #e5e7eb;
+  }
+
+  .dark .ce-popover__item:hover {
+    background-color: #4b5563;
+    color: #ffffff;
+  }
+
+  .dark .ce-popover__item-icon {
+    background-color: transparent;
+    color: #e5e7eb;
+  }
+
+  .dark .ce-inline-toolbar {
+    background-color: #374151;
+    border: 1px solid #4b5563;
+  }
+
+  .dark .ce-inline-tool {
+    color: #e5e7eb;
+  }
+
+  .dark .ce-inline-tool:hover {
+    background-color: #4b5563;
+    color: #ffffff;
+  }
+
+  .dark .ce-conversion-toolbar {
+    background-color: #374151;
+    border: 1px solid #4b5563;
+  }
+
+  .dark .ce-conversion-tool {
+    color: #e5e7eb;
+  }
+
+  .dark .ce-conversion-tool:hover {
+    background-color: #4b5563;
+    color: #ffffff;
+  }
+
+  .dark .ce-settings {
+    background-color: #374151;
+    border: 1px solid #4b5563;
+  }
+
+  .dark .ce-settings__button {
+    color: #e5e7eb;
+  }
+
+  .dark .ce-settings__button:hover {
+    background-color: #4b5563;
+    color: #ffffff;
+  }
+
+  .dark .ce-block--selected .ce-block__content {
+    background-color: #374151;
+  }
+
+  .dark .ce-block:hover .ce-block__content {
+    background-color: #374151;
+  }
+
+  .dark .ce-paragraph {
+    color: #e5e7eb;
+  }
+
+  .dark .ce-header {
+    color: #e5e7eb;
+  }
+
+  .dark .ce-list {
+    color: #e5e7eb;
+  }
+
+  .dark .ce-checklist__item-text {
+    color: #e5e7eb;
+  }
+
+  .dark .ce-checklist__item-checkbox {
+    border-color: #4b5563;
+  }
+
+  .dark .ce-checklist__item-checkbox:checked {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+  }
+
+  /* Excalidraw Dark Theme Overrides */
+  .dark .excalidraw {
+    --color-surface-lowest: hsl(240, 10%, 22%) !important;
+    --color-surface-low: hsl(240, 10%, 25%) !important;
+    --color-surface-mid: hsl(240, 10%, 28%) !important;
+    --color-surface-high: hsl(240, 10%, 32%) !important;
+    --color-surface-highest: hsl(240, 10%, 35%) !important;
+    --color-canvas-background: hsl(240, 10%, 22%) !important;
+    --color-canvas-background-transparent: hsla(240, 10%, 22%, 0.9) !important;
+  }
+
+  .dark .excalidraw .App-canvas {
+    background-color: hsl(240, 10%, 22%) !important;
+  }
+
+  .dark .excalidraw .excalidraw-canvas {
+    background-color: hsl(240, 10%, 22%) !important;
+  }
+
+  /* Ensure Excalidraw takes full height */
+  .excalidraw {
+    height: 100% !important;
+    width: 100% !important;
+  }
+
+  .excalidraw .App {
+    height: 100% !important;
+  }
+
+  .excalidraw .App-canvas {
+    height: 100% !important;
   }

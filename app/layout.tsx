@@ -3,6 +3,9 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "./ConvexClientProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "./_context/ThemeContext";
+import { KeyboardShortcutsProvider } from "./_context/KeyboardShortcutsContext";
+import ExportProvider from "./_context/ExportContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,12 +20,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ConvexClientProvider>
-          {children}
-          <Toaster />
-        </ConvexClientProvider>
+        <ThemeProvider>
+          <KeyboardShortcutsProvider>
+            <ExportProvider>
+              <ConvexClientProvider>
+                {children}
+                <Toaster />
+              </ConvexClientProvider>
+            </ExportProvider>
+          </KeyboardShortcutsProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

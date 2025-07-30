@@ -24,12 +24,12 @@ const checkUser=async()=>{
     createUser({
       name:user.given_name,
       email:user.email,
-      image:user.picture
+      imageUrl:user.picture
     }).then((resp)=>console.log(resp))
   }
 }
   return (
-    <div className="p-8">
+    <div className="p-8 bg-white dark:bg-gray-900 min-h-screen">
       <Header/>
 
       <FileList/>

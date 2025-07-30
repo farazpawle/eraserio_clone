@@ -7,7 +7,7 @@ export const getUser = query({
   },
   handler: async (ctx, args) => {
     const result = await ctx.db
-      .query("user")
+      .query("users")
       .filter((q) => q.eq(q.field("email"), args.email))
       .collect();
     return result;
@@ -17,9 +17,9 @@ export const createUser = mutation({
   args: {
     name: v.string(),
     email: v.string(),
-    image: v.string(),
+    imageUrl: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("user", args);
+    return await ctx.db.insert("users", args);
   },
 });

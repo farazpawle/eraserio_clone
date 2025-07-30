@@ -13,13 +13,23 @@ export const getTeam=query({
     },
 })
 
-export const creatTeam=mutation({
+export const createTeam=mutation({
     args:{
         teamName:v.string(),
         createdBy:v.string()
     },
     handler:async(ctx, args)=> {
         const result=await ctx.db.insert('teams',args)
+        return result
+    },
+})
+
+export const deleteTeam=mutation({
+    args:{
+        teamId:v.id('teams')
+    },
+    handler:async(ctx, args)=> {
+        const result=await ctx.db.delete(args.teamId)
         return result
     },
 })

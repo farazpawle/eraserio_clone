@@ -6,16 +6,27 @@ import { useConvex, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { FileListContext } from "@/app/_context/FileListContext";
-const SideNav = () => {
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { ProgressIndicator } from "@/components/ui/progress-indicator";
+interface SideNavProps {
+  newFileDialogOpen?: boolean;
+  setNewFileDialogOpen?: (open: boolean) => void;
+}
+
+const SideNav = ({ newFileDialogOpen, setNewFileDialogOpen }: SideNavProps) => {
   const createFile = useMutation(api.files.createFile);
   const { user } = useKindeBrowserClient();
   const [activeTeam, setActiveTeam] = useState<TEAM>();
   const convex = useConvex();
   const [Files, setFiles] = useState<Number>();
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+  const [createFileStatus, setCreateFileStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const {FileList_,setFileList_}=useContext(FileListContext);
 
   const onFileCreate = (fileName: string) => {
     console.log(fileName);
+    setCreateFileStatus('loading');
+    
     createFile({
       fileName: fileName,
       // @ts-ignore
@@ -28,13 +39,25 @@ const SideNav = () => {
     }).then(
       (resp) => {
         if (resp) {
+          setCreateFileStatus('success');
           getFiles();
-          toast("File Created Successfully");
+          toast.success("File Created Successfully");
+          
+          // Reset status after 2 seconds
+          setTimeout(() => {
+            setCreateFileStatus('idle');
+          }, 2000);
         }
         console.log(resp);
       },
       (e) => {
-        toast("error while creating file");
+        setCreateFileStatus('error');
+        toast.error("Error while creating file");
+        
+        // Reset status after 3 seconds
+        setTimeout(() => {
+          setCreateFileStatus('idle');
+        }, 3000);
       }
     );
   };
@@ -44,25 +67,62 @@ const SideNav = () => {
   }, [activeTeam]);
   
   const getFiles = async () => {
-    const result = await convex.query(api.files.getFiles, {
+    if (!activeTeam?._id) return;
+    
+    setIsLoadingFiles(true);
+    
+    try {
+      const result = await convex.query(api.files.getFiles, {
         // @ts-ignore
-      teamId: activeTeam?._id,
-    });
-    console.log(result);
-    setFileList_(result)
-    setFiles(result.length);
+        teamId: activeTeam?._id,
+      });
+      console.log(result);
+      setFileList_(result);
+      setFiles(result.length);
+    } catch (error) {
+      console.error('Error fetching files:', error);
+      toast.error('Failed to load files');
+    } finally {
+      setIsLoadingFiles(false);
+    }
   };
   return (
-    <div className="h-screen fixed flex flex-col w-72 border-r border-[1px] p-6">
+    <div className="h-screen fixed flex flex-col w-72 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
       <div className="flex-1">
         <SideNavTop
           user={user}
           setActiveTeamInfo={(activeTeam: TEAM) => setActiveTeam(activeTeam)}
         />
+        
+        {/* Loading indicator for files */}
+        {isLoadingFiles && (
+          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <LoadingSpinner size="sm" text="Loading files..." />
+          </div>
+        )}
+        
+        {/* File creation status */}
+        {createFileStatus !== 'idle' && (
+          <div className="mt-4">
+            <ProgressIndicator 
+              status={createFileStatus}
+              message={
+                createFileStatus === 'loading' ? 'Creating file...' :
+                createFileStatus === 'success' ? 'File created!' :
+                'Failed to create file'
+              }
+            />
+          </div>
+        )}
       </div>
       <div>
-        {" "}
-        <SideNavBottom Files={Files} onFileCreate={onFileCreate} />
+        <SideNavBottom 
+          Files={Files} 
+          onFileCreate={onFileCreate}
+          isCreating={createFileStatus === 'loading'}
+          newFileDialogOpen={newFileDialogOpen}
+          setNewFileDialogOpen={setNewFileDialogOpen}
+        />
       </div>
     </div>
   );

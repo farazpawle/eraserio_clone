@@ -12,7 +12,7 @@ import { toast } from "sonner"
 const createTeam = () => {
     const router=useRouter();
   const [teamName, setteamName] = useState("");
-  const createTeam=useMutation(api.teams.creatTeam);
+  const createTeam=useMutation(api.teams.createTeam);
 const {user}:any=useKindeBrowserClient()
   const createNewTeam=()=>{
     createTeam({
@@ -43,13 +43,22 @@ const {user}:any=useKindeBrowserClient()
             placeholder="enter team name"
           />
         </div>
-        <Button
-        onClick={()=>{createNewTeam()}}
-          disabled={!(teamName && teamName?.length > 0)}
-          className="bg-blue-500 mt-8 w-[30%] hover:bg-blue-700"
-        >
-          Create team
-        </Button>
+        <div className="flex gap-4 mt-8 w-[40%]">
+          <Button
+            variant="outline"
+            onClick={() => router.back()}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {createNewTeam()}}
+            disabled={!(teamName && teamName?.length > 0)}
+            className="bg-blue-500 hover:bg-blue-700 flex-1"
+          >
+            Create team
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -13,15 +13,46 @@ import {
     DialogTrigger,
   } from "@/components/ui/dialog"
 import { Input } from '@/components/ui/input'
-import Constant from '@/app/_constant/Constant'
-import PricingSection from './PricingSection'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+
   
 
-const SideNavBottom = ({onFileCreate,Files}:any) => {
+interface SideNavBottomProps {
+  onFileCreate: (fileName: string) => void;
+  Files: any;
+  isCreating: boolean;
+  newFileDialogOpen?: boolean;
+  setNewFileDialogOpen?: (open: boolean) => void;
+}
+
+const SideNavBottom = ({onFileCreate,Files,isCreating,newFileDialogOpen,setNewFileDialogOpen}:SideNavBottomProps) => {
   // useEffect(()=>{
 
   // },[Files])
     const [FileName,setFileName]=useState('');
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    
+    // Sync with external dialog state if provided
+    React.useEffect(() => {
+      if (newFileDialogOpen !== undefined) {
+        setIsDialogOpen(newFileDialogOpen);
+      }
+    }, [newFileDialogOpen]);
+    
+    const handleDialogChange = (open: boolean) => {
+      setIsDialogOpen(open);
+      if (setNewFileDialogOpen) {
+        setNewFileDialogOpen(open);
+      }
+    };
+    
+    const handleCreateFile = () => {
+      if (FileName && FileName.length > 0 && !isCreating) {
+        onFileCreate(FileName);
+        setFileName(''); // Clear the input after creating
+        handleDialogChange(false); // Close the dialog
+      }
+    };
     const menuList=[{
         id:1,
         name:'Getting started',
@@ -46,49 +77,67 @@ const SideNavBottom = ({onFileCreate,Files}:any) => {
          {menuList.map((item, index) => (
             <h2
               key={index}
-              className="p-1 hover:bg-gray-100 rounded-lg flex gap-2 items-center cursor-pointer"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex gap-2 items-center cursor-pointer text-gray-900 dark:text-gray-100"
             >
               <item.icon className="h-5 w-5" />
               {item.name}
             </h2>
           ))}
           {/* add new file button */}
-          <Dialog>
+          <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
   <DialogTrigger className='w-full' asChild>
-  <Button className='mt-3 w-full bg-blue-600 justify-start hover:bg-blue-700'>Add New File</Button>
+  <Button 
+    className='mt-3 w-full bg-blue-600 dark:bg-blue-500 justify-start hover:bg-blue-700 dark:hover:bg-blue-400 text-white'
+    disabled={isCreating}
+    data-testid="add-new-file-button"
+  >
+    {isCreating ? (
+      <LoadingSpinner size="sm" text="Creating..." />
+    ) : (
+      'Add New File'
+    )}
+  </Button>
 
   </DialogTrigger>
-  {Files< Constant.MAX_FREE_FILES? <DialogContent>
+  <DialogContent>
     <DialogHeader>
-      <DialogTitle>Create New File</DialogTitle>
+      <DialogTitle className="text-gray-900 dark:text-gray-100">Create New File</DialogTitle>
       <DialogDescription>
         <Input 
-        
-        onChange={(e)=>setFileName(e.target.value)}
-        className='mt-3' placeholder='Enter File Name'/>
+          value={FileName}
+          onChange={(e)=>setFileName(e.target.value)}
+          className='mt-3 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400' 
+          placeholder='Enter File Name'
+          disabled={isCreating}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && FileName && FileName.length > 0 && !isCreating) {
+              handleCreateFile();
+            }
+          }}
+        />
       </DialogDescription>
     </DialogHeader>
     <DialogFooter className="sm:justify-start">
           <DialogClose asChild>
             <Button 
-            onClick={()=>onFileCreate(FileName)}
-            disabled={!(FileName&&FileName.length>0)}
-             type="button" className="bg-blue-600 hover:bg-blue-700 w-max">
-              Create
+              onClick={handleCreateFile}
+              disabled={!(FileName&&FileName.length>0) || isCreating}
+              type="button" 
+              className="bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-400 text-white w-max"
+            >
+              {isCreating ? (
+                <LoadingSpinner size="sm" text="Creating..." />
+              ) : (
+                'Create'
+              )}
             </Button>
           </DialogClose>
         </DialogFooter>
-  </DialogContent>:<PricingSection/>}
+  </DialogContent>
 </Dialog>
 
 
-          {/* progressbar */}
-          <div className='mt-5 h-4 w-full bg-gray-200 rounded-full'>
-            <div style={{width:`${(Files/5)*100}%`}} className={` bg-blue-600 rounded-full h-4`
-          }></div>
-          </div>
-          <h2 className='text-[12px] mt-3'><strong>{Files}</strong> out of <strong>{Constant.MAX_FREE_FILES}</strong> files used</h2>
-          <h2 className='text-[12px] mt-1'>Upgrade your plan for unlimited access.</h2>
+
     </div>
   )
 }
