@@ -10,10 +10,12 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
   } from "@/components/ui/dialog"
 import { Input } from '@/components/ui/input'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { RecentFiles, RecentFile } from '@/components/ui/recent-files'
+import { useRouter } from 'next/navigation'
+import { useFileManagement } from '@/app/_context/FileManagementContext'
 
   
 
@@ -21,29 +23,27 @@ interface SideNavBottomProps {
   onFileCreate: (fileName: string) => void;
   Files: any;
   isCreating: boolean;
-  newFileDialogOpen?: boolean;
-  setNewFileDialogOpen?: (open: boolean) => void;
 }
 
-const SideNavBottom = ({onFileCreate,Files,isCreating,newFileDialogOpen,setNewFileDialogOpen}:SideNavBottomProps) => {
+const SideNavBottom = ({onFileCreate,Files,isCreating}:SideNavBottomProps) => {
   // useEffect(()=>{
 
   // },[Files])
     const [FileName,setFileName]=useState('');
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const router = useRouter();
+    const { newFileDialogOpen, setNewFileDialogOpen } = useFileManagement();
     
-    // Sync with external dialog state if provided
-    React.useEffect(() => {
-      if (newFileDialogOpen !== undefined) {
-        setIsDialogOpen(newFileDialogOpen);
-      }
-    }, [newFileDialogOpen]);
+    // Convert Files to RecentFile format
+    const recentFiles: RecentFile[] = Files && Array.isArray(Files) ? Files.slice(0, 5).map((file: any) => ({
+      id: file._id,
+      name: file.fileName,
+      type: file.document ? 'document' : 'canvas',
+      lastModified: new Date(file.lastModified || file._creationTime),
+      teamName: file.teamName,
+    })) : [];
     
     const handleDialogChange = (open: boolean) => {
-      setIsDialogOpen(open);
-      if (setNewFileDialogOpen) {
-        setNewFileDialogOpen(open);
-      }
+      setNewFileDialogOpen(open);
     };
     
     const handleCreateFile = () => {
@@ -52,6 +52,24 @@ const SideNavBottom = ({onFileCreate,Files,isCreating,newFileDialogOpen,setNewFi
         setFileName(''); // Clear the input after creating
         handleDialogChange(false); // Close the dialog
       }
+    };
+    
+    // Handle recent file actions
+    const handleRecentFileClick = (file: RecentFile) => {
+        router.push(`/wokspace/${file.id}`);
+    };
+    
+    const handleRecentFileAction = (action: string, file: RecentFile) => {
+        switch (action) {
+            case 'open':
+                router.push(`/wokspace/${file.id}`);
+                break;
+            case 'view-all':
+                // Could navigate to a full files view
+                break;
+            default:
+                console.log(`Action ${action} not implemented for file ${file.name}`);
+        }
     };
     const menuList=[{
         id:1,
@@ -74,6 +92,19 @@ const SideNavBottom = ({onFileCreate,Files,isCreating,newFileDialogOpen,setNewFi
     }]
   return (
     <div>
+         {/* Recent Files Section */}
+         {recentFiles.length > 0 && (
+           <div className="mb-4">
+             <RecentFiles 
+               files={recentFiles}
+               maxItems={3}
+               onFileClick={handleRecentFileClick}
+               onFileAction={handleRecentFileAction}
+               className="text-sm"
+             />
+           </div>
+         )}
+         
          {menuList.map((item, index) => (
             <h2
               key={index}
@@ -84,21 +115,20 @@ const SideNavBottom = ({onFileCreate,Files,isCreating,newFileDialogOpen,setNewFi
             </h2>
           ))}
           {/* add new file button */}
-          <Dialog open={isDialogOpen} onOpenChange={handleDialogChange}>
-  <DialogTrigger className='w-full' asChild>
-  <Button 
-    className='mt-3 w-full bg-blue-600 dark:bg-blue-500 justify-start hover:bg-blue-700 dark:hover:bg-blue-400 text-white'
-    disabled={isCreating}
-    data-testid="add-new-file-button"
-  >
-    {isCreating ? (
-      <LoadingSpinner size="sm" text="Creating..." />
-    ) : (
-      'Add New File'
-    )}
-  </Button>
-
-  </DialogTrigger>
+          <Button 
+            className='mt-3 w-full bg-blue-600 dark:bg-blue-500 justify-start hover:bg-blue-700 dark:hover:bg-blue-400 text-white'
+            disabled={isCreating}
+            data-testid="add-new-file-button"
+            onClick={() => setNewFileDialogOpen(true)}
+          >
+            {isCreating ? (
+              <LoadingSpinner size="sm" text="Creating..." />
+            ) : (
+              'Add New File'
+            )}
+          </Button>
+          
+          <Dialog open={newFileDialogOpen} onOpenChange={handleDialogChange}>
   <DialogContent>
     <DialogHeader>
       <DialogTitle className="text-gray-900 dark:text-gray-100">Create New File</DialogTitle>

@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import EditorJS from "@editorjs/editorjs";
 // @ts-ignore
 import List from "@editorjs/list";
@@ -37,54 +37,17 @@ const rawData = {
   version: "2.8.1",
 };
 
-const Editor = ({ onSaveTrigger, fileId, fileData }: {onSaveTrigger:any,fileId:any,fileData:FILE}) => {
+const Editor = ({ onSaveTrigger, fileId, fileData, triggerSave, readOnly }: {
+  onSaveTrigger?: any,
+  fileId: any,
+  fileData: FILE,
+  triggerSave?: number,
+  readOnly?: boolean
+}) => {
   const updateDocument = useMutation(api.files.putFile);
   const ref = useRef<EditorJS>();
   const [document, setDocument] = useState(rawData);
-  useEffect(() => {
-    
-   fileData&&initEditor();
-  }, [fileData]);
-
-  useEffect(() => {
-    console.log(onSaveTrigger);
-    onSaveTrigger && onSaveDocument();
-  }, [onSaveTrigger]);
-
-  const initEditor = () => {
-    const editor = new EditorJS({
-      /**
-       * Id of Element that should contain Editor instance
-       */
-      tools: {
-        header: {
-          class: Header,
-          config: {
-            placeholder: "Enter a header",
-            levels: [2, 3, 4],
-            defaultLevel: 3,
-          },
-          shortcut: "CMD+SHIFT+H",
-        },
-        list: {
-          class: List,
-          inlineToolbar: true,
-          config: {
-            defaultStyle: "unordered",
-          },
-        },
-        checklist: {
-          class: Checklist,
-          inlineToolbar: true,
-        },
-      },
-      holder: "editorjs",
-      data: fileData.document?JSON.parse(fileData?.document):rawData,
-    });
-    ref.current = editor;
-  };
-
-  const onSaveDocument = () => {
+  const onSaveDocument = useCallback(() => {
     if (ref.current) {
       ref.current
         .save()
@@ -103,6 +66,58 @@ const Editor = ({ onSaveTrigger, fileId, fileData }: {onSaveTrigger:any,fileId:a
           console.log("Saving failed: ", error);
         });
     }
+  }, [updateDocument, fileId]);
+
+  useEffect(() => {
+    
+   fileData&&initEditor();
+  }, [fileData]);
+
+  useEffect(() => {
+    console.log(onSaveTrigger);
+    if (onSaveTrigger) {
+      onSaveDocument();
+    }
+  }, [onSaveTrigger, onSaveDocument]);
+
+  useEffect(() => {
+    if (triggerSave && triggerSave > 0 && !readOnly) {
+      onSaveDocument();
+    }
+  }, [triggerSave, onSaveDocument, readOnly]);
+
+  const initEditor = () => {
+    const editor = new EditorJS({
+      /**
+       * Id of Element that should contain Editor instance
+       */
+      tools: {
+        header: {
+          class: Header,
+          config: {
+            placeholder: readOnly ? "" : "Enter a header",
+            levels: [2, 3, 4],
+            defaultLevel: 3,
+          },
+          shortcut: readOnly ? undefined : "CMD+SHIFT+H",
+        },
+        list: {
+          class: List,
+          inlineToolbar: !readOnly,
+          config: {
+            defaultStyle: "unordered",
+          },
+        },
+        checklist: {
+          class: Checklist,
+          inlineToolbar: !readOnly,
+        },
+      },
+      holder: "editorjs",
+      data: fileData.document?JSON.parse(fileData?.document):rawData,
+      readOnly: readOnly || false,
+    });
+    ref.current = editor;
   };
 
   return (

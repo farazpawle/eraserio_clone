@@ -6,35 +6,33 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useState, useCallback } from "react";
 import SideNav from "./_components/SideNav";
 import { FileListContext } from "../_context/FileListContext";
+import { FileManagementProvider, useFileManagement } from "../_context/FileManagementContext";
 import { useKeyboardShortcutsContext } from "../_context/KeyboardShortcutsContext";
 import { SHORTCUT_CATEGORIES } from "../_hooks/useKeyboardShortcuts";
+import { TeamProvider } from "../_context/TeamContext";
 
-const DashboardLayout = ({
-  children,
-}: Readonly<{ children: React.ReactNode }>) => {
-  const { user }: any = useKindeBrowserClient();
-  const convex = useConvex();
-  const router = useRouter();
-  const [FileList_,setFileList_]=useState();
+// Inner component that can use the FileManagement context
+const DashboardContent = ({ children, user, convex, router, FileList_, setFileList_ }: any) => {
+  const { openNewFileDialog } = useFileManagement();
   const {
     registerShortcuts,
     unregisterShortcuts,
     shortcutConfigs,
   } = useKeyboardShortcutsContext();
-  const [newFileDialogOpen, setNewFileDialogOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   useEffect(() => {
     user && checkTeam();
   }, [user]);
 
-  // Handle new file creation
+  // Handle new file creation using context
   const handleNewFile = useCallback(() => {
-    // Trigger new file creation
-    setNewFileDialogOpen(true);
-    // Find and click the "Add New File" button
-    const addFileButton = document.querySelector('[data-testid="add-new-file-button"]') as HTMLButtonElement;
-    if (addFileButton) {
-      addFileButton.click();
-    }
+    openNewFileDialog();
+  }, [openNewFileDialog]);
+
+  // Handle sidebar toggle
+  const handleSidebarToggle = useCallback(() => {
+    setSidebarCollapsed(prev => !prev);
   }, []);
 
   // Register dashboard-specific shortcuts
@@ -62,6 +60,7 @@ const DashboardLayout = ({
       unregisterShortcuts();
     };
   }, [registerShortcuts, unregisterShortcuts, handleNewFile, shortcutConfigs]);
+
   const checkTeam = async () => {
     const result = await convex.query(api.teams.getTeam, {
       email: user?.email,
@@ -70,17 +69,49 @@ const DashboardLayout = ({
       router.push("teams/create");
     }
   };
+
+  return (
+    <div className="flex">
+      <div className={`h-screen fixed transition-all duration-300 ease-in-out ${
+        sidebarCollapsed ? 'w-16' : 'w-72'
+      }`}>
+        <SideNav 
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={handleSidebarToggle}
+        />
+      </div>
+      <div className={`flex-1 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out ${
+        sidebarCollapsed ? 'ml-16' : 'ml-72'
+      }`}>
+        {children}
+      </div>
+    </div>
+  );
+};
+
+const DashboardLayout = ({
+  children,
+}: Readonly<{ children: React.ReactNode }>) => {
+  const { user }: any = useKindeBrowserClient();
+  const convex = useConvex();
+  const router = useRouter();
+  const [FileList_,setFileList_]=useState();
   return (
     <div className="bg-white dark:bg-gray-900 min-h-screen">
       <FileListContext.Provider value={{FileList_,setFileList_}}>
-      <div className="grid grid-cols-4">
-        <div className='h-screen w-72 fixed'>
-          <SideNav newFileDialogOpen={newFileDialogOpen} setNewFileDialogOpen={setNewFileDialogOpen} />
-        </div>
-        <div className="col-span-4 ml-72 bg-white dark:bg-gray-900">
-            {children}
-        </div>
-      </div>
+        <TeamProvider>
+          <FileManagementProvider>
+            <DashboardContent 
+              user={user}
+              convex={convex}
+              router={router}
+              FileList_={FileList_}
+              setFileList_={setFileList_}
+            >
+              {children}
+            </DashboardContent>
+          </FileManagementProvider>
+        </TeamProvider>
       </FileListContext.Provider>
     </div>
   );

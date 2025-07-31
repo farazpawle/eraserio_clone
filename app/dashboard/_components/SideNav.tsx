@@ -8,15 +8,19 @@ import { toast } from "sonner";
 import { FileListContext } from "@/app/_context/FileListContext";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { ProgressIndicator } from "@/components/ui/progress-indicator";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useTeam } from "@/app/_context/TeamContext";
 interface SideNavProps {
-  newFileDialogOpen?: boolean;
-  setNewFileDialogOpen?: (open: boolean) => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-const SideNav = ({ newFileDialogOpen, setNewFileDialogOpen }: SideNavProps) => {
+const SideNav = ({ isCollapsed = false, onToggleCollapse }: SideNavProps) => {
   const createFile = useMutation(api.files.createFile);
   const { user } = useKindeBrowserClient();
-  const [activeTeam, setActiveTeam] = useState<TEAM>();
+  const { activeTeam, setActiveTeam } = useTeam();
   const convex = useConvex();
   const [Files, setFiles] = useState<Number>();
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
@@ -87,22 +91,43 @@ const SideNav = ({ newFileDialogOpen, setNewFileDialogOpen }: SideNavProps) => {
     }
   };
   return (
-    <div className="h-screen fixed flex flex-col w-72 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6">
+    <div className={cn(
+      "h-screen fixed flex flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-all duration-300 ease-in-out",
+      isCollapsed ? "w-16 p-2" : "w-72 p-6"
+    )}>
+      {/* Toggle Button */}
+      <div className="flex justify-end mb-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onToggleCollapse}
+          className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700"
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+
       <div className="flex-1">
         <SideNavTop
           user={user}
-          setActiveTeamInfo={(activeTeam: TEAM) => setActiveTeam(activeTeam)}
+          setActiveTeamInfo={setActiveTeam}
+          isCollapsed={isCollapsed}
         />
         
         {/* Loading indicator for files */}
-        {isLoadingFiles && (
+        {!isCollapsed && isLoadingFiles && (
           <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <LoadingSpinner size="sm" text="Loading files..." />
           </div>
         )}
         
         {/* File creation status */}
-        {createFileStatus !== 'idle' && (
+        {!isCollapsed && createFileStatus !== 'idle' && (
           <div className="mt-4">
             <ProgressIndicator 
               status={createFileStatus}
@@ -115,15 +140,16 @@ const SideNav = ({ newFileDialogOpen, setNewFileDialogOpen }: SideNavProps) => {
           </div>
         )}
       </div>
-      <div>
-        <SideNavBottom 
-          Files={Files} 
-          onFileCreate={onFileCreate}
-          isCreating={createFileStatus === 'loading'}
-          newFileDialogOpen={newFileDialogOpen}
-          setNewFileDialogOpen={setNewFileDialogOpen}
-        />
-      </div>
+      
+      {!isCollapsed && (
+        <div>
+          <SideNavBottom 
+            Files={Files} 
+            onFileCreate={onFileCreate}
+            isCreating={createFileStatus === 'loading'}
+          />
+        </div>
+      )}
     </div>
   );
 };

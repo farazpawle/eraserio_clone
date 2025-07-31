@@ -158,7 +158,7 @@ describe('Export Utils', () => {
     it('should export document to PDF successfully', async () => {
       const mockProgress = jest.fn();
       const result = await exportDocumentToPDF(
-        mockDocumentFile.document,
+        mockDocumentFile.document!,
         'test-doc',
         mockProgress
       );
@@ -186,7 +186,7 @@ describe('Export Utils', () => {
     it('should call progress callback with correct values', async () => {
       const mockProgress = jest.fn();
       await exportDocumentToPDF(
-        mockDocumentFile.document,
+        mockDocumentFile.document!,
         'test-doc',
         mockProgress
       );

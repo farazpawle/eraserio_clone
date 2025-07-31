@@ -15,6 +15,8 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as files from "../files.js";
+import type * as fileShares from "../fileShares.js";
+import type * as teamInvitations from "../teamInvitations.js";
 import type * as teams from "../teams.js";
 import type * as user from "../user.js";
 import type * as userSettings from "../userSettings.js";
@@ -29,6 +31,8 @@ import type * as userSettings from "../userSettings.js";
  */
 declare const fullApi: ApiFromModules<{
   files: typeof files;
+  fileShares: typeof fileShares;
+  teamInvitations: typeof teamInvitations;
   teams: typeof teams;
   user: typeof user;
   userSettings: typeof userSettings;

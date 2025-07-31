@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Excalidraw, MainMenu, WelcomeScreen, exportToCanvas, exportToSvg } from "@excalidraw/excalidraw";
 import { FILE } from "@/app/dashboard/_components/FileList";
 import { useMutation } from "convex/react";
@@ -24,19 +24,22 @@ const WSCanvas = ({
   onSaveTrigger,
   fileId,
   fileData,
+  triggerSave,
+  readOnly,
 }: {
-  onSaveTrigger: any;
+  onSaveTrigger?: any;
   fileId: any;
   fileData: FILE;
+  triggerSave?: number;
+  readOnly?: boolean;
 }) => {
   const { actualTheme } = useTheme();
   const updateWhiteBoard = useMutation(api.files.putWhiteboard);
   const [savedCanvasdata, setsavedCanvasData] = useState<any>();
   const [isLoading, setIsLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const saveWhiteBoard = () => {
+  const saveWhiteBoard = useCallback(() => {
     if (!savedCanvasdata) return;
     
     setSaveStatus('loading');
@@ -65,11 +68,11 @@ const WSCanvas = ({
         setSaveStatus('idle');
       }, 3000);
     });
-  };
+  }, [savedCanvasdata, updateWhiteBoard, fileId]);
 
   // Export canvas to PNG
   const exportToPNG = async () => {
-    if (!excalidrawAPI || !savedCanvasdata) {
+    if (!savedCanvasdata) {
       toast.error('Canvas not ready for export');
       return;
     }
@@ -80,8 +83,8 @@ const WSCanvas = ({
 
       const canvas = await exportToCanvas({
         elements: savedCanvasdata,
-        appState: excalidrawAPI.getAppState(),
-        files: excalidrawAPI.getFiles(),
+        appState: {},
+        files: {},
         getDimensions: () => ({ width: 1920, height: 1080 })
       });
 
@@ -113,7 +116,7 @@ const WSCanvas = ({
 
   // Export canvas to SVG
   const exportToSVG = async () => {
-    if (!excalidrawAPI || !savedCanvasdata) {
+    if (!savedCanvasdata) {
       toast.error('Canvas not ready for export');
       return;
     }
@@ -124,8 +127,8 @@ const WSCanvas = ({
 
       const svg = await exportToSvg({
         elements: savedCanvasdata,
-        appState: excalidrawAPI.getAppState(),
-        files: excalidrawAPI.getFiles(),
+        appState: {},
+        files: {},
       });
 
       // Convert SVG to blob and download
@@ -149,8 +152,16 @@ const WSCanvas = ({
     }
   };
   useEffect(() => {
-    onSaveTrigger && saveWhiteBoard();
-  }, [onSaveTrigger]);
+    if (onSaveTrigger) {
+      saveWhiteBoard();
+    }
+  }, [onSaveTrigger, saveWhiteBoard]);
+
+  useEffect(() => {
+    if (triggerSave && triggerSave > 0 && !readOnly) {
+      saveWhiteBoard();
+    }
+  }, [triggerSave, saveWhiteBoard, readOnly]);
   
   useEffect(() => {
     if (fileData) {
@@ -184,8 +195,9 @@ const WSCanvas = ({
         </div>
       )}
 
-      {/* Export dropdown */}
+      {/* Export Toolbar */}
       <div className="absolute top-4 left-4 z-50">
+        {/* Export dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -220,6 +232,7 @@ const WSCanvas = ({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
       
       <div className="h-full">
         <Excalidraw
@@ -227,15 +240,17 @@ const WSCanvas = ({
           initialData={{
             elements: fileData?.whiteboard ? JSON.parse(fileData.whiteboard) : []
           }}
-          excalidrawAPI={(api) => setExcalidrawAPI(api)}
-          onChange={(excalidrawElements, appState, files) =>
-            setsavedCanvasData(excalidrawElements)
-          }
+          onChange={(excalidrawElements, appState, files) => {
+            if (!readOnly) {
+              setsavedCanvasData(excalidrawElements);
+            }
+          }}
+          viewModeEnabled={readOnly || false}
           UIOptions={{
             canvasActions: {
               saveToActiveFile: false,
               loadScene: false,
-              export: false,
+              export: readOnly ? false : undefined,
               toggleTheme: false,
             },
           }}

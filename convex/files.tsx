@@ -38,7 +38,10 @@ export const putFile = mutation({
     document: v.string(),
   },
   handler: async (ctx, args) => {
-    const result = await ctx.db.patch(args._id, { document: args.document });
+    const result = await ctx.db.patch(args._id, { 
+      document: args.document,
+      lastModified: Date.now()
+    });
     return result;
   },
 });
@@ -49,7 +52,10 @@ export const putWhiteboard = mutation({
     whiteboard: v.string(),
   },
   handler: async (ctx, args) => {
-    const result = await ctx.db.patch(args._id, { whiteboard: args.whiteboard });
+    const result = await ctx.db.patch(args._id, { 
+      whiteboard: args.whiteboard,
+      lastModified: Date.now()
+    });
     return result;
   },
 });
@@ -80,7 +86,10 @@ export const renameFile = mutation({
     fileName: v.string(),
   },
   handler: async (ctx, args) => {
-    const result = await ctx.db.patch(args._id, { fileName: args.fileName });
+    const result = await ctx.db.patch(args._id, { 
+      fileName: args.fileName,
+      lastModified: Date.now()
+    });
     return result;
   },
 });

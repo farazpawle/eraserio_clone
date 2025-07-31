@@ -23,7 +23,7 @@ export interface TEAM {
   _id: string;
 }
 
-const SideNavTop = ({ user,setActiveTeamInfo }: any) => {
+const SideNavTop = ({ user, setActiveTeamInfo, isCollapsed = false }: any) => {
     const router=useRouter();
     const { actualTheme } = useTheme();
     const { openSettings } = useKeyboardShortcutsContext();
@@ -88,20 +88,26 @@ const SideNavTop = ({ user,setActiveTeamInfo }: any) => {
     <div>
 <Popover>
       <PopoverTrigger>
-        <div className="flex items-center gap-3 hover:bg-slate-200 dark:hover:bg-gray-700 p-3 rounded-lg cursor-pointer">
-          <div className="m-2 flex items-center justify-center w-[50px] h-[50px] bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+        <div className={`flex items-center gap-3 hover:bg-slate-200 dark:hover:bg-gray-700 p-3 rounded-lg cursor-pointer ${
+          isCollapsed ? 'justify-center' : ''
+        }`}>
+          <div className={`flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 ${
+            isCollapsed ? 'w-8 h-8 m-0' : 'w-[50px] h-[50px] m-2'
+          }`}>
             <Image
               src={actualTheme === 'dark' ? "/logo-1.svg" : "/logo-black-_1_.svg"}
-              width={40}
-              height={40}
+              width={isCollapsed ? 20 : 40}
+              height={isCollapsed ? 20 : 40}
               alt="logo"
               className="filter dark:invert"
             />
           </div>
-          <h2 className="flex gap-2 items-center font-bold text-[13px] text-gray-900 dark:text-gray-100">
-            {activeTeam?.teamName}
-            <ChevronDown className="text-gray-600 dark:text-gray-400" />
-          </h2>
+          {!isCollapsed && (
+            <h2 className="flex gap-2 items-center font-bold text-[13px] text-gray-900 dark:text-gray-100">
+              {activeTeam?.teamName}
+              <ChevronDown className="text-gray-600 dark:text-gray-400" />
+            </h2>
+          )}
         </div>
       </PopoverTrigger>
       <PopoverContent className="ml-7 p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
@@ -177,9 +183,12 @@ const SideNavTop = ({ user,setActiveTeamInfo }: any) => {
     </Popover>
     {/* All files section */}
     <Button variant='outline'
-    className="w-full justify-start gap-2 font-bold mt-8 bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700">
+    className={`w-full font-bold mt-8 bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700 ${
+      isCollapsed ? 'justify-center p-2' : 'justify-start gap-2'
+    }`}
+    title={isCollapsed ? 'All Files' : undefined}>
         <LayoutGrid className="h-5 w-5"/>
-        All Files
+        {!isCollapsed && 'All Files'}
     </Button>
     </div>
     

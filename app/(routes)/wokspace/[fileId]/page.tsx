@@ -6,34 +6,55 @@ import { useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { FILE } from "@/app/dashboard/_components/FileList";
 import WSCanvas from "../_components/WSCanvas";
+import { ResizablePane } from "@/components/ui/resizable-pane";
 import { useKeyboardShortcutsContext } from "@/app/_context/KeyboardShortcutsContext";
 import { SHORTCUT_CATEGORIES } from "@/app/_hooks/useKeyboardShortcuts";
 import { toast } from "sonner";
-// import ResizablePane from "@/components/ui/resizable-pane";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Skeleton } from "@/components/ui/skeleton";
+
 const Workspace = ({ params }: any) => {
   const convex = useConvex();
   const [triggerSave, settriggerSave] = useState(false);
   const [fileData, setFileData] = useState<FILE | any>();
   const [leftWidth, setLeftWidth] = useState(50);
-  const [isDragging, setIsDragging] = useState(false);
-  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [isLoadingFile, setIsLoadingFile] = useState(true);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
   const {
     registerShortcuts,
     unregisterShortcuts,
     shortcutConfigs,
   } = useKeyboardShortcutsContext();
   
-  const getFileData = useCallback(async () => {
-    const result = await convex.query(api.files.getFileData, {
-      _id: params.fileId,
-    });
-    setFileData(result);
-    console.log(result);
-  }, [convex, params.fileId]);
-
   useEffect(() => {
-    params.fileId && getFileData();
-  }, [params.fileId, getFileData]);
+    const getFileData = async () => {
+      if (params.fileId) {
+        setIsLoadingFile(true);
+        setLoadingError(null);
+        try {
+          const result = await convex.query(api.files.getFileData, {
+            _id: params.fileId,
+          });
+          
+          if (!result) {
+            setLoadingError('File not found or you don\'t have permission to access it.');
+            return;
+          }
+          
+          setFileData(result);
+          console.log(result);
+        } catch (error) {
+          console.error('Error fetching file data:', error);
+          setLoadingError('Failed to load file. Please try again.');
+          toast.error('Failed to load file');
+        } finally {
+          setIsLoadingFile(false);
+        }
+      }
+    };
+
+    getFileData();
+  }, [convex, params.fileId]); // Proper dependencies without causing infinite loop
 
   // Handle save action
   const handleSave = useCallback(() => {
@@ -66,74 +87,130 @@ const Workspace = ({ params }: any) => {
     };
   }, [registerShortcuts, unregisterShortcuts, handleSave, shortcutConfigs]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleMouseMove = React.useCallback(
-    (e: MouseEvent) => {
-      if (!isDragging || !containerRef.current) return;
-
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const containerWidth = containerRect.width;
-      const mouseX = e.clientX - containerRect.left;
-      
-      const newLeftWidth = Math.min(
-        Math.max((mouseX / containerWidth) * 100, 25),
-        75
-      );
-
-      setLeftWidth(newLeftWidth);
-    },
-    [isDragging]
-  );
-
-  const handleMouseUp = React.useCallback(() => {
-    setIsDragging(false);
+  // Handle resize callback from ResizablePane
+  const handleResize = useCallback((newLeftWidth: number) => {
+    setLeftWidth(newLeftWidth);
   }, []);
+  // Show loading state while fetching file data
+  if (isLoadingFile) {
+    return (
+      <div className="h-screen bg-white dark:bg-gray-900">
+        {/* Header skeleton */}
+        <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex justify-between items-center">
+          <div className="flex gap-2 items-center">
+            <Skeleton className="h-10 w-10 rounded" />
+            <Skeleton className="h-6 w-48" />
+          </div>
+          <div className="flex gap-4 items-center">
+            <Skeleton className="h-8 w-8 rounded" />
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-8 w-16" />
+          </div>
+        </div>
+        
+        {/* Main loading content */}
+        <div className="h-[calc(100vh-73px)] flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+          <div className="text-center space-y-4">
+            <LoadingSpinner size="lg" />
+            <div className="space-y-2">
+              <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
+                Loading your workspace...
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Please wait while we fetch your file data
+              </p>
+            </div>
+            
+            {/* Skeleton representation of workspace */}
+            <div className="mt-8 flex gap-4 max-w-4xl">
+              <div className="flex-1 space-y-4">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-32 w-full" />
+              </div>
+              <div className="w-1 bg-gray-300 dark:bg-gray-600" />
+              <div className="flex-1 space-y-4">
+                <div className="flex justify-center space-x-2">
+                  <Skeleton className="h-8 w-8 rounded" />
+                  <Skeleton className="h-8 w-8 rounded" />
+                  <Skeleton className="h-8 w-8 rounded" />
+                  <Skeleton className="h-8 w-8 rounded" />
+                </div>
+                <Skeleton className="h-48 w-full rounded-lg" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show error state if file loading failed
+  if (loadingError) {
+    return (
+      <div className="h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="text-red-500 dark:text-red-400">
+            <svg className="h-16 w-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            Failed to Load File
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            {loadingError}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => window.history.back()}
+              className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  React.useEffect(() => {
-    if (isDragging) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-
-      return () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-      };
-    }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
   return (
     <div>
       <WSHeader onSave={handleSave} fileName={fileData?.fileName} fileData={fileData} />
-      {/* workspace layout */}
-      <div ref={containerRef} className="flex h-[calc(100vh-73px)]">
-        {/* document */}
-        <div className="h-full" style={{ width: `${leftWidth}%` }}>
-          <Editor
-            fileData={fileData}
-            fileId={params.fileId}
-            onSaveTrigger={triggerSave}
-          />
-        </div>
-        {/* resizer */}
-        <div
-          className="w-1 bg-gray-300 hover:bg-gray-400 cursor-col-resize flex-shrink-0"
-          onMouseDown={handleMouseDown}
+      {/* Enhanced workspace layout with ResizablePane */}
+      <div className="h-[calc(100vh-73px)]">
+        <ResizablePane
+          leftPanel={
+            <Editor
+              fileData={fileData}
+              fileId={params.fileId}
+              onSaveTrigger={triggerSave}
+            />
+          }
+          rightPanel={
+            <WSCanvas 
+              onSaveTrigger={triggerSave}
+              fileData={fileData}
+              fileId={params.fileId}
+            />
+          }
+          initialLeftWidth={leftWidth}
+          minLeftWidth={20}
+          maxLeftWidth={80}
+          snapPoints={[25, 33, 50, 67, 75]}
+          snapThreshold={3}
+          showSnapIndicators={true}
+          onResize={handleResize}
+          className="bg-gray-50 dark:bg-gray-900"
+          resizerClassName="hover:bg-blue-400 dark:hover:bg-blue-500"
         />
-        {/* whiteboard canvas */}
-        <div className="h-full border-l" style={{ width: `${100 - leftWidth}%` }}>
-          <WSCanvas 
-            onSaveTrigger={triggerSave}
-            fileData={fileData}
-            fileId={params.fileId}
-          />
-        </div>
       </div>
     </div>
   );

@@ -268,6 +268,12 @@ export const exportFile = async (
     onProgress?.(0, 'Starting export...');
     
     if (fileType === 'document' && format === 'pdf') {
+      if (!file.document) {
+        return {
+          success: false,
+          error: 'Document content is not available for export'
+        };
+      }
       return await exportDocumentToPDF(file.document, fileName, onProgress);
     } else if (fileType === 'canvas' && (format === 'png' || format === 'svg')) {
       // Canvas exports will be handled by the Excalidraw component

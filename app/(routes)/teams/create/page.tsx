@@ -54,7 +54,7 @@ const {user}:any=useKindeBrowserClient()
           <Button
             onClick={() => {createNewTeam()}}
             disabled={!(teamName && teamName?.length > 0)}
-            className="bg-blue-500 hover:bg-blue-700 flex-1"
+            className="bg-blue-500 hover:bg-blue-700 text-white dark:text-white flex-1"
           >
             Create team
           </Button>
