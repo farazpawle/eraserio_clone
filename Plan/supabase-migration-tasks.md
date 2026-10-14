@@ -10,14 +10,19 @@ Updated: 2026-10-14
 
 # Tasks — Supabase migration Phase 1
 
+## Recorded versions (task 0.6, 2026-10-14)
+
+- next 14.2.3 · @excalidraw/excalidraw ^0.17.6 · react ^18 · node v24.21.0 (local)
+- VPS `main`: GoTrue v2.189.0 · Realtime v2.102.3 · Postgres 15.8.1.085 · Kong 2.8.1
+
 ## Stage 0 — Safety and git hygiene
 
-- [ ] 0.1 Create branch `feat/supabase-migration` from `main`.
-- [ ] 0.2 Add `.env`, `.env.*` (except `.env.example`), `.vscode/memories.db` and `script.ps1` to `.gitignore`.
-- [ ] 0.3 Stop tracking `.env` (`git rm --cached .env`), keeping the local file.
-- [ ] 0.4 Commit the current modified + untracked work as a snapshot; review the staged list first so no secret file is included.
+- [x] 0.1 Create branch `feat/supabase-migration` from `main`.
+- [x] 0.2 Add `.env`, `.env.*` (except `.env.example`), `.vscode/memories.db` and `script.ps1` to `.gitignore`.
+- [x] 0.3 Stop tracking `.env` (`git rm --cached .env`), keeping the local file.
+- [x] 0.4 Commit the current modified + untracked work as a snapshot; review the staged list first so no secret file is included.
 - [ ] 0.5 [User] In the Kinde dashboard, delete the app (or rotate its client secret) — its real secret is in the public GitHub repo history (commit `726ccf3`); only you can log in to Kinde.
-- [ ] 0.6 Record installed versions (`next`, `@excalidraw/excalidraw`, VPS GoTrue / Realtime / Postgres / Kong) at the top of this file.
+- [x] 0.6 Record installed versions (`next`, `@excalidraw/excalidraw`, VPS GoTrue / Realtime / Postgres / Kong) at the top of this file.
 
 **Verify:** `git status` clean on the branch; `git ls-files | grep -i env` shows nothing but `.env.example` (if any); `script.ps1` not committed.
 
