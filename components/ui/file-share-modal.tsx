@@ -71,6 +71,12 @@ const FileShareModal = ({ isOpen, onClose, file }: FileShareModalProps) => {
   const [isLoading, setIsLoading] = useState(false)
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
 
+  // Email validation function
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    return emailRegex.test(email.trim())
+  }
+
   // Mutations
   const createFileShare = useMutation(api.fileShares.createFileShare)
   const createPublicShareLink = useMutation(api.fileShares.createPublicShareLink)
@@ -87,6 +93,11 @@ const FileShareModal = ({ isOpen, onClose, file }: FileShareModalProps) => {
   const handleCreateShare = async () => {
     if (shareType === 'private' && !email.trim()) {
       toast.error('Please enter an email address for private sharing')
+      return
+    }
+
+    if (shareType === 'private' && !isValidEmail(email)) {
+      toast.error('Please enter a valid email address')
       return
     }
 
@@ -317,7 +328,7 @@ const FileShareModal = ({ isOpen, onClose, file }: FileShareModalProps) => {
 
             <Button 
               onClick={handleCreateShare} 
-              disabled={isLoading || (shareType === 'private' && !email.trim())}
+              disabled={isLoading || (shareType === 'private' && (!email.trim() || !isValidEmail(email)))}
               className="w-full"
             >
               {isLoading ? (

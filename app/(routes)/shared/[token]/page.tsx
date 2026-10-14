@@ -32,13 +32,13 @@ const SharedFilePage = () => {
       // Share is expired
       toast.error("This share link has expired");
     } else if (shareData && 'file' in shareData && shareData.file) {
-      // Set read-only based on permissions
+      // Set read-only based on permissions - allow editing for 'edit' and 'comment' permissions
       setIsReadOnly(shareData.permissions === 'view');
       
       if (shareData.permissions === 'edit') {
         toast.success("You have edit access to this file");
       } else if (shareData.permissions === 'comment') {
-        toast.info("You have comment access to this file");
+        toast.info("You have comment and edit access to this file");
       } else {
         toast.info("You have view-only access to this file");
       }

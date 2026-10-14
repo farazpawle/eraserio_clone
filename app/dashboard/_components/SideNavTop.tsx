@@ -113,6 +113,7 @@ const SideNavTop = ({ user, setActiveTeamInfo, isCollapsed = false }: any) => {
       <PopoverContent className="ml-7 p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         {/* team section */}
         <div>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Teams</h3>
           {teamNames?.map((item, index) => (
             <div key={index} className="flex items-center justify-between group mb-1">
               <h2
@@ -181,14 +182,14 @@ const SideNavTop = ({ user, setActiveTeamInfo, isCollapsed = false }: any) => {
         )}
       </PopoverContent>
     </Popover>
-    {/* All files section */}
+    {/* All projects section */}
     <Button variant='outline'
     className={`w-full font-bold mt-8 bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700 ${
       isCollapsed ? 'justify-center p-2' : 'justify-start gap-2'
     }`}
-    title={isCollapsed ? 'All Files' : undefined}>
+    title={isCollapsed ? 'All Projects' : undefined}>
         <LayoutGrid className="h-5 w-5"/>
-        {!isCollapsed && 'All Files'}
+        {!isCollapsed && 'All Projects'}
     </Button>
     </div>
     

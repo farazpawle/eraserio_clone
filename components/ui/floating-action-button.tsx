@@ -32,9 +32,9 @@ interface FloatingActionButtonProps {
 const defaultItems: FloatingActionItem[] = [
   {
     id: 'new-file',
-    label: 'New File',
+    label: 'New Project',
     icon: FileText,
-    onClick: () => console.log('New file'),
+    onClick: () => console.log('New project'),
   },
   {
     id: 'new-canvas',

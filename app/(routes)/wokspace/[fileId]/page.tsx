@@ -12,6 +12,8 @@ import { SHORTCUT_CATEGORIES } from "@/app/_hooks/useKeyboardShortcuts";
 import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import useWorkspaceCollaboration from "@/hooks/useWorkspaceCollaboration";
+import WorkspaceNotificationBar from "@/components/ui/workspace-notification-bar";
 
 const Workspace = ({ params }: any) => {
   const convex = useConvex();
@@ -25,6 +27,13 @@ const Workspace = ({ params }: any) => {
     unregisterShortcuts,
     shortcutConfigs,
   } = useKeyboardShortcutsContext();
+
+  // Initialize workspace collaboration
+  const collaboration = useWorkspaceCollaboration({
+    fileId: params.fileId,
+    fileData: fileData,
+    enabled: !!fileData && !loadingError
+  });
   
   useEffect(() => {
     const getFileData = async () => {
@@ -184,6 +193,16 @@ const Workspace = ({ params }: any) => {
   return (
     <div>
       <WSHeader onSave={handleSave} fileName={fileData?.fileName} fileData={fileData} />
+      
+      {/* Collaboration Notification Bar */}
+      <WorkspaceNotificationBar
+        pendingConflicts={collaboration.pendingConflicts}
+        notifications={collaboration.notifications}
+        unreadCount={collaboration.unreadNotifications}
+        onResolveConflict={collaboration.handleResolveConflict}
+        onAutoResolveConflict={collaboration.handleAutoResolveConflict}
+      />
+      
       {/* Enhanced workspace layout with ResizablePane */}
       <div className="h-[calc(100vh-73px)]">
         <ResizablePane

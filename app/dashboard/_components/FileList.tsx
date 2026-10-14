@@ -3,7 +3,7 @@ import { useFileManagement } from "@/app/_context/FileManagementContext";
 import React, { useContext, useEffect, useState, useMemo } from "react";
 import moment from "moment";
 import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
-import { Archive, MoreHorizontal, Trash2, Edit, Download, Grid3X3, List, CheckSquare, Square, Plus } from "lucide-react";
+import { Archive, MoreHorizontal, Trash2, Edit, Download, Grid3X3, List, CheckSquare, Square, Plus, Share } from "lucide-react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import { FileCard } from "@/components/ui/file-card";
 import { BulkActionsToolbar } from "@/components/ui/bulk-actions-toolbar";
 import { cn } from "@/lib/utils";
 import { useDragAndDrop } from "@/app/_hooks/useDragAndDrop";
+import FileShareModal from "@/components/ui/file-share-modal";
 
 export interface FILE {
   archive?: boolean;
@@ -76,6 +77,8 @@ const FileList = ({}: FileListProps = {}) => {
   const [deleteProgress, setDeleteProgress] = useState<{[key: string]: 'loading' | 'success' | 'error' | 'idle'}>({});
   const [renameProgress, setRenameProgress] = useState<{[key: string]: 'loading' | 'success' | 'error' | 'idle'}>({});
   const [navigatingFileId, setNavigatingFileId] = useState<string | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [fileToShare, setFileToShare] = useState<FILE | null>(null);
   
   // Drag and drop functionality
   const {
@@ -136,6 +139,11 @@ const FileList = ({}: FileListProps = {}) => {
      setRenamingFileId(fileId);
      setNewFileName(currentFileName);
      setIsRenaming(true);
+   };
+
+   const handleShareFile = (file: FILE) => {
+     setFileToShare(file);
+     setShareModalOpen(true);
    };
 
    // Bulk operations
@@ -310,6 +318,7 @@ const FileList = ({}: FileListProps = {}) => {
               file={file}
               onRename={handleRenameFile}
               onDelete={handleDeleteFile}
+              onShare={handleShareFile}
               deleteProgress={deleteProgress}
               renameProgress={renameProgress}
               // Drag and drop props
@@ -354,7 +363,7 @@ const FileList = ({}: FileListProps = {}) => {
                   </td>
                 )}
                 <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-900 dark:text-gray-100">
-                  File Name
+                  Project Name
                 </td>
                 <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-900 dark:text-gray-100">
                   Created At
@@ -473,6 +482,16 @@ const FileList = ({}: FileListProps = {}) => {
                         >
                           <Edit className="h-4 w-4"/>Rename
                         </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="gap-2" 
+                          disabled={isProcessing}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShareFile(file);
+                          }}
+                        >
+                          <Share className="h-4 w-4"/>Share
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <div className="px-1">
                           <ExportDropdown 
@@ -512,9 +531,9 @@ const FileList = ({}: FileListProps = {}) => {
       <Dialog open={isRenaming} onOpenChange={setIsRenaming}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rename File</DialogTitle>
+            <DialogTitle>Rename Project</DialogTitle>
             <DialogDescription>
-              Enter a new name for your file.
+              Enter a new name for your project.
             </DialogDescription>
           </DialogHeader>
           
@@ -522,7 +541,7 @@ const FileList = ({}: FileListProps = {}) => {
           {renamingFileId && renameProgress[renamingFileId] === 'loading' && (
             <ProgressIndicator 
               status="loading" 
-              message="Renaming file..." 
+              message="Renaming project..." 
               className="mb-4"
             />
           )}
@@ -530,7 +549,7 @@ const FileList = ({}: FileListProps = {}) => {
           {renamingFileId && renameProgress[renamingFileId] === 'success' && (
             <ProgressIndicator 
               status="success" 
-              message="File renamed successfully!" 
+              message="Project renamed successfully!" 
               className="mb-4"
             />
           )}
@@ -538,7 +557,7 @@ const FileList = ({}: FileListProps = {}) => {
           {renamingFileId && renameProgress[renamingFileId] === 'error' && (
             <ProgressIndicator 
               status="error" 
-              message="Failed to rename file. Please try again." 
+              message="Failed to rename project. Please try again." 
               className="mb-4"
             />
           )}
@@ -546,7 +565,7 @@ const FileList = ({}: FileListProps = {}) => {
           <Input
             value={newFileName}
             onChange={(e) => setNewFileName(e.target.value)}
-            placeholder="Enter file name"
+            placeholder="Enter project name"
             disabled={!!(renamingFileId && renameProgress[renamingFileId] === 'loading')}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !renameProgress[renamingFileId]) {
@@ -573,6 +592,18 @@ const FileList = ({}: FileListProps = {}) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Share Modal */}
+      {fileToShare && (
+        <FileShareModal
+          isOpen={shareModalOpen}
+          onClose={() => {
+            setShareModalOpen(false);
+            setFileToShare(null);
+          }}
+          file={fileToShare}
+        />
+      )}
     </div>
   );
 };

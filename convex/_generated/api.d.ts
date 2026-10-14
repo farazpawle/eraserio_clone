@@ -14,12 +14,20 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as comments from "../comments.js";
+import type * as conflictResolution from "../conflictResolution.js";
 import type * as files from "../files.js";
 import type * as fileShares from "../fileShares.js";
+import type * as liveCursors from "../liveCursors.js";
+import type * as notifications from "../notifications.js";
 import type * as teamInvitations from "../teamInvitations.js";
 import type * as teams from "../teams.js";
+import type * as todos from "../todos.js";
 import type * as user from "../user.js";
+import type * as userPresence from "../userPresence.js";
 import type * as userSettings from "../userSettings.js";
+import type * as webhookDelivery from "../webhookDelivery.js";
+import type * as webhookSettings from "../webhookSettings.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -30,12 +38,20 @@ import type * as userSettings from "../userSettings.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  comments: typeof comments;
+  conflictResolution: typeof conflictResolution;
   files: typeof files;
   fileShares: typeof fileShares;
+  liveCursors: typeof liveCursors;
+  notifications: typeof notifications;
   teamInvitations: typeof teamInvitations;
   teams: typeof teams;
+  todos: typeof todos;
   user: typeof user;
+  userPresence: typeof userPresence;
   userSettings: typeof userSettings;
+  webhookDelivery: typeof webhookDelivery;
+  webhookSettings: typeof webhookSettings;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

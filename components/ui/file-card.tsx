@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { MoreHorizontal, FileText, Image, Calendar, User, Archive, Edit, Trash2, Download } from 'lucide-react'
+import { MoreHorizontal, FileText, Image, Calendar, User, Archive, Edit, Trash2, Download, Share } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,6 +24,7 @@ interface FileCardProps {
   file: FILE
   onRename?: (fileId: string, fileName: string) => void
   onDelete?: (fileId: string, fileName: string) => void
+  onShare?: (file: FILE) => void
   onArchive?: (fileId: string) => void
   deleteProgress?: { [key: string]: 'loading' | 'success' | 'error' | 'idle' }
   renameProgress?: { [key: string]: 'loading' | 'success' | 'error' | 'idle' }
@@ -71,6 +72,7 @@ const FileCard = React.forwardRef<
   file, 
   onRename, 
   onDelete, 
+  onShare,
   onArchive,
   deleteProgress = {},
   renameProgress = {},
@@ -263,6 +265,16 @@ const FileCard = React.forwardRef<
                     }}
                   >
                     <Edit className="h-4 w-4" />Rename
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="gap-2" 
+                    disabled={isProcessing}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onShare?.(file)
+                    }}
+                  >
+                    <Share className="h-4 w-4" />Share
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <div className="px-1">

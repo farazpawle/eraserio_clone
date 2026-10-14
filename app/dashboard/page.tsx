@@ -34,7 +34,7 @@ const page = () => {
   const fabItems = [
     {
       id: 'new-file',
-      label: 'New File',
+      label: 'New Project',
       icon: FileText,
       onClick: () => {
         // Properly trigger new file creation using context

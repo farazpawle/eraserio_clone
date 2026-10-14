@@ -13,7 +13,7 @@ const FileListSkeleton: React.FC<FileListSkeletonProps> = ({ rows = 5 }) => {
           <thead className="ltr:text-left rtl:text-right bg-gray-50 dark:bg-gray-900">
             <tr>
               <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-900 dark:text-gray-100">
-                File Name
+                Project Name
               </td>
               <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-900 dark:text-gray-100">
                 Created At

@@ -114,7 +114,7 @@ const SideNavBottom = ({onFileCreate,Files,isCreating}:SideNavBottomProps) => {
               {item.name}
             </h2>
           ))}
-          {/* add new file button */}
+          {/* add new project button */}
           <Button 
             className='mt-3 w-full bg-blue-600 dark:bg-blue-500 justify-start hover:bg-blue-700 dark:hover:bg-blue-400 text-white'
             disabled={isCreating}
@@ -124,20 +124,20 @@ const SideNavBottom = ({onFileCreate,Files,isCreating}:SideNavBottomProps) => {
             {isCreating ? (
               <LoadingSpinner size="sm" text="Creating..." />
             ) : (
-              'Add New File'
+              'Add New Project'
             )}
           </Button>
           
           <Dialog open={newFileDialogOpen} onOpenChange={handleDialogChange}>
   <DialogContent>
     <DialogHeader>
-      <DialogTitle className="text-gray-900 dark:text-gray-100">Create New File</DialogTitle>
+      <DialogTitle className="text-gray-900 dark:text-gray-100">Create New Project</DialogTitle>
       <DialogDescription>
         <Input 
           value={FileName}
           onChange={(e)=>setFileName(e.target.value)}
           className='mt-3 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400' 
-          placeholder='Enter File Name'
+          placeholder='Enter Project Name'
           disabled={isCreating}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && FileName && FileName.length > 0 && !isCreating) {

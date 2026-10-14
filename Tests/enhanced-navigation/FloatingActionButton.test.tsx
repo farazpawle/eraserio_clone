@@ -10,7 +10,7 @@ describe('FloatingActionButton Component', () => {
   const singleAction: FloatingActionItem[] = [
     {
       id: 'new-file',
-      label: 'New File',
+      label: 'New Project',
       icon: FileText,
       onClick: mockOnClick,
     },
@@ -19,7 +19,7 @@ describe('FloatingActionButton Component', () => {
   const multipleActions: FloatingActionItem[] = [
     {
       id: 'new-file',
-      label: 'New File',
+      label: 'New Project',
       icon: FileText,
       onClick: mockOnClick,
     },
@@ -47,7 +47,7 @@ describe('FloatingActionButton Component', () => {
       
       const button = screen.getByRole('button');
       expect(button).toBeInTheDocument();
-      expect(button).toHaveAttribute('title', 'New File');
+      expect(button).toHaveAttribute('title', 'New Project');
     });
 
     it('calls onClick when single action button is clicked', () => {
@@ -87,7 +87,7 @@ describe('FloatingActionButton Component', () => {
       fireEvent.click(triggerButton);
       
       // Check if dropdown items are visible
-      expect(screen.getByText('New File')).toBeInTheDocument();
+      expect(screen.getByText('New Project')).toBeInTheDocument();
       expect(screen.getByText('New Canvas')).toBeInTheDocument();
       expect(screen.getByText('Invite Team')).toBeInTheDocument();
     });
@@ -98,7 +98,7 @@ describe('FloatingActionButton Component', () => {
       const triggerButton = screen.getByRole('button');
       fireEvent.click(triggerButton);
       
-      const newFileItem = screen.getByText('New File');
+      const newFileItem = screen.getByText('New Project');
       fireEvent.click(newFileItem);
       
       expect(mockOnClick).toHaveBeenCalledTimes(1);
@@ -160,7 +160,7 @@ describe('FloatingActionButton Component', () => {
       fireEvent.click(triggerButton);
       
       // Should show default items
-      expect(screen.getByText('New File')).toBeInTheDocument();
+      expect(screen.getByText('New Project')).toBeInTheDocument();
       expect(screen.getByText('New Canvas')).toBeInTheDocument();
       expect(screen.getByText('Invite Team')).toBeInTheDocument();
     });
