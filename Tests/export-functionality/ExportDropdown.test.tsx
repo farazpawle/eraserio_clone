@@ -31,25 +31,27 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 describe('ExportDropdown', () => {
   const mockDocumentFile: FILE = {
-    _id: 'doc1',
-    fileName: 'Test Document',
-    document: JSON.stringify({ blocks: [] }),
-    whiteboard: '',
-    teamId: 'team1',
-    createdBy: 'user1',
-    archive: false,
-    _creationTime: Date.now()
+    id: 'doc1',
+    name: 'Test Document',
+    document: { blocks: [] },
+    whiteboard: null,
+    team_id: 'team1',
+    created_by: 'user1',
+    archived: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   };
 
   const mockCanvasFile: FILE = {
-    _id: 'canvas1',
-    fileName: 'Test Canvas',
-    document: '',
-    whiteboard: JSON.stringify([{ type: 'rectangle' }]),
-    teamId: 'team1',
-    createdBy: 'user1',
-    archive: false,
-    _creationTime: Date.now()
+    id: 'canvas1',
+    name: 'Test Canvas',
+    document: null,
+    whiteboard: [{ type: 'rectangle' }],
+    team_id: 'team1',
+    created_by: 'user1',
+    archived: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   };
 
   beforeEach(() => {
@@ -191,7 +193,7 @@ describe('ExportDropdown', () => {
       .mockReturnValueOnce(['pdf'])
       .mockReturnValueOnce(['pdf']);
 
-    const files = [mockDocumentFile, { ...mockDocumentFile, _id: 'doc2' }];
+    const files = [mockDocumentFile, { ...mockDocumentFile, id: 'doc2' }];
 
     render(
       <TestWrapper>
@@ -306,7 +308,7 @@ describe('ExportDropdown', () => {
     mockGetFileType.mockReturnValue('canvas');
     mockGetAvailableFormats.mockReturnValue(['png']);
 
-    const canvasFiles = [mockCanvasFile, { ...mockCanvasFile, _id: 'canvas2' }];
+    const canvasFiles = [mockCanvasFile, { ...mockCanvasFile, id: 'canvas2' }];
 
     render(
       <TestWrapper>

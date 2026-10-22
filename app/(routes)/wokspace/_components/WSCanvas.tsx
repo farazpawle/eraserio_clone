@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Excalidraw, MainMenu, WelcomeScreen, exportToCanvas, exportToSvg } from "@excalidraw/excalidraw";
-import { FILE } from "@/app/dashboard/_components/FileList";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { putWhiteboard } from "@/convex/files";
+import { createClient } from "@/lib/supabase/client";
+import { saveWhiteboard } from "@/lib/data/files";
+import type { SharedFile } from "@/lib/data/shares";
+import type { Json } from "@/types/database";
 import { useTheme } from "@/app/_context/ThemeContext";
 import { CanvasLoading } from "@/components/ui/canvas-loading";
 import { ProgressIndicator } from "@/components/ui/progress-indicator";
@@ -26,15 +26,17 @@ const WSCanvas = ({
   fileData,
   triggerSave,
   readOnly,
+  onSave,
 }: {
   onSaveTrigger?: any;
   fileId: any;
-  fileData: FILE;
+  fileData?: SharedFile;
   triggerSave?: number;
   readOnly?: boolean;
+  onSave?: (content: Json) => Promise<void>;
 }) => {
   const { actualTheme } = useTheme();
-  const updateWhiteBoard = useMutation(api.files.putWhiteboard);
+  const db = useMemo(() => createClient(), []);
   const [savedCanvasdata, setsavedCanvasData] = useState<any>();
   const [isLoading, setIsLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -44,12 +46,9 @@ const WSCanvas = ({
     
     setSaveStatus('loading');
     
-    updateWhiteBoard({
-      _id: fileId,
-      whiteboard: JSON.stringify(savedCanvasdata)
-    })
-    .then(resp => {
-      console.log(resp);
+    const content = savedCanvasdata as Json;
+    (onSave ? onSave(content) : saveWhiteboard(db, fileId, content))
+    .then(() => {
       setSaveStatus('success');
       toast.success('Canvas saved successfully');
       
@@ -61,14 +60,14 @@ const WSCanvas = ({
     .catch(error => {
       console.error('Error saving canvas:', error);
       setSaveStatus('error');
-      toast.error('Failed to save canvas');
+      toast.error(error?.message ?? 'Failed to save canvas');
       
       // Reset status after 3 seconds
       setTimeout(() => {
         setSaveStatus('idle');
       }, 3000);
     });
-  }, [savedCanvasdata, updateWhiteBoard, fileId]);
+  }, [savedCanvasdata, db, fileId, onSave]);
 
   // Export canvas to PNG
   const exportToPNG = async () => {
@@ -91,7 +90,7 @@ const WSCanvas = ({
       // Convert canvas to blob
       canvas.toBlob((blob) => {
         if (blob) {
-          const fileName = generateExportFileName(fileData.fileName, 'png');
+          const fileName = generateExportFileName(fileData?.name ?? '', 'png');
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
@@ -133,7 +132,7 @@ const WSCanvas = ({
 
       // Convert SVG to blob and download
       const svgBlob = new Blob([svg.outerHTML], { type: 'image/svg+xml' });
-      const fileName = generateExportFileName(fileData.fileName, 'svg');
+      const fileName = generateExportFileName(fileData?.name ?? '', 'svg');
       const url = URL.createObjectURL(svgBlob);
       const link = document.createElement('a');
       link.href = url;
@@ -238,7 +237,7 @@ const WSCanvas = ({
         <Excalidraw
           theme={actualTheme}
           initialData={{
-            elements: fileData?.whiteboard ? JSON.parse(fileData.whiteboard) : []
+            elements: (fileData?.whiteboard ?? []) as any
           }}
           onChange={(excalidrawElements, appState, files) => {
             if (!readOnly) {

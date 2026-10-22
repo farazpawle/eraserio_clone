@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { FILE } from '@/app/dashboard/_components/FileList';
 import { toast } from 'sonner';
+import type { Json } from '@/types/database';
 
 // Export progress callback type
 export type ExportProgressCallback = (progress: number, message: string) => void;
@@ -26,15 +27,15 @@ export interface ExportResult {
  * Export EditorJS document content to PDF
  */
 export const exportDocumentToPDF = async (
-  documentData: string,
+  documentData: Json,
   fileName: string,
   onProgress?: ExportProgressCallback
 ): Promise<ExportResult> => {
   try {
     onProgress?.(10, 'Preparing document...');
     
-    // Parse the EditorJS data
-    const editorData = JSON.parse(documentData);
+    // documentData is already the parsed EditorJS data (jsonb column)
+    const editorData = documentData as { blocks: any[] };
     
     onProgress?.(20, 'Creating PDF document...');
     
@@ -212,12 +213,15 @@ export const exportCanvasToSVG = async (
   }
 };
 
+// jsonb columns: null, '', {} and [] all mean "nothing saved yet"
+const hasContent = (v: unknown) => v != null && v !== '' && (typeof v !== 'object' || Object.keys(v).length > 0);
+
 /**
  * Determine file type based on content
  */
 export const getFileType = (file: FILE): 'document' | 'canvas' => {
   // If whiteboard has content, it's a canvas file
-  if (file.whiteboard && file.whiteboard.trim() !== '' && file.whiteboard !== '{}') {
+  if (hasContent(file.whiteboard)) {
     return 'canvas';
   }
   // Otherwise, it's a document file
@@ -261,7 +265,7 @@ export const exportFile = async (
   format: string,
   onProgress?: ExportProgressCallback
 ): Promise<ExportResult> => {
-  const fileName = generateExportFileName(file.fileName, format);
+  const fileName = generateExportFileName(file.name, format);
   const fileType = getFileType(file);
   
   try {
@@ -312,7 +316,7 @@ export const batchExportFiles = async (
     const file = files[i];
     const progress = Math.round((i / total) * 100);
     
-    onProgress?.(progress, `Exporting ${file.fileName} (${i + 1}/${total})...`);
+    onProgress?.(progress, `Exporting ${file.name} (${i + 1}/${total})...`);
     
     const result = await exportFile(file, format, (subProgress, message) => {
       const totalProgress = progress + Math.round((subProgress / 100) * (100 / total));

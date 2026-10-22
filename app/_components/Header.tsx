@@ -1,17 +1,9 @@
 'use client'
-import { LoginLink, RegisterLink, useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import Link from "next/link"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 const Header = () => {
-  // const user=useKindeBrowserClient()
-  
-  // const router=useRouter();
-//   useEffect(()=>{
-// user.isAuthenticated&&router.push('/dashboard')
-//   },[user])
   return (
     <div>
       <header className="bg-black dark:bg-gray-900 border-b border-gray-800 dark:border-gray-700">
@@ -48,13 +40,13 @@ const Header = () => {
               <ThemeToggle />
               
               <div className="sm:flex sm:gap-4">
-                <LoginLink className="block rounded-md bg-teal-600 dark:bg-teal-700 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700 dark:hover:bg-teal-600">
+                <Link href="/login" className="block rounded-md bg-teal-600 dark:bg-teal-700 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700 dark:hover:bg-teal-600">
                   Login
-                </LoginLink>
+                </Link>
 
-                <RegisterLink className="hidden rounded-md bg-gray-100 dark:bg-gray-800 px-5 py-2.5 text-sm font-medium text-teal-600 dark:text-teal-400 transition hover:text-teal-600/75 dark:hover:text-teal-300 sm:block">
+                <Link href="/signup" className="hidden rounded-md bg-gray-100 dark:bg-gray-800 px-5 py-2.5 text-sm font-medium text-teal-600 dark:text-teal-400 transition hover:text-teal-600/75 dark:hover:text-teal-300 sm:block">
                   Register
-                </RegisterLink>
+                </Link>
               </div>
 
               <button

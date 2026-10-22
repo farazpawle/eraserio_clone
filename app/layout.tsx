@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import ConvexClientProvider from "./ConvexClientProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "./_context/ThemeContext";
 import { KeyboardShortcutsProvider } from "./_context/KeyboardShortcutsContext";
@@ -25,10 +24,8 @@ export default function RootLayout({
         <ThemeProvider>
           <KeyboardShortcutsProvider>
             <ExportProvider>
-              <ConvexClientProvider>
-                {children}
-                <Toaster />
-              </ConvexClientProvider>
+              {children}
+              <Toaster />
             </ExportProvider>
           </KeyboardShortcutsProvider>
         </ThemeProvider>

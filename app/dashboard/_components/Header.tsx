@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
-import { useKindeBrowserClient } from '@kinde-oss/kinde-auth-nextjs'
+import { useUser } from '@/hooks/useUser'
 import { Search, Send, Filter, X, User, FileText, Image as ImageIcon, RotateCcw } from 'lucide-react'
-import Image from 'next/image'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import React, { useState, useEffect } from 'react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { Breadcrumb, BreadcrumbItem } from '@/components/ui/breadcrumb'
@@ -16,8 +16,6 @@ import { useFileManagement, FileFilter } from '@/app/_context/FileManagementCont
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import TeamInvitationModal from '@/components/ui/team-invitation-modal'
-import { useConvex } from 'convex/react'
-import { api } from '@/convex/_generated/api'
 import { useTeam } from '@/app/_context/TeamContext'
 
 interface HeaderProps {
@@ -26,8 +24,7 @@ interface HeaderProps {
 }
 
 const Header = ({ breadcrumbItems = [], onSearch }: HeaderProps) => {
-    const {user}:any=useKindeBrowserClient();
-    const convex = useConvex();
+    const { user } = useUser();
     const { activeTeam } = useTeam();
     const { filters, setFilters, clearFilters } = useFileManagement();
     const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -286,7 +283,10 @@ const Header = ({ breadcrumbItems = [], onSearch }: HeaderProps) => {
         <ThemeToggle />
         
         <div>
-            <Image alt='image user' className='cursor-pointer rounded-full border-2 border-gray-200 dark:border-gray-600' src={user?.picture} width={30} height={30}/>
+            <Avatar className='h-[30px] w-[30px] border-2 border-gray-200 dark:border-gray-600'>
+              <AvatarImage src={user?.avatarUrl ?? undefined} alt={user?.name ?? 'user'} />
+              <AvatarFallback className='text-xs'>{user?.name?.charAt(0).toUpperCase()}</AvatarFallback>
+            </Avatar>
         </div>
         <Button 
           onClick={() => setIsInviteModalOpen(true)}
@@ -303,8 +303,8 @@ const Header = ({ breadcrumbItems = [], onSearch }: HeaderProps) => {
       <TeamInvitationModal
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
-        teamId={activeTeam._id}
-        teamName={activeTeam.teamName}
+        teamId={activeTeam.id}
+        teamName={activeTeam.name}
       />
     )}
     </>

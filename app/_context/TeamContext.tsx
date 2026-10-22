@@ -1,11 +1,9 @@
 "use client";
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-export interface TEAM {
-  createdBy: string;
-  teamName: string;
-  _id: string;
-}
+import type { Team } from '@/lib/data/teams';
+
+export type TEAM = Team;
 
 interface TeamContextType {
   activeTeam: TEAM | null;

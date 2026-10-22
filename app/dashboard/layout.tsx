@@ -1,9 +1,9 @@
 "use client";
-import { api } from "@/convex/_generated/api";
-import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
-import { useConvex } from "convex/react";
+import { useUser } from "@/hooks/useUser";
+import { createClient } from "@/lib/supabase/client";
+import { listMyTeams } from "@/lib/data/teams";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import SideNav from "./_components/SideNav";
 import { FileListContext } from "../_context/FileListContext";
 import { FileManagementProvider, useFileManagement } from "../_context/FileManagementContext";
@@ -12,7 +12,7 @@ import { SHORTCUT_CATEGORIES } from "../_hooks/useKeyboardShortcuts";
 import { TeamProvider } from "../_context/TeamContext";
 
 // Inner component that can use the FileManagement context
-const DashboardContent = ({ children, user, convex, router, FileList_, setFileList_ }: any) => {
+const DashboardContent = ({ children, user, router, FileList_, setFileList_ }: any) => {
   const { openNewFileDialog } = useFileManagement();
   const {
     registerShortcuts,
@@ -20,6 +20,7 @@ const DashboardContent = ({ children, user, convex, router, FileList_, setFileLi
     shortcutConfigs,
   } = useKeyboardShortcutsContext();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const db = useMemo(() => createClient(), []);
 
   useEffect(() => {
     user && checkTeam();
@@ -62,11 +63,13 @@ const DashboardContent = ({ children, user, convex, router, FileList_, setFileLi
   }, [registerShortcuts, unregisterShortcuts, handleNewFile, shortcutConfigs]);
 
   const checkTeam = async () => {
-    const result = await convex.query(api.teams.getTeam, {
-      email: user?.email,
-    });
-    if (!result?.length) {
-      router.push("teams/create");
+    try {
+      const teams = await listMyTeams(db);
+      if (!teams?.length) {
+        router.push("/teams/create");
+      }
+    } catch (error) {
+      console.error("Error loading teams:", error);
     }
   };
 
@@ -92,8 +95,7 @@ const DashboardContent = ({ children, user, convex, router, FileList_, setFileLi
 const DashboardLayout = ({
   children,
 }: Readonly<{ children: React.ReactNode }>) => {
-  const { user }: any = useKindeBrowserClient();
-  const convex = useConvex();
+  const { user } = useUser();
   const router = useRouter();
   const [FileList_,setFileList_]=useState();
   return (
@@ -103,7 +105,6 @@ const DashboardLayout = ({
           <FileManagementProvider>
             <DashboardContent 
               user={user}
-              convex={convex}
               router={router}
               FileList_={FileList_}
               setFileList_={setFileList_}

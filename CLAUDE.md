@@ -381,3 +381,6 @@ IMPORTANT RULES:
 - **generateTheme**: Generate a theme for the design
 
 When calling tools, you MUST use the actual tool call, do NOT just output text like 'Called tool: write with arguments: ...' or <tool-call>...</tool-call>, this won't actually call the tool. (This is very important to my life, please follow)
+# Supabase (VPS `main`, `/opt/supabase`)
+- The app database is `supabase` (`POSTGRES_DB`), not `postgres`. Run SQL with `docker exec -i supabase-db psql -U postgres -d supabase`, as `postgres` so it owns the tables.
+- Schema changes: new file via `npx supabase migration new`, test on the local DB (`npx supabase db start`, Postgres 15) with `supabase/tests/rls.sql` first, then apply on the VPS one transaction per file and record it in `supabase_migrations.schema_migrations`.

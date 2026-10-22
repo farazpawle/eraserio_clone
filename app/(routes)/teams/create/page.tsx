@@ -1,28 +1,23 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { api } from "@/convex/_generated/api";
-import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
-import { useMutation } from "convex/react";
+import { createClient } from "@/lib/supabase/client";
+import { createTeam } from "@/lib/data/teams";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { toast } from "sonner"
 
-const createTeam = () => {
+const CreateTeamPage = () => {
     const router=useRouter();
   const [teamName, setteamName] = useState("");
-  const createTeam=useMutation(api.teams.createTeam);
-const {user}:any=useKindeBrowserClient()
+  const db = useMemo(() => createClient(), []);
   const createNewTeam=()=>{
-    createTeam({
-        teamName:teamName,
-        createdBy:user?.email
-    }).then((resp)=>{
-        if(resp){
-            router.push('/dashboard')
-            toast("Team created successfully !")
-        }
+    createTeam(db, teamName).then(()=>{
+        router.push('/dashboard')
+        toast("Team created successfully !")
+    }).catch((error)=>{
+        toast.error(error instanceof Error ? error.message : "Failed to create team")
     })
   }
   return (
@@ -64,4 +59,4 @@ const {user}:any=useKindeBrowserClient()
   );
 };
 
-export default createTeam;
+export default CreateTeamPage;

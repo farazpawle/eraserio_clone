@@ -1,14 +1,15 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useRouter } from 'next/navigation';
-import { useConvex } from 'convex/react';
+import { getFile } from '@/lib/data/files';
 import Workspace from '@/app/(routes)/wokspace/[fileId]/page';
 import { useKeyboardShortcutsContext } from '@/app/_context/KeyboardShortcutsContext';
 import { toast } from 'sonner';
 
 // Mock dependencies
 jest.mock('next/navigation');
-jest.mock('convex/react');
+jest.mock('@/lib/supabase/client', () => ({ createClient: () => ({}) }));
+jest.mock('@/lib/data/files');
 jest.mock('@/app/_context/KeyboardShortcutsContext');
 jest.mock('sonner');
 jest.mock('@/app/(routes)/wokspace/_components/WSHeader', () => {
@@ -47,9 +48,7 @@ const mockRouter = {
   replace: jest.fn(),
 };
 
-const mockConvex = {
-  query: jest.fn(),
-};
+const mockGetFile = getFile as jest.Mock;
 
 const mockKeyboardShortcuts = {
   registerShortcuts: jest.fn(),
@@ -81,7 +80,6 @@ const mockFileData = {
 describe('Workspace Loading States', () => {
   beforeEach(() => {
     (useRouter as jest.Mock).mockReturnValue(mockRouter);
-    (useConvex as jest.Mock).mockReturnValue(mockConvex);
     (useKeyboardShortcutsContext as jest.Mock).mockReturnValue(mockKeyboardShortcuts);
     (toast as any).error = jest.fn();
     
@@ -90,7 +88,7 @@ describe('Workspace Loading States', () => {
 
   it('should show loading state while fetching file data', async () => {
     // Mock a delayed response
-    mockConvex.query.mockImplementation(() => 
+    mockGetFile.mockImplementation(() => 
       new Promise(resolve => setTimeout(() => resolve(mockFileData), 100))
     );
 
@@ -116,7 +114,7 @@ describe('Workspace Loading States', () => {
 
   it('should show error state when file loading fails', async () => {
     // Mock a failed response
-    mockConvex.query.mockRejectedValue(new Error('Network error'));
+    mockGetFile.mockRejectedValue(new Error('Network error'));
 
     render(<Workspace params={{ fileId: 'test-file-id' }} />);
 
@@ -133,7 +131,7 @@ describe('Workspace Loading States', () => {
 
   it('should show error state when file is not found', async () => {
     // Mock a null response (file not found)
-    mockConvex.query.mockResolvedValue(null);
+    mockGetFile.mockResolvedValue(null);
 
     render(<Workspace params={{ fileId: 'test-file-id' }} />);
 
@@ -147,7 +145,7 @@ describe('Workspace Loading States', () => {
 
   it('should handle try again button click', async () => {
     // Mock a failed response initially
-    mockConvex.query.mockRejectedValueOnce(new Error('Network error'));
+    mockGetFile.mockRejectedValueOnce(new Error('Network error'));
     
     // Mock window.location.reload
     const mockReload = jest.fn();
@@ -170,7 +168,7 @@ describe('Workspace Loading States', () => {
 
   it('should handle go back button click', async () => {
     // Mock a failed response
-    mockConvex.query.mockRejectedValue(new Error('Network error'));
+    mockGetFile.mockRejectedValue(new Error('Network error'));
     
     // Mock window.history.back
     const mockBack = jest.fn();
@@ -192,7 +190,7 @@ describe('Workspace Loading States', () => {
   });
 
   it('should register keyboard shortcuts after successful load', async () => {
-    mockConvex.query.mockResolvedValue(mockFileData);
+    mockGetFile.mockResolvedValue(mockFileData);
 
     render(<Workspace params={{ fileId: 'test-file-id' }} />);
 
@@ -207,7 +205,7 @@ describe('Workspace Loading States', () => {
 
   it('should not show workspace components during loading', () => {
     // Mock a delayed response
-    mockConvex.query.mockImplementation(() => new Promise(() => {})); // Never resolves
+    mockGetFile.mockImplementation(() => new Promise(() => {})); // Never resolves
 
     render(<Workspace params={{ fileId: 'test-file-id' }} />);
 
@@ -220,7 +218,7 @@ describe('Workspace Loading States', () => {
 
   it('should show proper loading skeleton structure', () => {
     // Mock a delayed response
-    mockConvex.query.mockImplementation(() => new Promise(() => {})); // Never resolves
+    mockGetFile.mockImplementation(() => new Promise(() => {})); // Never resolves
 
     render(<Workspace params={{ fileId: 'test-file-id' }} />);
 

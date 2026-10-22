@@ -35,11 +35,10 @@ const SideNavBottom = ({onFileCreate,Files,isCreating}:SideNavBottomProps) => {
     
     // Convert Files to RecentFile format
     const recentFiles: RecentFile[] = Files && Array.isArray(Files) ? Files.slice(0, 5).map((file: any) => ({
-      id: file._id,
-      name: file.fileName,
+      id: file.id,
+      name: file.name,
       type: file.document ? 'document' : 'canvas',
-      lastModified: new Date(file.lastModified || file._creationTime),
-      teamName: file.teamName,
+      lastModified: new Date(file.updated_at ?? file.created_at),
     })) : [];
     
     const handleDialogChange = (open: boolean) => {

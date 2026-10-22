@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { MoreHorizontal, FileText, Image, Calendar, User, Archive, Edit, Trash2, Download, Share } from 'lucide-react'
+import { MoreHorizontal, FileText, Image, Calendar, Archive, Edit, Trash2, Download, Share } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -42,9 +42,12 @@ interface FileCardProps {
   onDrop?: (e: React.DragEvent, file: FILE) => void
 }
 
+// jsonb columns: null, '', {} and [] all mean "nothing saved yet"
+const hasContent = (v: unknown) => v != null && v !== '' && (typeof v !== 'object' || Object.keys(v).length > 0);
+
 const getFileIcon = (file: FILE) => {
-  const hasDocument = file.document && file.document.trim() !== ''
-  const hasWhiteboard = file.whiteboard && file.whiteboard.trim() !== ''
+  const hasDocument = hasContent(file.document)
+  const hasWhiteboard = hasContent(file.whiteboard)
   
   if (hasWhiteboard) {
     return Image
@@ -53,8 +56,8 @@ const getFileIcon = (file: FILE) => {
 }
 
 const getFileType = (file: FILE): string => {
-  const hasDocument = file.document && file.document.trim() !== ''
-  const hasWhiteboard = file.whiteboard && file.whiteboard.trim() !== ''
+  const hasDocument = hasContent(file.document)
+  const hasWhiteboard = hasContent(file.whiteboard)
   
   if (hasWhiteboard) {
     return 'Whiteboard'
@@ -94,11 +97,11 @@ const FileCard = React.forwardRef<
   const { isSelectionMode, isFileSelected, toggleFileSelection } = useFileManagement()
   const [isNavigating, setIsNavigating] = React.useState(false)
   
-  const isSelected = isFileSelected(file._id)
-  const isDeleting = deleteProgress[file._id] === 'loading'
-  const isRenaming = renameProgress[file._id] === 'loading'
-  const hasDeleteError = deleteProgress[file._id] === 'error'
-  const hasRenameError = renameProgress[file._id] === 'error'
+  const isSelected = isFileSelected(file.id)
+  const isDeleting = deleteProgress[file.id] === 'loading'
+  const isRenaming = renameProgress[file.id] === 'loading'
+  const hasDeleteError = deleteProgress[file.id] === 'error'
+  const hasRenameError = renameProgress[file.id] === 'error'
   const isProcessing = isDeleting || isRenaming
   
   const FileIcon = getFileIcon(file)
@@ -106,23 +109,23 @@ const FileCard = React.forwardRef<
   
   const handleCardClick = () => {
     if (isSelectionMode) {
-      toggleFileSelection(file._id)
+      toggleFileSelection(file.id)
     } else if (!isProcessing && !isNavigating) {
       // Show immediate feedback that the click was registered
       setIsNavigating(true)
-      router.push(`/wokspace/${file._id}`)
+      router.push(`/wokspace/${file.id}`)
       // Note: setIsNavigating(false) is not needed as component will unmount during navigation
     }
   }
   
   const handleSelectionToggle = (e: React.MouseEvent) => {
     e.stopPropagation()
-    toggleFileSelection(file._id)
+    toggleFileSelection(file.id)
   }
   
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation()
-    toggleFileSelection(file._id)
+    toggleFileSelection(file.id)
   }
 
   // Drag and drop handlers
@@ -132,7 +135,7 @@ const FileCard = React.forwardRef<
       return
     }
     e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', file._id)
+    e.dataTransfer.setData('text/plain', file.id)
     onDragStart?.(file)
   }
 
@@ -223,7 +226,7 @@ const FileCard = React.forwardRef<
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-medium text-sm text-card-foreground truncate flex-1">
-            {file.fileName}
+            {file.name}
             {isNavigating && (
               <span className="ml-2 text-xs text-muted-foreground">
                 Opening...
@@ -251,7 +254,7 @@ const FileCard = React.forwardRef<
                     className="gap-2" 
                     onClick={(e) => {
                       e.stopPropagation()
-                      onArchive?.(file._id)
+                      onArchive?.(file.id)
                     }}
                   >
                     <Archive className="h-4 w-4" />Archive
@@ -261,7 +264,7 @@ const FileCard = React.forwardRef<
                     disabled={isProcessing}
                     onClick={(e) => {
                       e.stopPropagation()
-                      onRename?.(file._id, file.fileName)
+                      onRename?.(file.id, file.name)
                     }}
                   >
                     <Edit className="h-4 w-4" />Rename
@@ -295,7 +298,7 @@ const FileCard = React.forwardRef<
                     disabled={isProcessing}
                     onClick={(e) => {
                       e.stopPropagation()
-                      onDelete?.(file._id, file.fileName)
+                      onDelete?.(file.id, file.name)
                     }}
                   >
                     <Trash2 className="h-4 w-4" />Delete
@@ -321,15 +324,11 @@ const FileCard = React.forwardRef<
         <div className="space-y-1 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
-            <span>Created: {moment(file._creationTime).format('MMM DD, YYYY')}</span>
+            <span>Created: {moment(file.created_at).format('MMM DD, YYYY')}</span>
           </div>
           <div className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
-            <span>Edited: {moment(file.lastModified || file._creationTime).format('MMM DD, YYYY')}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <User className="h-3 w-3" />
-            <span className="truncate">{file.createdBy}</span>
+            <span>Edited: {moment(file.updated_at || file.created_at).format('MMM DD, YYYY')}</span>
           </div>
         </div>
         

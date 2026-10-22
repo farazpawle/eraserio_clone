@@ -25,12 +25,14 @@ const mockFileManagement = {
 };
 
 const mockFile: FILE = {
-  _id: 'test-file-id',
-  fileName: 'Test Document.txt',
-  createdBy: 'test-user',
-  teamId: 'test-team',
-  _creationTime: Date.now(),
-  document: JSON.stringify({ blocks: [] }),
+  id: 'test-file-id',
+  name: 'Test Document.txt',
+  created_by: 'test-user',
+  team_id: 'test-team',
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  archived: false,
+  document: { blocks: [] },
 };
 
 describe('FileCard Loading States', () => {
@@ -225,9 +227,9 @@ describe('FileCard Loading States', () => {
   it('should handle different file types correctly during loading', () => {
     const whiteboardFile: FILE = {
       ...mockFile,
-      fileName: 'Test Whiteboard',
+      name: 'Test Whiteboard',
       document: undefined,
-      whiteboard: JSON.stringify([]),
+      whiteboard: [{ type: 'rectangle' }],
     };
 
     render(

@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom'
 
+// Next doesn't load .env.local under test; the Supabase browser client only needs
+// these to exist (it makes no network call until a query runs).
+process.env.NEXT_PUBLIC_SUPABASE_URL ??= 'http://localhost:54321'
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??= 'test-anon-key'
+
 // Mock next/router
 jest.mock('next/router', () => ({
   useRouter() {
@@ -41,16 +46,6 @@ jest.mock('next/navigation', () => ({
   usePathname() {
     return '/'
   },
-}))
-
-// Mock Convex
-jest.mock('convex/react', () => ({
-  useConvex: () => ({
-    query: jest.fn(),
-    mutation: jest.fn(),
-  }),
-  useMutation: () => jest.fn(),
-  useQuery: () => undefined,
 }))
 
 // Global test setup

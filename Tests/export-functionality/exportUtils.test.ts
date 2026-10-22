@@ -75,9 +75,9 @@ Object.defineProperty(document.body, 'removeChild', {
 describe('Export Utils', () => {
   // Sample file data for testing
   const mockDocumentFile: FILE = {
-    _id: 'doc1',
-    fileName: 'Test Document',
-    document: JSON.stringify({
+    id: 'doc1',
+    name: 'Test Document',
+    document: {
       blocks: [
         {
           type: 'header',
@@ -88,23 +88,25 @@ describe('Export Utils', () => {
           data: { text: 'Test paragraph content' }
         }
       ]
-    }),
-    whiteboard: '',
-    teamId: 'team1',
-    createdBy: 'user1',
-    archive: false,
-    _creationTime: Date.now()
+    },
+    whiteboard: null,
+    team_id: 'team1',
+    created_by: 'user1',
+    archived: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   };
 
   const mockCanvasFile: FILE = {
-    _id: 'canvas1',
-    fileName: 'Test Canvas',
-    document: '',
-    whiteboard: JSON.stringify([{ type: 'rectangle', x: 0, y: 0, width: 100, height: 100 }]),
-    teamId: 'team1',
-    createdBy: 'user1',
-    archive: false,
-    _creationTime: Date.now()
+    id: 'canvas1',
+    name: 'Test Canvas',
+    document: null,
+    whiteboard: [{ type: 'rectangle', x: 0, y: 0, width: 100, height: 100 }],
+    team_id: 'team1',
+    created_by: 'user1',
+    archived: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   };
 
   describe('getFileType', () => {
@@ -119,8 +121,8 @@ describe('Export Utils', () => {
     it('should default to document for empty files', () => {
       const emptyFile: FILE = {
         ...mockDocumentFile,
-        document: '',
-        whiteboard: ''
+        document: null,
+        whiteboard: null
       };
       expect(getFileType(emptyFile)).toBe('document');
     });
@@ -227,14 +229,14 @@ describe('Export Utils', () => {
 
   describe('Edge Cases', () => {
     it('should handle empty document content', async () => {
-      const emptyDoc = JSON.stringify({ blocks: [] });
+      const emptyDoc = { blocks: [] };
       const result = await exportDocumentToPDF(emptyDoc, 'empty-doc');
 
       expect(result.success).toBe(true);
     });
 
     it('should handle malformed EditorJS data', async () => {
-      const malformedDoc = JSON.stringify({ blocks: [{ type: 'unknown', data: {} }] });
+      const malformedDoc = { blocks: [{ type: 'unknown', data: {} }] };
       const result = await exportDocumentToPDF(malformedDoc, 'malformed-doc');
 
       expect(result.success).toBe(true); // Should still work with fallback rendering

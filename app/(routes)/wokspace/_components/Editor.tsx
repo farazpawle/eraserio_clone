@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import EditorJS from "@editorjs/editorjs";
 // @ts-ignore
 import List from "@editorjs/list";
@@ -9,11 +9,11 @@ import Header from "@editorjs/header";
 // @ts-ignore
 
 import Checklist from "@editorjs/checklist";
-import { useMutation } from "convex/react";
-import { putFile } from "@/convex/files";
-import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
-import { FILE } from "@/app/dashboard/_components/FileList";
+import { createClient } from "@/lib/supabase/client";
+import { saveDocument } from "@/lib/data/files";
+import type { SharedFile } from "@/lib/data/shares";
+import type { Json } from "@/types/database";
 
 const rawData = {
   time: 1550476186479,
@@ -37,36 +37,33 @@ const rawData = {
   version: "2.8.1",
 };
 
-const Editor = ({ onSaveTrigger, fileId, fileData, triggerSave, readOnly }: {
+const Editor = ({ onSaveTrigger, fileId, fileData, triggerSave, readOnly, onSave }: {
   onSaveTrigger?: any,
   fileId: any,
-  fileData: FILE,
+  fileData?: SharedFile,
   triggerSave?: number,
-  readOnly?: boolean
+  readOnly?: boolean,
+  onSave?: (content: Json) => Promise<void>
 }) => {
-  const updateDocument = useMutation(api.files.putFile);
+  const db = useMemo(() => createClient(), []);
   const ref = useRef<EditorJS>();
   const [document, setDocument] = useState(rawData);
   const onSaveDocument = useCallback(() => {
     if (ref.current) {
       ref.current
         .save()
-        .then((outputData) => {
-          console.log("Article data: ", outputData);
-          updateDocument({
-            _id: fileId,
-            document: JSON.stringify(outputData),
-          }).then(
-            (resp) => {
-              toast.success('Document saved successfully');
-            }
-          );
+        .then((outputData) =>
+          onSave ? onSave(outputData as unknown as Json) : saveDocument(db, fileId, outputData as unknown as Json)
+        )
+        .then(() => {
+          toast.success('Document saved successfully');
         })
         .catch((error) => {
-          console.log("Saving failed: ", error);
+          console.error("Saving failed: ", error);
+          toast.error(error?.message ?? 'Failed to save document');
         });
     }
-  }, [updateDocument, fileId]);
+  }, [db, fileId, onSave]);
 
   useEffect(() => {
     
@@ -74,7 +71,6 @@ const Editor = ({ onSaveTrigger, fileId, fileData, triggerSave, readOnly }: {
   }, [fileData]);
 
   useEffect(() => {
-    console.log(onSaveTrigger);
     if (onSaveTrigger) {
       onSaveDocument();
     }
@@ -114,7 +110,7 @@ const Editor = ({ onSaveTrigger, fileId, fileData, triggerSave, readOnly }: {
         },
       },
       holder: "editorjs",
-      data: fileData.document?JSON.parse(fileData?.document):rawData,
+      data: (fileData?.document ?? rawData) as any,
       readOnly: readOnly || false,
     });
     ref.current = editor;

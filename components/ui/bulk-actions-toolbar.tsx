@@ -56,7 +56,7 @@ const BulkActionsToolbar = React.forwardRef<
   const [isExporting, setIsExporting] = React.useState(false)
   
   const selectedFileIds = Array.from(selectedFiles)
-  const allFileIds = files.map(file => file._id)
+  const allFileIds = files.map(file => file.id)
   const isAllSelected = selectedCount === files.length && files.length > 0
   const isPartiallySelected = selectedCount > 0 && selectedCount < files.length
   

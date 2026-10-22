@@ -2,10 +2,10 @@ import { FileListContext } from "@/app/_context/FileListContext";
 import { useFileManagement } from "@/app/_context/FileManagementContext";
 import React, { useContext, useEffect, useState, useMemo } from "react";
 import moment from "moment";
-import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
+import { useUser } from "@/hooks/useUser";
 import { Archive, MoreHorizontal, Trash2, Edit, Download, Grid3X3, List, CheckSquare, Square, Plus, Share } from "lucide-react";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { createClient } from "@/lib/supabase/client";
+import { deleteFile, renameFile } from "@/lib/data/files";
 import { toast } from "sonner";
 import { FileListSkeleton } from "@/components/ui/file-list-skeleton";
 import { ProgressIndicator } from "@/components/ui/progress-indicator";
@@ -19,18 +19,10 @@ import { BulkActionsToolbar } from "@/components/ui/bulk-actions-toolbar";
 import { cn } from "@/lib/utils";
 import { useDragAndDrop } from "@/app/_hooks/useDragAndDrop";
 import FileShareModal from "@/components/ui/file-share-modal";
+import type { FileRow, FileSummary } from "@/lib/data/files";
 
-export interface FILE {
-  archive?: boolean;
-  createdBy: string;
-  document?: string;
-  fileName: string;
-  teamId: string;
-  whiteboard?: string;
-  _id: string;
-  _creationTime: number;
-  lastModified?: number;
-}
+// List rows omit document/whiteboard; the workspace loads the full row.
+export type FILE = FileSummary & Partial<Pick<FileRow, "document" | "whiteboard">>;
 
 import {
   DropdownMenu,
@@ -96,10 +88,9 @@ const FileList = ({}: FileListProps = {}) => {
     },
     disabled: isSelectionMode
   });
-  const { user } = useKindeBrowserClient();
+  const { user } = useUser();
   const router=useRouter();
-  const deleteFile = useMutation(api.files.deleteFile);
-  const renameFile = useMutation(api.files.renameFile);
+  const db = useMemo(() => createClient(), []);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renamingFileId, setRenamingFileId] = useState<string>("");
   const [newFileName, setNewFileName] = useState<string>("");
@@ -108,14 +99,14 @@ const FileList = ({}: FileListProps = {}) => {
     if (confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
       setDeleteProgress(prev => ({ ...prev, [fileId]: 'loading' }));
       
-      deleteFile({ _id: fileId as any })
+      deleteFile(db, fileId)
         .then(() => {
           setDeleteProgress(prev => ({ ...prev, [fileId]: 'success' }));
           toast.success("File deleted successfully");
           
           // Remove the deleted file from the local state after a brief delay
           setTimeout(() => {
-            const updatedFileList = FileList.filter((file: FILE) => file._id !== fileId);
+            const updatedFileList = FileList.filter((file: FILE) => file.id !== fileId);
             setFileList(updatedFileList);
             setFileList_(updatedFileList);
             setDeleteProgress(prev => ({ ...prev, [fileId]: 'idle' }));
@@ -123,9 +114,8 @@ const FileList = ({}: FileListProps = {}) => {
           }, 1000);
         })
         .catch((error) => {
-          console.error("Error deleting file:", error);
           setDeleteProgress(prev => ({ ...prev, [fileId]: 'error' }));
-          toast.error("Failed to delete file");
+          toast.error(error instanceof Error ? error.message : "Failed to delete file");
           
           // Reset error state after 3 seconds
           setTimeout(() => {
@@ -149,8 +139,8 @@ const FileList = ({}: FileListProps = {}) => {
    // Bulk operations
    const handleBulkDelete = async (fileIds: string[]) => {
      try {
-       await Promise.all(fileIds.map(id => deleteFile({ _id: id as any })));
-       const updatedFileList = FileList.filter((file: FILE) => !fileIds.includes(file._id));
+       await Promise.all(fileIds.map(id => deleteFile(db, id)));
+       const updatedFileList = FileList.filter((file: FILE) => !fileIds.includes(file.id));
        setFileList(updatedFileList);
        setFileList_(updatedFileList);
      } catch (error) {
@@ -161,12 +151,10 @@ const FileList = ({}: FileListProps = {}) => {
 
    const handleBulkArchive = async (fileIds: string[]) => {
      // Archive functionality would be implemented here
-     console.log('Bulk archive not implemented yet:', fileIds);
    };
 
    const handleBulkExport = async (fileIds: string[]) => {
      // Bulk export functionality would be implemented here
-     console.log('Bulk export not implemented yet:', fileIds);
    };
 
    // Process files with filtering and sorting
@@ -186,14 +174,14 @@ const FileList = ({}: FileListProps = {}) => {
      if (newFileName.trim() && renamingFileId) {
        setRenameProgress(prev => ({ ...prev, [renamingFileId]: 'loading' }));
        
-       renameFile({ _id: renamingFileId as any, fileName: newFileName.trim() })
+       renameFile(db, renamingFileId, newFileName.trim())
          .then(() => {
            setRenameProgress(prev => ({ ...prev, [renamingFileId]: 'success' }));
            toast.success("File renamed successfully");
            
            // Update the file list with the new name
            const updatedFileList = FileList.map((file: FILE) => 
-             file._id === renamingFileId ? { ...file, fileName: newFileName.trim() } : file
+             file.id === renamingFileId ? { ...file, name: newFileName.trim() } : file
            );
            setFileList(updatedFileList);
            setFileList_(updatedFileList);
@@ -206,9 +194,8 @@ const FileList = ({}: FileListProps = {}) => {
            }, 1000);
          })
          .catch((error) => {
-           console.error("Error renaming file:", error);
            setRenameProgress(prev => ({ ...prev, [renamingFileId]: 'error' }));
-           toast.error("Failed to rename file");
+           toast.error(error instanceof Error ? error.message : "Failed to rename file");
            
            // Reset error state after 3 seconds
            setTimeout(() => {
@@ -229,7 +216,6 @@ const FileList = ({}: FileListProps = {}) => {
       setFileList(FileList_);
       setIsLoading(false);
     }
-    console.log(FileList_);
   }, [FileList_]);
 
   // Update filtered file list when processed files change
@@ -314,7 +300,7 @@ const FileList = ({}: FileListProps = {}) => {
         )}>
           {filteredFileList?.map((file: FILE) => (
             <FileCard
-              key={file._id}
+              key={file.id}
               file={file}
               onRename={handleRenameFile}
               onDelete={handleDeleteFile}
@@ -350,7 +336,7 @@ const FileList = ({}: FileListProps = {}) => {
                         if (selectedFiles.size === filteredFileList?.length) {
                           clearSelection();
                         } else {
-                          const allIds = filteredFileList?.map((f: FILE) => f._id) || [];
+                          const allIds = filteredFileList?.map((f: FILE) => f.id) || [];
                           allIds.forEach((id: string) => {
                             if (!isFileSelected(id)) {
                               toggleFileSelection(id);
@@ -382,26 +368,26 @@ const FileList = ({}: FileListProps = {}) => {
 
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {filteredFileList?.map((file: FILE, index: number) => {
-              const isDeleting = deleteProgress[file._id] === 'loading';
-              const isRenaming = renameProgress[file._id] === 'loading';
-              const hasDeleteError = deleteProgress[file._id] === 'error';
-              const hasRenameError = renameProgress[file._id] === 'error';
+              const isDeleting = deleteProgress[file.id] === 'loading';
+              const isRenaming = renameProgress[file.id] === 'loading';
+              const hasDeleteError = deleteProgress[file.id] === 'error';
+              const hasRenameError = renameProgress[file.id] === 'error';
               const isProcessing = isDeleting || isRenaming;
-              const isSelected = isFileSelected(file._id);
-              const isNavigating = navigatingFileId === file._id;
+              const isSelected = isFileSelected(file.id);
+              const isNavigating = navigatingFileId === file.id;
               
               const handleRowClick = () => {
                 if (isSelectionMode) {
-                  toggleFileSelection(file._id);
+                  toggleFileSelection(file.id);
                 } else if (!isProcessing && !isNavigating) {
-                  setNavigatingFileId(file._id);
-                  router.push("/wokspace/" + file._id);
+                  setNavigatingFileId(file.id);
+                  router.push("/wokspace/" + file.id);
                   // Note: setNavigatingFileId(null) is not needed as component will unmount during navigation
                 }
               };
               
               return (
-                <tr key={file._id} className={cn(
+                <tr key={file.id} className={cn(
                   'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors',
                   (isProcessing || isNavigating) && 'opacity-60',
                   isSelected && 'bg-accent/50 hover:bg-accent/60'
@@ -415,7 +401,7 @@ const FileList = ({}: FileListProps = {}) => {
                         checked={isSelected}
                         onChange={(e) => {
                           e.stopPropagation();
-                          toggleFileSelection(file._id);
+                          toggleFileSelection(file.id);
                         }}
                         className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                         onClick={(e) => e.stopPropagation()}
@@ -425,7 +411,7 @@ const FileList = ({}: FileListProps = {}) => {
 
                   <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-900 dark:text-gray-100">
                     <div className="flex items-center gap-2">
-                      {file.fileName}
+                      {file.name}
                       {isNavigating && (
                         <span className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
                           Opening...
@@ -455,13 +441,13 @@ const FileList = ({}: FileListProps = {}) => {
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 text-gray-700 dark:text-gray-300">
-                    {moment(file._creationTime).format("DD MMM YYYY")}
+                    {moment(file.created_at).format("DD MMM YYYY")}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 text-gray-700 dark:text-gray-300">
-                    {moment(file.lastModified || file._creationTime).format("DD MMM YYYY")}
+                    {moment(file.updated_at ?? file.created_at).format("DD MMM YYYY")}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 text-gray-700 dark:text-gray-300">
-                    {user?.given_name}
+                    {file.created_by && file.created_by === user?.id ? "You" : ""}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2 text-gray-700 dark:text-gray-300">
                     <DropdownMenu>
@@ -477,7 +463,7 @@ const FileList = ({}: FileListProps = {}) => {
                           disabled={isProcessing}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleRenameFile(file._id, file.fileName);
+                            handleRenameFile(file.id, file.name);
                           }}
                         >
                           <Edit className="h-4 w-4"/>Rename
@@ -511,7 +497,7 @@ const FileList = ({}: FileListProps = {}) => {
                           disabled={isProcessing}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteFile(file._id, file.fileName);
+                            handleDeleteFile(file.id, file.name);
                           }}
                         >
                           <Trash2 className="h-4 w-4"/>Delete

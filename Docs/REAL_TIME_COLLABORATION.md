@@ -1,3 +1,5 @@
+> **Status: Phase 2 — not implemented.** The Supabase migration (Phase 1) removed the Convex-based collaboration code (live cursors, presence, comments, notifications, conflict resolution). This document describes the earlier design and is kept only as a starting point for Phase 2.
+
 # 🚀 Real-time Collaboration Implementation
 
 This document provides a comprehensive overview of the real-time collaboration features implemented in the Eraser.io clone.

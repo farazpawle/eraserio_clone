@@ -72,7 +72,7 @@ export const useDragAndDrop = ({
   }, [])
   
   const handleDragOver = useCallback((e: React.DragEvent, file: FILE) => {
-    if (disabled || !dragState.draggedFile || dragState.draggedFile._id === file._id) {
+    if (disabled || !dragState.draggedFile || dragState.draggedFile.id === file.id) {
       return
     }
     
@@ -103,7 +103,7 @@ export const useDragAndDrop = ({
   }, [])
   
   const handleDrop = useCallback((e: React.DragEvent, targetFile: FILE) => {
-    if (disabled || !dragState.draggedFile || dragState.draggedFile._id === targetFile._id) {
+    if (disabled || !dragState.draggedFile || dragState.draggedFile.id === targetFile.id) {
       return
     }
     
@@ -123,8 +123,8 @@ export const useDragAndDrop = ({
     if (!onReorder) return
     
     const newFiles = [...files]
-    const draggedIndex = newFiles.findIndex(f => f._id === draggedFile._id)
-    const targetIndex = newFiles.findIndex(f => f._id === targetFile._id)
+    const draggedIndex = newFiles.findIndex(f => f.id === draggedFile.id)
+    const targetIndex = newFiles.findIndex(f => f.id === targetFile.id)
     
     if (draggedIndex === -1 || targetIndex === -1) return
     
@@ -148,11 +148,11 @@ export const useDragAndDrop = ({
   }, [files, onReorder])
   
   const isDraggedFile = useCallback((file: FILE) => {
-    return dragState.draggedFile?._id === file._id
+    return dragState.draggedFile?.id === file.id
   }, [dragState.draggedFile])
   
   const isDragOverFile = useCallback((file: FILE) => {
-    return dragState.dragOverFile?._id === file._id
+    return dragState.dragOverFile?.id === file.id
   }, [dragState.dragOverFile])
   
   const getDropIndicatorPosition = useCallback((file: FILE) => {

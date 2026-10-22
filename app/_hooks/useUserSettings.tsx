@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
-import { useKindeBrowserClient } from '@kinde-oss/kinde-auth-nextjs';
+import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
 
 interface UserSettings {
@@ -25,7 +25,7 @@ const DEFAULT_SETTINGS: UserSettings = {
 };
 
 export const useUserSettings = (): UseUserSettingsReturn => {
-  const { user } = useKindeBrowserClient();
+  const { user } = useUser();
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
 

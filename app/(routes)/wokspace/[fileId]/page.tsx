@@ -1,10 +1,9 @@
 "use client";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import WSHeader from "../_components/WSHeader";
 import Editor from "../_components/Editor";
-import { useConvex } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { FILE } from "@/app/dashboard/_components/FileList";
+import { createClient } from "@/lib/supabase/client";
+import { getFile, type FileRow } from "@/lib/data/files";
 import WSCanvas from "../_components/WSCanvas";
 import { ResizablePane } from "@/components/ui/resizable-pane";
 import { useKeyboardShortcutsContext } from "@/app/_context/KeyboardShortcutsContext";
@@ -12,13 +11,11 @@ import { SHORTCUT_CATEGORIES } from "@/app/_hooks/useKeyboardShortcuts";
 import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Skeleton } from "@/components/ui/skeleton";
-import useWorkspaceCollaboration from "@/hooks/useWorkspaceCollaboration";
-import WorkspaceNotificationBar from "@/components/ui/workspace-notification-bar";
 
 const Workspace = ({ params }: any) => {
-  const convex = useConvex();
+  const db = useMemo(() => createClient(), []);
   const [triggerSave, settriggerSave] = useState(false);
-  const [fileData, setFileData] = useState<FILE | any>();
+  const [fileData, setFileData] = useState<FileRow>();
   const [leftWidth, setLeftWidth] = useState(50);
   const [isLoadingFile, setIsLoadingFile] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -28,22 +25,13 @@ const Workspace = ({ params }: any) => {
     shortcutConfigs,
   } = useKeyboardShortcutsContext();
 
-  // Initialize workspace collaboration
-  const collaboration = useWorkspaceCollaboration({
-    fileId: params.fileId,
-    fileData: fileData,
-    enabled: !!fileData && !loadingError
-  });
-  
   useEffect(() => {
     const getFileData = async () => {
       if (params.fileId) {
         setIsLoadingFile(true);
         setLoadingError(null);
         try {
-          const result = await convex.query(api.files.getFileData, {
-            _id: params.fileId,
-          });
+          const result = await getFile(db, params.fileId);
           
           if (!result) {
             setLoadingError('File not found or you don\'t have permission to access it.');
@@ -51,7 +39,6 @@ const Workspace = ({ params }: any) => {
           }
           
           setFileData(result);
-          console.log(result);
         } catch (error) {
           console.error('Error fetching file data:', error);
           setLoadingError('Failed to load file. Please try again.');
@@ -63,7 +50,7 @@ const Workspace = ({ params }: any) => {
     };
 
     getFileData();
-  }, [convex, params.fileId]); // Proper dependencies without causing infinite loop
+  }, [db, params.fileId]); // Proper dependencies without causing infinite loop
 
   // Handle save action
   const handleSave = useCallback(() => {
@@ -192,17 +179,9 @@ const Workspace = ({ params }: any) => {
 
   return (
     <div>
-      <WSHeader onSave={handleSave} fileName={fileData?.fileName} fileData={fileData} />
-      
-      {/* Collaboration Notification Bar */}
-      <WorkspaceNotificationBar
-        pendingConflicts={collaboration.pendingConflicts}
-        notifications={collaboration.notifications}
-        unreadCount={collaboration.unreadNotifications}
-        onResolveConflict={collaboration.handleResolveConflict}
-        onAutoResolveConflict={collaboration.handleAutoResolveConflict}
-      />
-      
+      <WSHeader onSave={handleSave} fileName={fileData?.name ?? ''} fileData={fileData} />
+
+
       {/* Enhanced workspace layout with ResizablePane */}
       <div className="h-[calc(100vh-73px)]">
         <ResizablePane

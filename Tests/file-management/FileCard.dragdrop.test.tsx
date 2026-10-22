@@ -35,15 +35,15 @@ jest.mock('moment', () => {
 });
 
 const mockFile: FILE = {
-  _id: 'test-file-1',
-  fileName: 'Test File',
-  createdBy: 'test-user',
-  teamId: 'test-team',
+  id: 'test-file-1',
+  name: 'Test File',
+  created_by: 'test-user',
+  team_id: 'test-team',
   document: 'Test document content',
   whiteboard: '',
-  archive: false,
-  _creationTime: Date.now(),
-  lastModified: Date.now(),
+  archived: false,
+  created_at: new Date(Date.now()).toISOString(),
+  updated_at: new Date(Date.now()).toISOString(),
 };
 
 const mockRouter = {
@@ -203,7 +203,7 @@ describe('FileCard Drag and Drop', () => {
     const { container } = renderFileCard({ 
       isDraggable: true, 
       onDragStart: mockOnDragStart,
-      deleteProgress: { [mockFile._id]: 'loading' }
+      deleteProgress: { [mockFile.id]: 'loading' }
     });
     
     // When processing, the component should not be draggable

@@ -31,17 +31,18 @@ const TestComponent: React.FC = () => {
   } = useExportContext();
 
   const mockFile: FILE = {
-    _id: 'test1',
-    fileName: 'Test File',
-    document: JSON.stringify({ blocks: [] }),
-    whiteboard: '',
-    teamId: 'team1',
-    createdBy: 'user1',
-    archive: false,
-    _creationTime: Date.now()
+    id: 'test1',
+    name: 'Test File',
+    document: { blocks: [] },
+    whiteboard: null,
+    team_id: 'team1',
+    created_by: 'user1',
+    archived: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   };
 
-  const mockFiles: FILE[] = [mockFile, { ...mockFile, _id: 'test2', fileName: 'Test File 2' }];
+  const mockFiles: FILE[] = [mockFile, { ...mockFile, id: 'test2', name: 'Test File 2' }];
 
   return (
     <div>
@@ -115,7 +116,7 @@ describe('ExportContext', () => {
 
     await waitFor(() => {
       expect(mockExportFile).toHaveBeenCalledWith(
-        expect.objectContaining({ fileName: 'Test File' }),
+        expect.objectContaining({ name: 'Test File' }),
         'pdf',
         expect.any(Function)
       );
@@ -170,8 +171,8 @@ describe('ExportContext', () => {
     await waitFor(() => {
       expect(mockBatchExportFiles).toHaveBeenCalledWith(
         expect.arrayContaining([
-          expect.objectContaining({ fileName: 'Test File' }),
-          expect.objectContaining({ fileName: 'Test File 2' })
+          expect.objectContaining({ name: 'Test File' }),
+          expect.objectContaining({ name: 'Test File 2' })
         ]),
         'pdf',
         expect.any(Function)

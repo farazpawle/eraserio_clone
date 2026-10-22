@@ -1,9 +1,9 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import SideNavTop, { TEAM } from "./SideNavTop";
-import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
+import { useUser } from "@/hooks/useUser";
 import SideNavBottom from "./SideNavBottom";
-import { useConvex, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { createClient } from "@/lib/supabase/client";
+import { createFile, listFiles } from "@/lib/data/files";
 import { toast } from "sonner";
 import { FileListContext } from "@/app/_context/FileListContext";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -18,45 +18,32 @@ interface SideNavProps {
 }
 
 const SideNav = ({ isCollapsed = false, onToggleCollapse }: SideNavProps) => {
-  const createFile = useMutation(api.files.createFile);
-  const { user } = useKindeBrowserClient();
+  const { user } = useUser();
   const { activeTeam, setActiveTeam } = useTeam();
-  const convex = useConvex();
+  const db = useMemo(() => createClient(), []);
   const [Files, setFiles] = useState<Number>();
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [createFileStatus, setCreateFileStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const {FileList_,setFileList_}=useContext(FileListContext);
 
   const onFileCreate = (fileName: string) => {
-    console.log(fileName);
+    if (!activeTeam) return;
     setCreateFileStatus('loading');
     
-    createFile({
-      fileName: fileName,
-      // @ts-ignore
-      teamId: activeTeam?._id,
-      // @ts-ignore
-      createdBy: user?.email,
-      archive: false,
-      document: "",
-      whiteboard: "",
-    }).then(
-      (resp) => {
-        if (resp) {
-          setCreateFileStatus('success');
-          getFiles();
-          toast.success("File Created Successfully");
-          
-          // Reset status after 2 seconds
-          setTimeout(() => {
-            setCreateFileStatus('idle');
-          }, 2000);
-        }
-        console.log(resp);
+    createFile(db, activeTeam.id, fileName).then(
+      () => {
+        setCreateFileStatus('success');
+        getFiles();
+        toast.success("File Created Successfully");
+        
+        // Reset status after 2 seconds
+        setTimeout(() => {
+          setCreateFileStatus('idle');
+        }, 2000);
       },
       (e) => {
         setCreateFileStatus('error');
-        toast.error("Error while creating file");
+        toast.error(e instanceof Error ? e.message : "Error while creating file");
         
         // Reset status after 3 seconds
         setTimeout(() => {
@@ -71,16 +58,12 @@ const SideNav = ({ isCollapsed = false, onToggleCollapse }: SideNavProps) => {
   }, [activeTeam]);
   
   const getFiles = async () => {
-    if (!activeTeam?._id) return;
+    if (!activeTeam?.id) return;
     
     setIsLoadingFiles(true);
     
     try {
-      const result = await convex.query(api.files.getFiles, {
-        // @ts-ignore
-        teamId: activeTeam?._id,
-      });
-      console.log(result);
+      const result = await listFiles(db, activeTeam.id);
       setFileList_(result);
       setFiles(result.length);
     } catch (error) {

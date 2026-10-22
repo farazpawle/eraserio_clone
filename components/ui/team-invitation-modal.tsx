@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,9 +23,18 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { X, Mail, Users, Trash2, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
-import { useMutation, useQuery } from 'convex/react'
-import { api } from '@/convex/_generated/api'
-import { useKindeBrowserClient } from '@kinde-oss/kinde-auth-nextjs'
+import { createClient } from '@/lib/supabase/client'
+import {
+  cancelInvitation,
+  changeMemberRole,
+  listInvitations,
+  listMembers,
+  removeMember,
+  sendInvitation,
+  type Invitation,
+  type InviteRole,
+  type Member,
+} from '@/lib/data/invitations'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import moment from 'moment'
 
@@ -36,48 +45,28 @@ interface TeamInvitationModalProps {
   teamName: string
 }
 
-interface PendingInvitation {
-  _id: string
-  email: string
-  role: string
-  invitedAt: number
-  status: string
-  token: string
-}
-
-interface TeamMember {
-  _id: string
-  email: string
-  role: string
-  joinedAt: number
-  teamId: string
-  userId: string
-  invitedBy: string
-  user: {
-    _id: string
-    _creationTime: number
-    name: string
-    email: string
-    imageUrl: string
-  } | null
-}
-
 const TeamInvitationModal = ({ isOpen, onClose, teamId, teamName }: TeamInvitationModalProps) => {
-  const { user } = useKindeBrowserClient()
+  const db = useMemo(() => createClient(), [])
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState('member')
+  const [role, setRole] = useState<InviteRole>('member')
   const [isLoading, setIsLoading] = useState(false)
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
+  const [invitations, setInvitations] = useState<Invitation[]>([])
+  const [teamMembers, setTeamMembers] = useState<Member[]>([])
 
-  // Mutations
-  const sendInvitation = useMutation(api.teamInvitations.sendTeamInvitation)
-  const cancelInvitation = useMutation(api.teamInvitations.cancelTeamInvitation)
-  const removeTeamMember = useMutation(api.teamInvitations.removeTeamMember)
-  const updateMemberRole = useMutation(api.teamInvitations.updateTeamMemberRole)
+  const load = useCallback(async () => {
+    try {
+      const [inv, members] = await Promise.all([listInvitations(db, teamId), listMembers(db, teamId)])
+      setInvitations(inv ?? [])
+      setTeamMembers(members ?? [])
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load team')
+    }
+  }, [db, teamId])
 
-  // Queries
-  const invitations = useQuery(api.teamInvitations.getTeamInvitations, { teamId })
-  const teamMembers = useQuery(api.teamInvitations.getTeamMembers, { teamId })
+  useEffect(() => {
+    if (isOpen) load()
+  }, [isOpen, load])
 
   const handleSendInvitation = async () => {
     if (!email.trim()) {
@@ -85,25 +74,15 @@ const TeamInvitationModal = ({ isOpen, onClose, teamId, teamName }: TeamInvitati
       return
     }
 
-    if (!user?.email) {
-      toast.error('User not authenticated')
-      return
-    }
-
     setIsLoading(true)
     try {
-      const result = await sendInvitation({
-        teamId,
-        email: email.trim(),
-        role,
-        invitedBy: user.email,
-      })
-
-      toast.success('Invitation sent successfully!')
+      const invitation = await sendInvitation(db, teamId, email, role)
       setEmail('')
       setRole('member')
+      await load()
+      if (invitation) await copyInvitationLink(invitation.token, 'Invitation created. Link copied, send it to them.')
     } catch (error: any) {
-      toast.error(error.message || 'Failed to send invitation')
+      toast.error(error.message || 'Failed to create invitation')
     } finally {
       setIsLoading(false)
     }
@@ -111,37 +90,40 @@ const TeamInvitationModal = ({ isOpen, onClose, teamId, teamName }: TeamInvitati
 
   const handleCancelInvitation = async (invitationId: string) => {
     try {
-      await cancelInvitation({ invitationId: invitationId as any })
+      await cancelInvitation(db, invitationId)
       toast.success('Invitation cancelled')
+      await load()
     } catch (error: any) {
       toast.error(error.message || 'Failed to cancel invitation')
     }
   }
 
-  const handleRemoveMember = async (memberId: string) => {
+  const handleRemoveMember = async (userId: string) => {
     try {
-      await removeTeamMember({ memberId: memberId as any })
+      await removeMember(db, teamId, userId)
       toast.success('Member removed from team')
+      await load()
     } catch (error: any) {
       toast.error(error.message || 'Failed to remove member')
     }
   }
 
-  const handleUpdateRole = async (memberId: string, newRole: string) => {
+  const handleUpdateRole = async (userId: string, newRole: InviteRole) => {
     try {
-      await updateMemberRole({ memberId: memberId as any, role: newRole })
+      await changeMemberRole(db, teamId, userId, newRole)
       toast.success('Member role updated')
+      await load()
     } catch (error: any) {
       toast.error(error.message || 'Failed to update role')
     }
   }
 
-  const copyInvitationLink = async (token: string) => {
+  const copyInvitationLink = async (token: string, message = 'Invitation link copied to clipboard!') => {
     const inviteUrl = `${window.location.origin}/invite/${token}`
     try {
       await navigator.clipboard.writeText(inviteUrl)
       setCopiedToken(token)
-      toast.success('Invitation link copied to clipboard!')
+      toast.success(message)
       setTimeout(() => setCopiedToken(null), 2000)
     } catch (error) {
       toast.error('Failed to copy link')
@@ -162,6 +144,10 @@ const TeamInvitationModal = ({ isOpen, onClose, teamId, teamName }: TeamInvitati
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
     }
   }
+
+  const pending = invitations.filter(
+    (inv) => inv.status === 'pending' && new Date(inv.expires_at) > new Date()
+  )
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -194,8 +180,8 @@ const TeamInvitationModal = ({ isOpen, onClose, teamId, teamName }: TeamInvitati
               </div>
               <div>
                 <Label htmlFor="role">Role</Label>
-                <Select value={role} onValueChange={setRole}>
-                  <SelectTrigger>
+                <Select value={role} onValueChange={(v) => setRole(v as InviteRole)}>
+                  <SelectTrigger id="role">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -206,140 +192,145 @@ const TeamInvitationModal = ({ isOpen, onClose, teamId, teamName }: TeamInvitati
                 </Select>
               </div>
             </div>
-            <Button 
-              onClick={handleSendInvitation} 
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No email is sent. Copy the link and send it to them yourself.
+            </p>
+            <Button
+              onClick={handleSendInvitation}
               disabled={isLoading || !email.trim()}
               className="w-full md:w-auto"
             >
               {isLoading ? (
                 <>
                   <LoadingSpinner className="mr-2 h-4 w-4" />
-                  Sending...
+                  Creating...
                 </>
               ) : (
                 <>
                   <Mail className="mr-2 h-4 w-4" />
-                  Send Invitation
+                  Create Invite Link
                 </>
               )}
             </Button>
           </div>
 
           {/* Pending Invitations */}
-          {invitations && invitations.length > 0 && (
+          {pending.length > 0 && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Pending Invitations</h3>
               <div className="space-y-2">
-                {invitations
-                  .filter((inv: PendingInvitation) => inv.status === 'pending')
-                  .map((invitation: PendingInvitation) => (
-                    <div
-                      key={invitation._id}
-                      className="flex items-center justify-between p-3 border rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Mail className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                        <div>
-                          <p className="font-medium">{invitation.email}</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Invited {moment(invitation.invitedAt).fromNow()}
-                          </p>
-                        </div>
-                        <Badge className={getRoleBadgeColor(invitation.role)}>
-                          {invitation.role}
-                        </Badge>
+                {pending.map((invitation) => (
+                  <div
+                    key={invitation.id}
+                    className="flex items-center justify-between p-3 border rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Mail className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                      <div>
+                        <p className="font-medium">{invitation.email}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Invited {moment(invitation.created_at).fromNow()}
+                        </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyInvitationLink(invitation.token)}
-                        >
-                          {copiedToken === invitation.token ? (
-                            <Check className="h-4 w-4" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCancelInvitation(invitation._id)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <Badge className={getRoleBadgeColor(invitation.role)}>
+                        {invitation.role}
+                      </Badge>
                     </div>
-                  ))}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        aria-label="Copy invitation link"
+                        onClick={() => copyInvitationLink(invitation.token)}
+                      >
+                        {copiedToken === invitation.token ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        aria-label="Cancel invitation"
+                        onClick={() => handleCancelInvitation(invitation.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
           {/* Team Members */}
-          {teamMembers && teamMembers.length > 0 && (
+          {teamMembers.length > 0 && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Team Members</h3>
               <div className="space-y-2">
-                {teamMembers.map((member: TeamMember) => (
-                  <div
-                    key={member._id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                        {member.user?.imageUrl ? (
-                          <img
-                            src={member.user.imageUrl}
-                            alt={member.user.name}
-                            className="w-8 h-8 rounded-full"
-                          />
-                        ) : (
-                          <span className="text-sm font-medium">
-                            {member.email.charAt(0).toUpperCase()}
-                          </span>
-                        )}
+                {teamMembers.map((member) => {
+                  const displayName = member.profile?.full_name || member.profile?.email || 'Unknown'
+                  return (
+                    <div
+                      key={member.user_id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                          {member.profile?.avatar_url ? (
+                            <img
+                              src={member.profile.avatar_url}
+                              alt={displayName}
+                              className="w-8 h-8 rounded-full"
+                            />
+                          ) : (
+                            <span className="text-sm font-medium">
+                              {displayName.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium">{displayName}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {member.profile?.email}
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            Joined {moment(member.joined_at).fromNow()}
+                          </p>
+                        </div>
+                        <Badge className={getRoleBadgeColor(member.role)}>
+                          {member.role}
+                        </Badge>
                       </div>
-                      <div>
-                        <p className="font-medium">
-                          {member.user?.name || member.email}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {member.email}
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
-                          Joined {moment(member.joinedAt).fromNow()}
-                        </p>
-                      </div>
-                      <Badge className={getRoleBadgeColor(member.role)}>
-                        {member.role}
-                      </Badge>
+                      {member.role !== 'owner' && (
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={member.role}
+                            onValueChange={(newRole) => handleUpdateRole(member.user_id, newRole as InviteRole)}
+                          >
+                            <SelectTrigger className="w-24" aria-label="Change member role">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="viewer">Viewer</SelectItem>
+                              <SelectItem value="member">Member</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            aria-label="Remove member"
+                            onClick={() => handleRemoveMember(member.user_id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                    {member.role !== 'owner' && (
-                      <div className="flex items-center gap-2">
-                        <Select
-                          value={member.role}
-                          onValueChange={(newRole) => handleUpdateRole(member._id, newRole)}
-                        >
-                          <SelectTrigger className="w-24">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="viewer">Viewer</SelectItem>
-                            <SelectItem value="member">Member</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveMember(member._id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}

@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import ExportDropdown from '@/components/ui/export-dropdown'
-import { FILE } from '@/app/dashboard/_components/FileList'
+import type { FileRow } from '@/lib/data/files'
 import { getFileType } from '@/lib/exportUtils'
 import FileShareModal from '@/components/ui/file-share-modal'
 
-const WSHeader = ({onSave, fileName, fileData}:{onSave: () => void, fileName: string, fileData?: FILE}) => {
+const WSHeader = ({onSave, fileName, fileData}:{onSave: () => void, fileName: string, fileData?: FileRow}) => {
   const router=useRouter();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   

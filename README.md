@@ -3,11 +3,12 @@
 
 ## Overview
 
-This project is a fully functional clone of [Eraser.io](https://eraser.io) built with **Next.js**, **React**, **TypeScript**, and **Tailwind CSS**. The application is a collaborative drawing tool where multiple users can draw on a shared canvas in real-time.
+This project is a fully functional clone of [Eraser.io](https://eraser.io) built with **Next.js**, **React**, **TypeScript**, and **Tailwind CSS**. The application is a document + whiteboard tool where teams keep files, invite members and share files by link.
 
 ## Features
 
-- **Real-time Collaboration**: Multiple users can draw on the same canvas simultaneously.
+- **Teams and sharing**: Create teams, invite members with a link, and share files with view / comment / edit links.
+- **Login**: Email + password and Google, powered by Supabase Auth.
 - **Next.js**: The app is built on Next.js, utilizing server-side rendering for performance optimization.
 - **TypeScript**: Strongly typed components ensure robust and error-free code.
 - **Tailwind CSS**: Utility-first CSS framework for fast and responsive UI development.
@@ -17,7 +18,7 @@ This project is a fully functional clone of [Eraser.io](https://eraser.io) built
 - **Next.js**: React framework for server-rendered applications.
 - **TypeScript**: Superset of JavaScript for type safety.
 - **Tailwind CSS**: Utility-first CSS framework.
-- **Convex**: For real-time data and backend functionality.
+- **Supabase** (self-hosted): Postgres database with row-level security, and login.
 
 ## Project Structure
 
@@ -59,7 +60,7 @@ Before running the project, ensure you have the following installed:
    ```
 
 3. **Add Environment Variables**:
-   Create a `.env` file in the root directory and add any required environment variables (for Convex, Firebase, etc.).
+   Copy `.env.example` to `.env.local` and fill in the Supabase URL, anon key and (server-only) service-role key.
 
 4. **Run the application**:
    ```bash

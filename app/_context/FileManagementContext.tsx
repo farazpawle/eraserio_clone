@@ -3,6 +3,9 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { FILE } from '@/app/dashboard/_components/FileList';
 
+// jsonb columns: null, '', {} and [] all mean "nothing saved yet"
+const hasContent = (v: unknown) => v != null && v !== '' && (typeof v !== 'object' || Object.keys(v).length > 0);
+
 export type ViewMode = 'list' | 'grid';
 export type SortOption = 'name' | 'date' | 'author' | 'modified';
 export type SortDirection = 'asc' | 'desc';
@@ -154,16 +157,16 @@ export const FileManagementProvider: React.FC<FileManagementProviderProps> = ({ 
       
       switch (sortBy) {
         case 'name':
-          comparison = a.fileName.localeCompare(b.fileName);
+          comparison = a.name.localeCompare(b.name);
           break;
         case 'date':
-          comparison = a._creationTime - b._creationTime;
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
           break;
         case 'modified':
-          comparison = (a.lastModified || a._creationTime) - (b.lastModified || b._creationTime);
+          comparison = new Date(a.updated_at || a.created_at).getTime() - new Date(b.updated_at || b.created_at).getTime();
           break;
         case 'author':
-          comparison = a.createdBy.localeCompare(b.createdBy);
+          comparison = (a.created_by ?? '').localeCompare(b.created_by ?? '');
           break;
         default:
           comparison = 0;
@@ -176,14 +179,14 @@ export const FileManagementProvider: React.FC<FileManagementProviderProps> = ({ 
   const filterFiles = useCallback((files: FILE[]): FILE[] => {
     return files.filter(file => {
       // Search query filter
-      if (filters.searchQuery && !file.fileName.toLowerCase().includes(filters.searchQuery.toLowerCase())) {
+      if (filters.searchQuery && !file.name.toLowerCase().includes(filters.searchQuery.toLowerCase())) {
         return false;
       }
       
       // File type filter
       if (filters.fileType && filters.fileType !== 'all') {
-        const hasDocument = file.document && file.document.trim() !== '';
-        const hasWhiteboard = file.whiteboard && file.whiteboard.trim() !== '';
+        const hasDocument = hasContent(file.document);
+        const hasWhiteboard = hasContent(file.whiteboard);
         
         if (filters.fileType === 'document' && !hasDocument) {
           return false;
@@ -195,7 +198,7 @@ export const FileManagementProvider: React.FC<FileManagementProviderProps> = ({ 
       
       // Date range filter
       if (filters.dateRange) {
-        const fileDate = new Date(file._creationTime);
+        const fileDate = new Date(file.created_at);
         if (filters.dateRange.start && fileDate < filters.dateRange.start) {
           return false;
         }
@@ -205,7 +208,7 @@ export const FileManagementProvider: React.FC<FileManagementProviderProps> = ({ 
       }
       
       // Author filter
-      if (filters.author && !file.createdBy.toLowerCase().includes(filters.author.toLowerCase())) {
+      if (filters.author && !(file.created_by ?? '').toLowerCase().includes(filters.author.toLowerCase())) {
         return false;
       }
       

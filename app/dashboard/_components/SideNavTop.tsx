@@ -1,27 +1,25 @@
 "use client";
 import { ChevronDown, LayoutGrid, LogOut, Settings, Users, Trash2 } from "lucide-react";
 import Image from "next/image";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { LogoutLink } from "@kinde-oss/kinde-auth-nextjs";
+import { signOut } from "@/app/auth/actions";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { useConvex, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { createClient } from "@/lib/supabase/client";
+import { deleteTeam, listMyTeams, type Team } from "@/lib/data/teams";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/app/_context/ThemeContext";
 import { useKeyboardShortcutsContext } from "@/app/_context/KeyboardShortcutsContext";
 import { toast } from "sonner";
 
-export interface TEAM {
-  createdBy: string;
-  teamName: string;
-  _id: string;
-}
+export type { TEAM } from "@/app/_context/TeamContext";
+type TEAM = Team;
 
 const SideNavTop = ({ user, setActiveTeamInfo, isCollapsed = false }: any) => {
     const router=useRouter();
@@ -36,9 +34,8 @@ const SideNavTop = ({ user, setActiveTeamInfo, isCollapsed = false }: any) => {
         }
     }
   const [activeTeam, setActiveTeam] = useState<TEAM>();
-  const convex = useConvex();
+  const db = useMemo(() => createClient(), []);
   const [teamNames, setTeamNames] = useState<TEAM[]>();
-  const deleteTeam = useMutation(api.teams.deleteTeam);
   useEffect(() => {
     user && teamList();
   }, [user]);
@@ -46,28 +43,28 @@ const SideNavTop = ({ user, setActiveTeamInfo, isCollapsed = false }: any) => {
     activeTeam&&setActiveTeamInfo(activeTeam)
   },[activeTeam])
   const teamList = async () => {
-    const result = await convex.query(api.teams.getTeam, {
-      email: user?.email,
-    });
-    setTeamNames(result);
-    setActiveTeam(result[0]);
-    console.log(result);
+    try {
+      const result = (await listMyTeams(db)) ?? [];
+      setTeamNames(result);
+      setActiveTeam(result[0]);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load teams");
+    }
   };
 
   const handleDeleteTeam = async (teamId: string) => {
     try {
-      await deleteTeam({ teamId: teamId as any });
+      await deleteTeam(db, teamId);
       toast.success("Team deleted successfully");
       // Refresh team list
       await teamList();
       // If deleted team was active, set first team as active
-      if (activeTeam?._id === teamId && teamNames && teamNames.length > 1) {
-        const remainingTeams = teamNames.filter(team => team._id !== teamId);
+      if (activeTeam?.id === teamId && teamNames && teamNames.length > 1) {
+        const remainingTeams = teamNames.filter(team => team.id !== teamId);
         setActiveTeam(remainingTeams[0]);
       }
     } catch (error) {
-      toast.error("Failed to delete team");
-      console.error("Error deleting team:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete team");
     }
   };
   const menu = [
@@ -104,7 +101,7 @@ const SideNavTop = ({ user, setActiveTeamInfo, isCollapsed = false }: any) => {
           </div>
           {!isCollapsed && (
             <h2 className="flex gap-2 items-center font-bold text-[13px] text-gray-900 dark:text-gray-100">
-              {activeTeam?.teamName}
+              {activeTeam?.name}
               <ChevronDown className="text-gray-600 dark:text-gray-400" />
             </h2>
           )}
@@ -119,10 +116,10 @@ const SideNavTop = ({ user, setActiveTeamInfo, isCollapsed = false }: any) => {
               <h2
                 onClick={() => setActiveTeam(item)}
                 className={`flex-1 p-2 rounded-lg hover:bg-blue-500 dark:hover:bg-blue-600 cursor-pointer text-gray-900 dark:text-gray-100 ${
-                  activeTeam?._id == item._id && "bg-blue-500 dark:bg-blue-600 text-white"
+                  activeTeam?.id == item.id && "bg-blue-500 dark:bg-blue-600 text-white"
                 }`}
               >
-                {item.teamName}
+                {item.name}
               </h2>
               {teamNames.length > 1 && (
                 <Button
@@ -130,7 +127,7 @@ const SideNavTop = ({ user, setActiveTeamInfo, isCollapsed = false }: any) => {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDeleteTeam(item._id);
+                    handleDeleteTeam(item.id);
                   }}
                   className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 h-8 w-8 p-0 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-400"
                 >
@@ -153,28 +150,25 @@ const SideNavTop = ({ user, setActiveTeamInfo, isCollapsed = false }: any) => {
               {item.name}
             </h2>
           ))}
-          <LogoutLink>
-            <h2 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex gap-2 items-center cursor-pointer text-gray-900 dark:text-gray-100">
+          <form action={signOut}>
+            <button type="submit" className="w-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex gap-2 items-center cursor-pointer text-gray-900 dark:text-gray-100 font-bold">
               <LogOut className="h-4 w-4" />
               Logout
-            </h2>
-          </LogoutLink>
+            </button>
+          </form>
         </div>
         <Separator className="mt-2 bg-slate-100 dark:bg-gray-700" />
         {/* user info section */}
 
         {user && (
           <div className="mt-2 flex gap-2 items-center">
-            <Image
-              className="rounded-full"
-              alt="profile image"
-              width={30}
-              height={30}
-              src={user.picture}
-            />
+            <Avatar className="h-[30px] w-[30px]">
+              <AvatarImage src={user.avatarUrl ?? undefined} alt="profile image" />
+              <AvatarFallback className="text-xs">{user.name?.charAt(0).toUpperCase()}</AvatarFallback>
+            </Avatar>
             <div className="">
               <h2 className="text-[14px] font-bold text-gray-900 dark:text-gray-100">
-                {user?.given_name} {user?.family_name}
+                {user.name}
               </h2>
               <h2 className="text-[12px] text-gray-500 dark:text-gray-400">{user?.email}</h2>
             </div>

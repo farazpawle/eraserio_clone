@@ -58,16 +58,16 @@ const ExportProvider: React.FC<ExportProviderProps> = ({ children }) => {
         isExporting: true,
         progress: 0,
         message: 'Starting export...',
-        currentFile: file.fileName
+        currentFile: file.name
       });
 
-      const progressCallback = createProgressCallback(file.fileName);
+      const progressCallback = createProgressCallback(file.name);
       const result = await exportFile(file, format, progressCallback);
 
       if (result.success) {
-        toast.success(`Successfully exported ${file.fileName} as ${format.toUpperCase()}`);
+        toast.success(`Successfully exported ${file.name} as ${format.toUpperCase()}`);
       } else {
-        toast.error(`Failed to export ${file.fileName}: ${result.error}`);
+        toast.error(`Failed to export ${file.name}: ${result.error}`);
       }
 
       return result;
