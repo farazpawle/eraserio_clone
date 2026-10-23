@@ -4,9 +4,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Eye, Edit, MessageSquare } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import WSHeader from "../../wokspace/_components/WSHeader";
-import Editor from "../../wokspace/_components/Editor";
-import WSCanvas from "../../wokspace/_components/WSCanvas";
+import dynamic from "next/dynamic";
+import WSHeader from "../../workspace/_components/WSHeader";
+
+// Editor.js and Excalidraw touch the DOM on import, so they can't render on the server.
+const Editor = dynamic(() => import("../../workspace/_components/Editor"), { ssr: false });
+const WSCanvas = dynamic(() => import("../../workspace/_components/WSCanvas"), { ssr: false });
 import { ResizablePane } from "@/components/ui/resizable-pane";
 import { toast } from "sonner";
 import type { ResolvedShare } from "@/lib/data/shares";

@@ -113,7 +113,7 @@ const FileCard = React.forwardRef<
     } else if (!isProcessing && !isNavigating) {
       // Show immediate feedback that the click was registered
       setIsNavigating(true)
-      router.push(`/wokspace/${file.id}`)
+      router.push(`/workspace/${file.id}`)
       // Note: setIsNavigating(false) is not needed as component will unmount during navigation
     }
   }
@@ -163,6 +163,7 @@ const FileCard = React.forwardRef<
   return (
     <div
       ref={ref}
+      data-testid="file-card"
       className={cn(
         'group relative rounded-lg border border-border bg-card p-4 transition-all duration-200 hover:shadow-md cursor-pointer',
         isSelected && 'ring-2 ring-primary ring-offset-2 bg-accent/50',
@@ -208,7 +209,7 @@ const FileCard = React.forwardRef<
             <FileIcon className="h-8 w-8 text-muted-foreground" />
           </div>
         ) : (
-          <div className={cn(
+          <div data-testid={isNavigating ? 'loading-spinner' : 'file-icon'} className={cn(
             'w-12 h-12 rounded-lg flex items-center justify-center',
             fileType === 'Whiteboard' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' :
             'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400'

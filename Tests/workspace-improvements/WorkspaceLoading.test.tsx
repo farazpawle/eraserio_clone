@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useRouter } from 'next/navigation';
 import { getFile } from '@/lib/data/files';
-import Workspace from '@/app/(routes)/wokspace/[fileId]/page';
+import Workspace from '@/app/(routes)/workspace/[fileId]/page';
 import { useKeyboardShortcutsContext } from '@/app/_context/KeyboardShortcutsContext';
 import { toast } from 'sonner';
 
@@ -12,17 +12,17 @@ jest.mock('@/lib/supabase/client', () => ({ createClient: () => ({}) }));
 jest.mock('@/lib/data/files');
 jest.mock('@/app/_context/KeyboardShortcutsContext');
 jest.mock('sonner');
-jest.mock('@/app/(routes)/wokspace/_components/WSHeader', () => {
+jest.mock('@/app/(routes)/workspace/_components/WSHeader', () => {
   return function MockWSHeader() {
     return <div data-testid="ws-header">Mock Header</div>;
   };
 });
-jest.mock('@/app/(routes)/wokspace/_components/Editor', () => {
+jest.mock('@/app/(routes)/workspace/_components/Editor', () => {
   return function MockEditor() {
     return <div data-testid="editor">Mock Editor</div>;
   };
 });
-jest.mock('@/app/(routes)/wokspace/_components/WSCanvas', () => {
+jest.mock('@/app/(routes)/workspace/_components/WSCanvas', () => {
   return function MockWSCanvas() {
     return <div data-testid="ws-canvas">Mock Canvas</div>;
   };
@@ -100,7 +100,7 @@ describe('Workspace Loading States', () => {
     expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
 
     // Should show skeleton elements
-    expect(screen.getAllByTestId('skeleton')).toHaveLength(12); // Header + workspace skeletons
+    expect(screen.getAllByTestId('skeleton')).toHaveLength(14); // Header (5) + workspace (9) skeletons
 
     // Wait for loading to complete
     await waitFor(() => {
@@ -147,12 +147,10 @@ describe('Workspace Loading States', () => {
     // Mock a failed response initially
     mockGetFile.mockRejectedValueOnce(new Error('Network error'));
     
-    // Mock window.location.reload
-    const mockReload = jest.fn();
-    Object.defineProperty(window, 'location', {
-      value: { reload: mockReload },
-      writable: true,
-    });
+    // jsdom's window.location cannot be redefined, so it cannot be swapped for a
+    // mock. Its reload() reports "Not implemented: navigation" through
+    // console.error instead, which proves the reload was attempted.
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     render(<Workspace params={{ fileId: 'test-file-id' }} />);
 
@@ -163,7 +161,12 @@ describe('Workspace Loading States', () => {
 
     // Click try again
     fireEvent.click(screen.getByText('Try Again'));
-    expect(mockReload).toHaveBeenCalled();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('Not implemented: navigation'),
+      })
+    );
+    consoleSpy.mockRestore();
   });
 
   it('should handle go back button click', async () => {

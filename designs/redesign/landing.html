@@ -1,0 +1,815 @@
+<!doctype html>
+<!--
+  PROTOTYPE · Public home page redesign (never shipped) · 2026-10-23
+  Choosing: the look and layout of the public home page (hero, "Type it. See it.", features, pricing, final call to action).
+  1 · Graphite  — anchored to Eraser.io's home page: centred hero text, the product picture full width underneath with a
+                  soft accent glow and dot grid behind it, rounded cards, Inter.
+  2 · Blueprint — anchored to Linear / Vercel split heroes: hero text on the LEFT with the product picture on the RIGHT
+                  (stacks under it below 1024), navy blueprint line grid, square corners, mono section labels
+                  ("01 — TYPED DIAGRAMS"), orange accent, features as a ruled table, IBM Plex Sans.
+  The product picture and the diagram are drawn in plain HTML/SVG (no screenshots). Motion is only a load entrance on the
+  hero and a once-only reveal on scroll; the page is finished with scripts off.
+  Real project values: breakpoints 475/640/768/1024/1280 (lib/design-tokens.ts), accents
+  #38bdf8 / #0369a1 (primary 400 / 700), Blueprint accent #fb923c / #c2410c (accent.orange 400 / 700),
+  Inter (project font), the headline wording "... for engineering teams" and the 5-file free limit.
+  New, not in the project: every surface and text colour, JetBrains Mono, IBM Plex Sans, plan prices and names,
+  feature wording, product name "Draftboard" (placeholder until you pick the real name).
+  Approximated: the diagram is laid out by hand (the real build uses ELK auto-layout); the editor picture is a drawing,
+  not the live editor; Docs and Changelog links go nowhere yet; sign-up goes to auth.html.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home · Draftboard prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<script>
+/* ===== PROTOTYPE STATE (inner frame) — copy as-is into every screen ===== */
+(function () {
+  var P = new URLSearchParams(location.search), h = document.documentElement;
+  if (!P.has('inner')) return;
+  h.dataset.look = P.get('look') || 'graphite';
+  h.dataset.theme = P.get('mode') || 'dark';
+  h.dataset.content = P.get('content') || 'normal';
+  h.dataset.motion = P.get('motion') || 'on';
+  h.classList.add('inner');
+})();
+</script>
+<style>
+/* ===== DESIGN TOKENS — shared by every screen ===== */
+:root {
+  --font: 'Inter', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --bg: #0b0b0f; --panel: #111116; --panel-2: #17171e; --hover: #1f1f28;
+  --line: #24242d; --line-2: #33333f;
+  --text: #ececf1; --muted: #a1a1b0; --faint: #8a8a9c;
+  --accent: #38bdf8; --accent-ink: #03131d; --accent-soft: rgba(56,189,248,.14);
+  --grid: #26262f; --danger: #f87171; --ok: #34d399;
+  --radius: 10px; --radius-sm: 7px; --shadow: 0 12px 32px rgba(0,0,0,.5);
+  --node-bg: #15151c;
+  --c-blue: #38bdf8; --c-green: #34d399; --c-purple: #a78bfa; --c-orange: #fb923c; --c-red: #f87171; --c-gray: #94a3b8;
+  color-scheme: dark;
+}
+[data-theme="light"] {
+  --bg: #f6f6f8; --panel: #ffffff; --panel-2: #f2f2f5; --hover: #e9e9ef;
+  --line: #e4e4ea; --line-2: #d2d2db;
+  --text: #111117; --muted: #52525f; --faint: #6a6a78;
+  --accent: #0369a1; --accent-ink: #ffffff; --accent-soft: rgba(3,105,161,.10);
+  --grid: #d9d9e1; --danger: #dc2626; --ok: #059669;
+  --shadow: 0 12px 32px rgba(20,20,40,.12);
+  --node-bg: #ffffff;
+  --c-blue: #0284c7; --c-green: #059669; --c-purple: #7c3aed; --c-orange: #ea580c; --c-red: #dc2626; --c-gray: #64748b;
+  color-scheme: light;
+}
+[data-look="blueprint"] {
+  --font: 'IBM Plex Sans', system-ui, sans-serif;
+  --bg: #071022; --panel: #0b1730; --panel-2: #10203f; --hover: #16294e;
+  --line: #1b2f57; --line-2: #284372;
+  --text: #e7eefc; --muted: #a3b5d6; --faint: #8193b8;
+  --accent: #fb923c; --accent-ink: #1a0b02; --accent-soft: rgba(251,146,60,.14);
+  --grid: #142a52; --node-bg: #0b1730;
+  --radius: 4px; --radius-sm: 3px;
+}
+[data-look="blueprint"][data-theme="light"] {
+  --bg: #edf2fa; --panel: #ffffff; --panel-2: #f3f6fc; --hover: #e4ebf7;
+  --line: #cfdbee; --line-2: #b3c4e1;
+  --text: #0a1630; --muted: #42557a; --faint: #586b8e;
+  --accent: #c2410c; --accent-ink: #ffffff; --accent-soft: rgba(194,65,12,.10);
+  --grid: #d3dff1; --node-bg: #ffffff;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--text); font: 14px/1.5 var(--font); -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ico { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--line-2); background: var(--panel-2); font-weight: 500; white-space: nowrap; transition: background .15s, border-color .15s; }
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.btn.ghost:hover { color: var(--text); background: var(--hover); }
+.icon-btn { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: var(--radius-sm); border: 0; background: transparent; color: var(--muted); }
+.icon-btn:hover, .icon-btn[aria-pressed="true"] { background: var(--hover); color: var(--text); }
+[data-look="blueprint"] .btn.primary { text-transform: uppercase; letter-spacing: .06em; font-size: 12px; }
+
+/* ===== LANDING PAGE ===== */
+/* The landing page scrolls normally, so the editor's fixed 100% height is released. */
+html, body { height: auto; }
+html { scroll-behavior: smooth; }
+html[data-motion="reduced"] { scroll-behavior: auto; }
+html.lock { overflow: hidden; }
+body { font-size: 16px; line-height: 1.6; }
+a { color: inherit; }
+img, svg { max-width: 100%; }
+
+:root { --card-r: 16px; --wrap: 1180px; --gutter: 20px; --sec-y: 72px; }
+[data-look="blueprint"] { --card-r: 0px; --wrap: 1240px; }
+@media (min-width: 640px) { :root { --gutter: 24px; --sec-y: 88px; } }
+@media (min-width: 1024px) { :root { --gutter: 32px; --sec-y: 112px; } }
+
+.wrap { width: 100%; max-width: var(--wrap); margin: 0 auto; padding: 0 var(--gutter); }
+.skip { position: absolute; left: 12px; top: -80px; z-index: 60; padding: 10px 16px; border-radius: var(--radius-sm); background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.skip:focus { top: 12px; }
+
+/* Buttons: landing tap targets are 44px or more */
+.btn { min-height: 44px; font-size: 15px; text-decoration: none; justify-content: center; }
+.btn.lg { min-height: 48px; padding: 0 22px; font-size: 16px; }
+.icon-btn { width: 44px; height: 44px; }
+[data-look="blueprint"] .btn, [data-look="blueprint"] .btn.primary { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+[data-look="blueprint"] .btn.lg, [data-look="blueprint"] .btn.primary.lg { font-size: 14px; }
+
+.brand { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); }
+[data-look="blueprint"] .brand { border-radius: 3px; }
+
+/* ---- Nav ---- */
+.nav { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 84%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); }
+.nav .wrap { display: flex; align-items: center; gap: 12px; height: 64px; }
+.logo { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 700; font-size: 18px; letter-spacing: -.01em; text-decoration: none; }
+.links, .nav-actions { display: none; align-items: center; gap: 4px; }
+.links { margin-left: 8px; }
+.links a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; border-radius: var(--radius-sm); color: var(--muted); text-decoration: none; }
+.links a:hover { color: var(--text); background: var(--hover); }
+.nav-actions { margin-left: auto; gap: 8px; }
+.menu-btn { margin-left: auto; border: 1px solid var(--line-2); }
+@media (min-width: 768px) { .links, .nav-actions { display: flex; } .menu-btn { display: none; } }
+@media (min-width: 1024px) { .nav .wrap { gap: 24px; } .links { margin-left: 16px; } .links a { padding: 0 14px; } }
+[data-look="blueprint"] .links a { font-family: var(--mono); font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+
+.drawer-wrap { position: fixed; inset: 0; z-index: 40; }
+.drawer-wrap[hidden] { display: none; }
+.scrim { position: absolute; inset: 0; background: rgba(0,0,0,.55); }
+.drawer { position: absolute; top: 0; right: 0; bottom: 0; width: min(340px, 88vw); display: flex; flex-direction: column; gap: 8px; padding: 10px 16px 20px; overflow-y: auto; background: var(--panel); border-left: 1px solid var(--line-2); box-shadow: var(--shadow); }
+.drawer-h { display: flex; align-items: center; justify-content: space-between; height: 54px; }
+.drawer nav a { display: flex; align-items: center; min-height: 52px; font-size: 18px; text-decoration: none; border-bottom: 1px solid var(--line); }
+.drawer-actions { display: grid; gap: 10px; margin-top: auto; padding-top: 16px; }
+
+/* ---- Shared section parts ---- */
+.sec { padding: var(--sec-y) 0; scroll-margin-top: 64px; }
+.sec-head { max-width: 720px; margin: 0 auto 48px; text-align: center; }
+.eyebrow { margin: 0 0 12px; color: var(--accent); font-weight: 600; font-size: 14px; }
+.eyebrow .num { display: none; }
+.sec-head h2, .band h2 { margin: 0; font-size: clamp(28px, 4.2vw, 44px); line-height: 1.12; letter-spacing: -.025em; font-weight: 700; overflow-wrap: anywhere; text-wrap: balance; }
+.sec-head p { margin: 16px 0 0; color: var(--muted); font-size: 18px; }
+[data-look="blueprint"] .sec-head { max-width: 780px; margin: 0 0 48px; text-align: left; }
+[data-look="blueprint"] .sec-head h2, [data-look="blueprint"] .band h2 { font-weight: 600; letter-spacing: -.02em; }
+[data-look="blueprint"] .eyebrow { font-family: var(--mono); font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
+[data-look="blueprint"] .eyebrow .num { display: inline; }
+
+/* Normal / worst-case copy: both live in the DOM, the content switch picks one */
+.w { display: none; }
+[data-content="worst"] .n { display: none; }
+[data-content="worst"] .w { display: inline; }
+.feat.extra { display: none; }
+[data-content="worst"] .feat.extra { display: flex; }
+
+/* ---- Hero ---- */
+.hero { position: relative; overflow: hidden; padding: 56px 0 72px; }
+.hero::before { content: ""; position: absolute; left: 50%; bottom: -80px; width: min(1180px, 140%); height: 680px; transform: translateX(-50%); pointer-events: none; z-index: 0;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 30%, transparent), transparent); }
+.hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0; background-image: radial-gradient(var(--grid) 1.2px, transparent 1.2px); background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 35%, #000 5%, transparent 72%); mask-image: radial-gradient(ellipse at 50% 35%, #000 5%, transparent 72%); }
+.hero .wrap { position: relative; z-index: 1; display: grid; gap: 48px; justify-items: center; text-align: center; }
+.hero-copy { max-width: 840px; }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 5px 14px 5px 6px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--panel); color: var(--muted); font-size: 14px; }
+.pill .tag { padding: 1px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.hero h1 { margin: 20px 0 0; font-size: clamp(34px, 7vw, 68px); line-height: 1.05; letter-spacing: -.035em; font-weight: 700; overflow-wrap: anywhere; text-wrap: balance; }
+.lead { margin: 20px auto 0; max-width: 60ch; color: var(--muted); font-size: clamp(17px, 2.2vw, 20px); }
+.cta { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 32px; }
+.fine { margin: 14px 0 0; color: var(--muted); font-size: 14px; }
+.hero-visual { width: 100%; max-width: 1120px; margin: 0; }
+
+[data-look="blueprint"] .hero::before { display: none; }
+[data-look="blueprint"] .hero::after { background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+  linear-gradient(color-mix(in srgb, var(--grid) 45%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--grid) 45%, transparent) 1px, transparent 1px);
+  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+  -webkit-mask-image: linear-gradient(#000 45%, transparent); mask-image: linear-gradient(#000 45%, transparent); }
+[data-look="blueprint"] .hero .wrap { justify-items: stretch; text-align: left; }
+[data-look="blueprint"] .hero-copy { max-width: 720px; }
+[data-look="blueprint"] .hero h1 { font-size: clamp(34px, 6.4vw, 54px); font-weight: 600; letter-spacing: -.03em; }
+[data-look="blueprint"] .lead { margin-left: 0; }
+[data-look="blueprint"] .cta { justify-content: flex-start; }
+[data-look="blueprint"] .pill { border-radius: 0; font-family: var(--mono); font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+[data-look="blueprint"] .pill .tag { border-radius: 0; }
+@media (min-width: 1024px) {
+  [data-look="blueprint"] .hero { padding: 80px 0 96px; }
+  [data-look="blueprint"] .hero .wrap { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: center; gap: 40px; }
+  [data-look="blueprint"] .hero h1 { font-size: clamp(36px, 4vw, 56px); }
+}
+
+/* Load entrance: fade + 12px rise, staggered. Plain CSS, so it also plays with scripts off. */
+.rise { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i, 0) * 90ms); }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+/* Scroll reveal: the script adds .rv only to blocks below the fold, so the page is finished without it. */
+.rv { opacity: 0; transform: translateY(12px); transition: opacity .6s ease-out, transform .6s ease-out; }
+.rv.rv-in { opacity: 1; transform: none; }
+html[data-motion="reduced"] *, html[data-motion="reduced"] *::before, html[data-motion="reduced"] *::after { animation: none !important; transition: none !important; }
+html[data-motion="reduced"] .rv { opacity: 1; transform: none; }
+
+/* ---- Product picture (drawn, scaled to fit its box) ---- */
+.shot { border: 1px solid var(--line-2); border-radius: var(--card-r); background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+[data-look="blueprint"] .shot { box-shadow: 10px 10px 0 var(--accent-soft); }
+.shot-fit { position: relative; width: 100%; overflow: hidden; aspect-ratio: 1040 / 600; height: var(--h, auto); }
+.shot-inner { position: absolute; left: 0; top: 0; width: 1040px; height: 600px; display: flex; flex-direction: column; transform-origin: 0 0; transform: scale(var(--s, 1));
+  background: var(--bg); color: var(--text); font: 13px/1.45 var(--font); text-align: left; }
+.m-top { flex: none; display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.m-brand { display: grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: var(--radius-sm); background: var(--accent); color: var(--accent-ink); }
+.m-brand .ico { width: 16px; height: 16px; }
+.m-crumb { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--muted); }
+.m-crumb i { margin: 0 6px; font-style: normal; }
+.m-crumb b { color: var(--text); font-weight: 600; }
+.m-seg { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.m-seg span { padding: 3px 10px; border-radius: 6px; color: var(--muted); }
+.m-seg .on { background: var(--hover); color: var(--text); }
+.m-av { display: flex; padding-left: 6px; }
+.m-av i { display: grid; place-items: center; width: 24px; height: 24px; margin-left: -6px; border: 2px solid var(--panel); border-radius: 50%; font: 700 10px var(--font); font-style: normal; color: #0b0b0f; }
+.m-share { padding: 4px 12px; border-radius: var(--radius-sm); background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.m-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0, 1fr); }
+.m-doc { overflow: hidden; padding: 24px; background: var(--panel); border-right: 1px solid var(--line); }
+.m-doc p { margin: 0; }
+.m-doc .m-eyebrow { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+.m-doc .m-h1 { font-size: 24px; line-height: 1.2; font-weight: 700; letter-spacing: -.02em; margin-bottom: 10px; }
+.m-doc .m-lead { color: var(--muted); font-size: 13.5px; margin-bottom: 18px; }
+.m-doc .m-h2 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.m-checks { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; }
+.m-checks li { position: relative; padding-left: 26px; }
+.m-checks li::before { content: ""; position: absolute; left: 0; top: 2px; width: 15px; height: 15px; border: 1.5px solid var(--line-2); border-radius: 4px; }
+.m-checks .done { color: var(--muted); text-decoration: line-through; }
+.m-checks .done::before { background: var(--accent); border-color: var(--accent); }
+.m-callout { padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: var(--radius); background: var(--accent-soft); font-size: 13px; }
+.m-canvas { position: relative; overflow: hidden; }
+.m-tabs { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); z-index: 2; }
+.m-tabs span { padding: 4px 12px; border-radius: var(--radius-sm); color: var(--muted); }
+.m-tabs .on { background: var(--accent-soft); color: var(--accent); }
+.m-svg { position: absolute; left: 0; top: 52px; width: 100%; height: auto; }
+.m-code { position: absolute; left: 14px; bottom: 14px; z-index: 2; width: 340px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); }
+.m-code-h { display: flex; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 600; }
+.m-code-h span { font-weight: 500; color: var(--muted); }
+.m-code .cb { padding: 8px 10px 8px 36px; font: 11.5px/1.7 var(--mono); }
+.m-code .cb .l::before { left: -28px; width: 20px; }
+@media (max-width: 767px) {
+  .shot-fit { aspect-ratio: 640 / 400; }
+  .shot-inner { width: 640px; height: 400px; }
+  .m-body { grid-template-columns: minmax(0, 1fr); }
+  .m-doc, .m-code, .m-seg, .m-av { display: none; }
+}
+
+/* Grid backgrounds shared by the picture and the diagram card */
+.grid-bg { background-color: var(--bg); background-image: radial-gradient(var(--grid) 1.2px, transparent 1.2px); background-size: 20px 20px; }
+[data-look="blueprint"] .grid-bg { background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+  linear-gradient(color-mix(in srgb, var(--grid) 45%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--grid) 45%, transparent) 1px, transparent 1px);
+  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px; }
+
+/* ---- Diagram nodes (same look as the editor) ---- */
+.node { box-sizing: border-box; width: 100%; height: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px;
+  border-radius: 10px; background: var(--node-bg); border: 1px solid var(--line-2); color: var(--text); font: 500 13px/1.3 var(--font); box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+.node .tile { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; flex: none; color: var(--nc); background: color-mix(in srgb, var(--nc) 16%, transparent); }
+.node .tile .ico { width: 18px; height: 18px; }
+.node .lbl { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.dg .grp rect { fill: color-mix(in srgb, var(--accent) 5%, transparent); stroke: var(--line-2); stroke-dasharray: 6 5; }
+.dg .grp text { fill: var(--muted); font: 600 12px var(--font); }
+.dg .edge { fill: none; stroke: var(--muted); stroke-width: 1.6; }
+.dg .edge.dash { stroke-dasharray: 6 5; }
+.dg .elabel { fill: var(--muted); font: 500 12px var(--font); paint-order: stroke; stroke: var(--bg); stroke-width: 5px; stroke-linejoin: round; }
+.dg marker path { fill: var(--muted); }
+.dg .node { font-size: 15px; }
+[data-look="blueprint"] .node { border-radius: 2px; background: var(--node-bg); border: 1.5px solid var(--nc); box-shadow: none; font-family: var(--mono); font-size: 12px; }
+[data-look="blueprint"] .node .tile { border-radius: 2px; background: transparent; border-right: 1px solid color-mix(in srgb, var(--nc) 50%, transparent); border-radius: 0; height: 100%; width: 38px; margin: -8px 0 -8px -8px; }
+[data-look="blueprint"] .dg .edge { stroke: color-mix(in srgb, var(--text) 55%, transparent); }
+[data-look="blueprint"] .dg marker path { fill: color-mix(in srgb, var(--text) 55%, transparent); }
+[data-look="blueprint"] .dg .elabel, [data-look="blueprint"] .dg .grp text { font-family: var(--mono); }
+[data-look="blueprint"] .dg .grp rect { fill: transparent; stroke: var(--accent); }
+[data-look="blueprint"] .dg .grp text { fill: var(--accent); text-transform: uppercase; }
+[data-look="blueprint"] .dg .node { font-size: 13px; }
+
+/* ---- Type it. See it. ---- */
+.pair { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.codecard, .rendercard { display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid var(--line-2); border-radius: var(--card-r); background: var(--panel); }
+.card-h { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+.chip { margin-left: auto; padding: 2px 10px; border: 1px solid var(--line-2); border-radius: 999px; font-size: 13px; color: var(--muted); }
+.cb { margin: 0; padding: 14px 16px 14px 54px; overflow: auto; white-space: normal; font: 14px/1.75 var(--mono); color: var(--text); counter-reset: ln; }
+.cb .l { display: block; position: relative; min-height: 1.75em; white-space: pre; }
+.cb .l::before { counter-increment: ln; content: counter(ln); position: absolute; left: -40px; width: 28px; text-align: right; color: var(--muted); }
+.t-c { color: var(--muted); font-style: italic; }
+.t-a { color: var(--accent); font-weight: 600; }
+.t-b { color: color-mix(in srgb, var(--c-green) 70%, var(--text)); }
+.t-g { color: color-mix(in srgb, var(--c-purple) 70%, var(--text)); font-weight: 600; }
+.t-k { color: color-mix(in srgb, var(--c-orange) 70%, var(--text)); }
+.render-body { flex: 1; display: grid; align-items: center; overflow-x: auto; padding: 16px; }
+.render-body svg { display: block; width: 100%; height: auto; min-width: 560px; }
+@media (min-width: 640px) { .render-body svg { min-width: 0; } }
+.cap { margin: 24px auto 0; max-width: 60ch; text-align: center; color: var(--muted); }
+[data-look="blueprint"] .cap { margin-left: 0; text-align: left; }
+@media (min-width: 1024px) { .pair { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); } }
+[data-look="blueprint"] .pair { gap: 0; border: 1px solid var(--line-2); }
+[data-look="blueprint"] .codecard, [data-look="blueprint"] .rendercard { border: 0; }
+[data-look="blueprint"] .codecard { border-bottom: 1px solid var(--line-2); }
+[data-look="blueprint"] .chip { border-radius: 0; font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+@media (min-width: 1024px) { [data-look="blueprint"] .codecard { border-bottom: 0; border-right: 1px solid var(--line-2); } }
+
+/* ---- Features ---- */
+.feats { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+@media (min-width: 640px) { .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .feats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.feat { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 24px; border: 1px solid var(--line); border-radius: var(--card-r); background: var(--panel); }
+.feat:hover { border-color: var(--line-2); }
+.f-ico { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; color: var(--nc); background: color-mix(in srgb, var(--nc) 16%, transparent); }
+.f-ico .ico { width: 22px; height: 22px; }
+.feat h3 { margin: 4px 0 0; font-size: 20px; line-height: 1.25; letter-spacing: -.01em; overflow-wrap: anywhere; }
+.feat p { margin: 0; color: var(--muted); }
+[data-look="blueprint"] .feats { gap: 0; border-top: 1px solid var(--line-2); border-left: 1px solid var(--line-2); }
+[data-look="blueprint"] .feat { border: 0; border-right: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); background: transparent; }
+[data-look="blueprint"] .feat:hover { background: var(--panel); }
+[data-look="blueprint"] .f-ico { border-radius: 0; background: transparent; border: 1px solid var(--nc); }
+[data-look="blueprint"] .feat h3 { font-size: 18px; font-weight: 600; }
+
+/* ---- Pricing ---- */
+.plans { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; max-width: 640px; margin: 0 auto; }
+@media (min-width: 1024px) { .plans { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: none; align-items: stretch; } }
+.plan { position: relative; display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 28px; border: 1px solid var(--line-2); border-radius: var(--card-r); background: var(--panel); }
+.plan.hl { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 24px 64px color-mix(in srgb, var(--accent) 18%, transparent); }
+.badge { align-self: flex-start; padding: 2px 12px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 13px; font-weight: 600; }
+.plan h3 { margin: 0; font-size: 20px; line-height: 1.25; overflow-wrap: anywhere; }
+.p-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 0; min-width: 0; }
+.amt { font-size: clamp(32px, 4vw, 40px); font-weight: 700; letter-spacing: -.03em; line-height: 1.1; overflow-wrap: anywhere; }
+.per { color: var(--muted); font-size: 15px; }
+.p-desc { margin: 0; color: var(--muted); }
+.p-list { flex: 1; display: grid; gap: 10px; align-content: start; margin: 0; padding: 0; list-style: none; }
+.p-list li { display: flex; gap: 10px; align-items: flex-start; }
+.p-list .ico { margin-top: 4px; color: var(--accent); }
+.plan .btn { width: 100%; }
+[data-look="blueprint"] .plans { gap: 0; margin: 0; border-top: 1px solid var(--line-2); border-left: 1px solid var(--line-2); }
+[data-look="blueprint"] .plan { border: 0; border-right: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); background: transparent; }
+[data-look="blueprint"] .plan.hl { background: var(--panel-2); box-shadow: inset 0 3px 0 var(--accent); }
+[data-look="blueprint"] .badge { border-radius: 0; font-family: var(--mono); text-transform: uppercase; letter-spacing: .05em; font-size: 12px; }
+[data-look="blueprint"] .plan h3 { font-size: 18px; font-weight: 600; }
+
+/* ---- Final call to action ---- */
+.band-sec { padding: 0 0 var(--sec-y); }
+.band { position: relative; display: grid; gap: 28px; justify-items: center; padding: 56px 24px; text-align: center; border: 1px solid var(--line-2); border-radius: calc(var(--card-r) + 8px); overflow: hidden;
+  background: linear-gradient(135deg, var(--accent-soft), transparent 70%), var(--panel); }
+.band > * { margin: 0; position: relative; min-width: 0; }
+.band p { color: var(--muted); font-size: 18px; max-width: 52ch; }
+.band .cta { margin-top: 0; }
+[data-look="blueprint"] .band { justify-items: start; text-align: left; border-radius: 0; background: var(--panel); background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 48px 48px; }
+@media (min-width: 768px) {
+  .band { padding: 72px 48px; }
+  [data-look="blueprint"] .band { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 40px; }
+  [data-look="blueprint"] .band .cta { grid-column: 2; grid-row: 1 / span 2; }
+}
+
+/* ---- Footer ---- */
+.foot { padding: 56px 0 32px; border-top: 1px solid var(--line); background: var(--panel); scroll-margin-top: 64px; }
+.foot-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 24px; }
+.foot-brand { grid-column: 1 / -1; }
+.foot-brand p { margin: 12px 0 0; max-width: 34ch; color: var(--muted); }
+.foot h3 { margin: 0 0 4px; font-size: 14px; letter-spacing: .02em; }
+.foot ul { margin: 0; padding: 0; list-style: none; }
+.foot li a { display: flex; align-items: center; min-height: 44px; color: var(--muted); text-decoration: none; }
+.foot li a:hover { color: var(--text); text-decoration: underline; }
+.legal { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+@media (min-width: 768px) { .foot-grid { grid-template-columns: 1.6fr repeat(3, minmax(0, 1fr)); } .foot-brand { grid-column: auto; } }
+[data-look="blueprint"] .foot h3 { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-logo" viewBox="0 0 24 24"><path d="M5 4h14v16H3z" fill="currentColor" stroke="none"/><path d="M10 9h6M9 13h7M8 17h5" stroke="var(--accent)" stroke-width="2"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></symbol>
+  <symbol id="i-shapes" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><circle cx="17" cy="17" r="4"/><path d="M14 10h7M17.5 3v7"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 21l1.9-5.4A8 8 0 1 1 21 12z"/></symbol>
+  <!-- diagram icons -->
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="8" rx="2"/><rect x="3" y="13" width="18" height="8" rx="2"/><path d="M7 7h.01M7 17h.01"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></symbol>
+  <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19a4.5 4.5 0 1 0-1.4-8.8A6 6 0 0 0 4.3 13 3.5 3.5 0 0 0 6 19z"/></symbol>
+  <!-- new on this screen -->
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M16 4.2a4 4 0 0 1 0 7.6M22 21a7 7 0 0 0-4.5-6.5"/></symbol>
+  <symbol id="i-columns" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+</svg>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" id="top">
+  <div class="wrap">
+    <a class="logo" href="#top"><span class="brand"><svg class="ico" style="width:20px;height:20px"><use href="#i-logo"/></svg></span>Draftboard</a>
+    <nav class="links" aria-label="Main">
+      <a href="#features">Product</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#">Docs</a>
+      <a href="#">Changelog</a>
+    </nav>
+    <div class="nav-actions">
+      <a class="btn ghost" href="auth.html" target="_top">Log in</a>
+      <a class="btn primary" href="auth.html" target="_top">Get started free</a>
+    </div>
+    <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="drawerWrap"><svg class="ico"><use href="#i-menu"/></svg></button>
+  </div>
+</header>
+
+<div class="drawer-wrap" id="drawerWrap" hidden>
+  <div class="scrim" id="scrim"></div>
+  <div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Main menu">
+    <div class="drawer-h">
+      <span class="logo"><span class="brand"><svg class="ico" style="width:20px;height:20px"><use href="#i-logo"/></svg></span>Draftboard</span>
+      <button class="icon-btn" id="drawerClose" type="button" aria-label="Close menu"><svg class="ico"><use href="#i-x"/></svg></button>
+    </div>
+    <nav aria-label="Mobile">
+      <a href="#features">Product</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#">Docs</a>
+      <a href="#">Changelog</a>
+    </nav>
+    <div class="drawer-actions">
+      <a class="btn" href="auth.html" target="_top">Log in</a>
+      <a class="btn primary" href="auth.html" target="_top">Get started free</a>
+    </div>
+  </div>
+</div>
+
+<main id="main" tabindex="-1">
+
+  <section class="hero" aria-labelledby="heroTitle">
+    <div class="wrap">
+      <div class="hero-copy">
+        <p class="rise" style="--i:0;margin:0"><span class="pill"><span class="tag">New</span>Typed diagrams, right beside your docs</span></p>
+        <h1 id="heroTitle" class="rise" style="--i:1"><span class="n">Docs and diagrams, together, for engineering teams</span><span class="w">Docs and diagrams, together, built as code with DiagramsAsCodeForEveryoneOnTheTeam, for every engineering team everywhere</span></h1>
+        <p class="lead rise" style="--i:2">Write the design doc on one side and a typed diagram on the other. Draftboard keeps both in a single file, so your whole team always looks at the same picture.</p>
+        <div class="cta rise" style="--i:3">
+          <a class="btn primary lg" href="auth.html" target="_top">Get started free</a>
+          <a class="btn lg" href="#how">See how it works</a>
+        </div>
+        <p class="fine rise" style="--i:4">Free for up to 5 files. No credit card.</p>
+      </div>
+
+      <figure class="hero-visual rise" style="--i:5" role="img" aria-label="Preview of the Draftboard editor: a design document on the left, and a checkout service diagram with its diagram code on the right.">
+        <div class="shot">
+          <div class="shot-fit" id="shotFit">
+            <div class="shot-inner" id="shotInner">
+              <div class="m-top">
+                <span class="m-brand"><svg class="ico"><use href="#i-logo"/></svg></span>
+                <span class="m-crumb">Acme Platform<i>/</i><b>Checkout service architecture</b></span>
+                <span class="m-seg"><span>Document</span><span class="on">Both</span><span>Canvas</span></span>
+                <span class="m-av"><i style="background:var(--c-blue)">FP</i><i style="background:var(--c-purple)">AK</i><i style="background:var(--c-green)">MR</i></span>
+                <span class="m-share">Share</span>
+              </div>
+              <div class="m-body">
+                <div class="m-doc">
+                  <p class="m-eyebrow">Design doc · edited 2 minutes ago</p>
+                  <p class="m-h1">Checkout service architecture</p>
+                  <p class="m-lead">How an order moves from the cart to a confirmed payment, and which service owns each step.</p>
+                  <p class="m-h2">Goals</p>
+                  <ul class="m-checks"><li class="done">One service owns the order from start to finish</li><li>Payments can fail without losing the order</li><li>Every step is visible in the diagram</li></ul>
+                  <div class="m-callout">The diagram is written as text. Edit the diagram code and the boxes and arrows rearrange themselves.</div>
+                </div>
+                <div class="m-canvas grid-bg">
+                  <div class="m-tabs"><span class="on">Diagram</span><span>Sketch</span></div>
+                  <svg class="m-svg dg" viewBox="0 0 740 372">
+<defs><marker id="ah1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z"/></marker></defs>
+<g class="grp"><rect x="252" y="16" width="476" height="344" rx="12"/><text x="266" y="40">AWS</text></g>
+<path class="edge" marker-end="url(#ah1)" d="M91 114V170"/><text class="elabel" x="101" y="148">checkout</text>
+<path class="edge" marker-end="url(#ah1)" d="M166 197C216 197 222 87 272 87"/><text class="elabel" text-anchor="middle" x="219" y="134">POST /orders</text>
+<path class="edge" marker-end="url(#ah1)" d="M367 114V170"/>
+<path class="edge" marker-end="url(#ah1)" d="M462 197H550"/><text class="elabel" text-anchor="middle" x="506" y="189">save</text>
+<path class="edge" marker-end="url(#ah1)" d="M367 224V280"/><text class="elabel" x="377" y="257">charge</text>
+<path class="edge" marker-end="url(#ah1)" d="M272 297H166"/>
+<path class="edge dash" marker-end="url(#ah1)" d="M166 317H272"/><text class="elabel" text-anchor="middle" x="219" y="348">webhook</text>
+<foreignObject x="16" y="60" width="150" height="54"><div class="node" style="--nc:var(--c-blue)"><span class="tile"><svg class="ico"><use href="#i-user"/></svg></span><span class="lbl">Customer</span></div></foreignObject>
+<foreignObject x="16" y="170" width="150" height="54"><div class="node" style="--nc:var(--c-gray)"><span class="tile"><svg class="ico"><use href="#i-monitor"/></svg></span><span class="lbl">Web app</span></div></foreignObject>
+<foreignObject x="16" y="280" width="150" height="54"><div class="node" style="--nc:var(--c-blue)"><span class="tile"><svg class="ico"><use href="#i-cloud"/></svg></span><span class="lbl">Stripe</span></div></foreignObject>
+<foreignObject x="272" y="60" width="190" height="54"><div class="node" style="--nc:var(--c-orange)"><span class="tile"><svg class="ico"><use href="#i-server"/></svg></span><span class="lbl">API Gateway</span></div></foreignObject>
+<foreignObject x="272" y="170" width="190" height="54"><div class="node" style="--nc:var(--c-purple)"><span class="tile"><svg class="ico"><use href="#i-box"/></svg></span><span class="lbl">Orders service</span></div></foreignObject>
+<foreignObject x="272" y="280" width="190" height="54"><div class="node" style="--nc:var(--c-purple)"><span class="tile"><svg class="ico"><use href="#i-card"/></svg></span><span class="lbl">Payments service</span></div></foreignObject>
+<foreignObject x="550" y="170" width="150" height="54"><div class="node" style="--nc:var(--c-green)"><span class="tile"><svg class="ico"><use href="#i-database"/></svg></span><span class="lbl">Orders DB</span></div></foreignObject>
+                  </svg>
+                  <div class="m-code">
+                    <div class="m-code-h">Diagram code<span>Flowchart</span></div>
+                    <div class="cb"><span class="l">Orders service<span class="t-a"> &gt; </span>Orders DB: save</span><span class="l">Orders service<span class="t-a"> &gt; </span>Payments service: charge</span><span class="l">Payments service<span class="t-a"> &gt; </span>Stripe</span><span class="l">Stripe<span class="t-a"> --&gt; </span>Payments service: webhook</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <section class="sec" id="how" aria-labelledby="howTitle">
+    <div class="wrap">
+      <div class="sec-head" data-reveal>
+        <p class="eyebrow"><span class="num">01 — </span>Typed diagrams</p>
+        <h2 id="howTitle">Type it. See it.</h2>
+      </div>
+      <div class="pair" data-reveal>
+        <div class="codecard">
+          <div class="card-h"><svg class="ico"><use href="#i-code"/></svg>Diagram code<span class="chip">Flowchart</span></div>
+          <div class="cb" tabindex="0" role="region" aria-label="Diagram code example"><span class="l"><span class="t-c">// Checkout flow: edit me, the diagram redraws</span></span><span class="l"><span class="t-k">direction</span> right</span><span class="l"></span><span class="l">Customer <span class="t-b">[icon: user, color: blue]</span></span><span class="l">Web app <span class="t-b">[icon: monitor]</span></span><span class="l"></span><span class="l">AWS <span class="t-g">{</span></span><span class="l">  API Gateway <span class="t-b">[icon: server, color: orange]</span></span><span class="l">  Orders service <span class="t-b">[icon: box, color: purple]</span></span><span class="l">  Payments service <span class="t-b">[icon: card, color: purple]</span></span><span class="l">  Orders DB <span class="t-b">[icon: database, color: green]</span></span><span class="l"><span class="t-g">}</span></span><span class="l">Stripe <span class="t-b">[icon: cloud, color: blue]</span></span><span class="l"></span><span class="l">Customer<span class="t-a"> &gt; </span>Web app: checkout</span><span class="l">Web app<span class="t-a"> &gt; </span>API Gateway: POST /orders</span><span class="l">API Gateway<span class="t-a"> &gt; </span>Orders service</span><span class="l">Orders service<span class="t-a"> &gt; </span>Orders DB: save</span><span class="l">Orders service<span class="t-a"> &gt; </span>Payments service: charge</span><span class="l">Payments service<span class="t-a"> &gt; </span>Stripe</span><span class="l">Stripe<span class="t-a"> --&gt; </span>Payments service: webhook</span></div>
+        </div>
+        <div class="rendercard">
+          <div class="card-h"><svg class="ico"><use href="#i-shapes"/></svg>Diagram<span class="chip">Live</span></div>
+          <div class="render-body grid-bg" tabindex="0" role="region" aria-label="Rendered diagram">
+            <svg class="dg" viewBox="0 0 740 372" role="img" aria-label="Diagram of the checkout flow: a customer uses the web app, which calls the API gateway; the orders service saves to the orders database and asks the payments service to charge through Stripe, which replies with a webhook.">
+<defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z"/></marker></defs>
+<g class="grp"><rect x="252" y="16" width="476" height="344" rx="12"/><text x="266" y="40">AWS</text></g>
+<path class="edge" marker-end="url(#ah2)" d="M91 114V170"/><text class="elabel" x="101" y="148">checkout</text>
+<path class="edge" marker-end="url(#ah2)" d="M166 197C216 197 222 87 272 87"/><text class="elabel" text-anchor="middle" x="219" y="134">POST /orders</text>
+<path class="edge" marker-end="url(#ah2)" d="M367 114V170"/>
+<path class="edge" marker-end="url(#ah2)" d="M462 197H550"/><text class="elabel" text-anchor="middle" x="506" y="189">save</text>
+<path class="edge" marker-end="url(#ah2)" d="M367 224V280"/><text class="elabel" x="377" y="257">charge</text>
+<path class="edge" marker-end="url(#ah2)" d="M272 297H166"/>
+<path class="edge dash" marker-end="url(#ah2)" d="M166 317H272"/><text class="elabel" text-anchor="middle" x="219" y="348">webhook</text>
+<foreignObject x="16" y="60" width="150" height="54"><div class="node" style="--nc:var(--c-blue)"><span class="tile"><svg class="ico"><use href="#i-user"/></svg></span><span class="lbl">Customer</span></div></foreignObject>
+<foreignObject x="16" y="170" width="150" height="54"><div class="node" style="--nc:var(--c-gray)"><span class="tile"><svg class="ico"><use href="#i-monitor"/></svg></span><span class="lbl">Web app</span></div></foreignObject>
+<foreignObject x="16" y="280" width="150" height="54"><div class="node" style="--nc:var(--c-blue)"><span class="tile"><svg class="ico"><use href="#i-cloud"/></svg></span><span class="lbl">Stripe</span></div></foreignObject>
+<foreignObject x="272" y="60" width="190" height="54"><div class="node" style="--nc:var(--c-orange)"><span class="tile"><svg class="ico"><use href="#i-server"/></svg></span><span class="lbl">API Gateway</span></div></foreignObject>
+<foreignObject x="272" y="170" width="190" height="54"><div class="node" style="--nc:var(--c-purple)"><span class="tile"><svg class="ico"><use href="#i-box"/></svg></span><span class="lbl">Orders service</span></div></foreignObject>
+<foreignObject x="272" y="280" width="190" height="54"><div class="node" style="--nc:var(--c-purple)"><span class="tile"><svg class="ico"><use href="#i-card"/></svg></span><span class="lbl">Payments service</span></div></foreignObject>
+<foreignObject x="550" y="170" width="150" height="54"><div class="node" style="--nc:var(--c-green)"><span class="tile"><svg class="ico"><use href="#i-database"/></svg></span><span class="lbl">Orders DB</span></div></foreignObject>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <p class="cap" data-reveal>Arrows, groups, icons and colours from a few lines of text. The layout arranges itself.</p>
+    </div>
+  </section>
+
+  <section class="sec" id="features" aria-labelledby="featTitle">
+    <div class="wrap">
+      <div class="sec-head" data-reveal>
+        <p class="eyebrow"><span class="num">02 — </span>Everything in one file</p>
+        <h2 id="featTitle">Everything a design doc needs, in one place</h2>
+        <p>Docs, diagrams and sketches live together, so nothing goes stale in a different tool.</p>
+      </div>
+      <div class="feats">
+        <article class="feat" data-reveal>
+          <span class="f-ico" style="--nc:var(--c-blue)"><svg class="ico"><use href="#i-code"/></svg></span>
+          <h3>Typed diagrams</h3>
+          <p>Write boxes and arrows as plain text. Flowcharts and cloud architecture today, with sequence and ER diagrams coming next.</p>
+        </article>
+        <article class="feat" data-reveal>
+          <span class="f-ico" style="--nc:var(--c-purple)"><svg class="ico"><use href="#i-pen"/></svg></span>
+          <h3>Freehand sketch board</h3>
+          <p>Switch to an open sketch board for whiteboard-style thinking. Draw, label and move things around by hand.</p>
+        </article>
+        <article class="feat" data-reveal>
+          <span class="f-ico" style="--nc:var(--c-green)"><svg class="ico"><use href="#i-columns"/></svg></span>
+          <h3><span class="n">Docs beside the canvas</span><span class="w">Docs beside the canvas, so every decision lives next to the diagram it explains and never drifts out of date</span></h3>
+          <p>Write the document on the left and keep the diagram on the right. Switch to document-only or canvas-only any time.</p>
+        </article>
+        <article class="feat" data-reveal>
+          <span class="f-ico" style="--nc:var(--c-orange)"><svg class="ico"><use href="#i-link"/></svg></span>
+          <h3>Share links with view or edit access</h3>
+          <p>Send a link that lets people look or edit. Turn it off the moment you want to stop sharing.</p>
+        </article>
+        <article class="feat" data-reveal>
+          <span class="f-ico" style="--nc:var(--c-blue)"><svg class="ico"><use href="#i-users"/></svg></span>
+          <h3>Teams and workspaces</h3>
+          <p>Group files by team, invite people by email, and keep every project in one shared workspace.</p>
+        </article>
+        <article class="feat" data-reveal>
+          <span class="f-ico" style="--nc:var(--c-gray)"><svg class="ico"><use href="#i-download"/></svg></span>
+          <h3>Export to PNG, SVG or PDF</h3>
+          <p>Take the diagram out for slides, wikis and pull requests, sharp at any size.</p>
+        </article>
+        <article class="feat extra" data-reveal>
+          <span class="f-ico" style="--nc:var(--c-purple)"><svg class="ico"><use href="#i-clock"/></svg></span>
+          <h3>Version history</h3>
+          <p>See who changed what and go back to any earlier version of a file.</p>
+        </article>
+        <article class="feat extra" data-reveal>
+          <span class="f-ico" style="--nc:var(--c-green)"><svg class="ico"><use href="#i-chat"/></svg></span>
+          <h3>Comments and mentions</h3>
+          <p>Leave a note on any box or paragraph and mention a teammate to pull them in.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="pricing" aria-labelledby="priceTitle">
+    <div class="wrap">
+      <div class="sec-head" data-reveal>
+        <p class="eyebrow"><span class="num">03 — </span>Pricing</p>
+        <h2 id="priceTitle">Simple pricing that grows with your team</h2>
+        <p>Start free with 5 files. Upgrade when your team needs more.</p>
+      </div>
+      <div class="plans">
+        <article class="plan" data-reveal>
+          <h3><span class="n">Free</span><span class="w">Free forever for individual engineers exploring Draftboard on side projects</span></h3>
+          <p class="p-price"><span class="amt">$0</span><span class="per">/ forever</span></p>
+          <p class="p-desc">For side projects and trying Draftboard with a few files.</p>
+          <ul class="p-list">
+            <li><svg class="ico"><use href="#i-check"/></svg><span>5 files</span></li>
+            <li><svg class="ico"><use href="#i-check"/></svg><span>Typed diagrams and sketch board</span></li>
+            <li><svg class="ico"><use href="#i-check"/></svg><span>Export to PNG and SVG</span></li>
+            <li><svg class="ico"><use href="#i-check"/></svg><span>View-only share links</span></li>
+          </ul>
+          <a class="btn" href="auth.html" target="_top">Start free</a>
+        </article>
+        <article class="plan hl" data-reveal>
+          <span class="badge">Most popular</span>
+          <h3><span class="n">Pro</span><span class="w">Professional Workspace for Growing Engineering Organisations</span></h3>
+          <p class="p-price"><span class="amt"><span class="n">$12</span><span class="w">$1,249.99</span></span><span class="per"><span class="n">/ user / month</span><span class="w">/ month billed annually</span></span></p>
+          <p class="p-desc">For engineers who document and diagram every day.</p>
+          <ul class="p-list">
+            <li><svg class="ico"><use href="#i-check"/></svg><span>Unlimited files</span></li>
+            <li><svg class="ico"><use href="#i-check"/></svg><span>Everything in Free</span></li>
+            <li><svg class="ico"><use href="#i-check"/></svg><span>Share links with edit access</span></li>
+            <li><svg class="ico"><use href="#i-check"/></svg><span>PDF export</span></li>
+            <li><svg class="ico"><use href="#i-check"/></svg><span>30-day version history</span></li>
+          </ul>
+          <a class="btn primary" href="auth.html" target="_top">Choose Pro</a>
+        </article>
+        <article class="plan" data-reveal>
+          <h3><span class="n">Team</span><span class="w">Enterprise Collaboration Suite with Single Sign-On, Audit Logs and Dedicated Support</span></h3>
+          <p class="p-price"><span class="amt"><span class="n">$24</span><span class="w">$4,999.99</span></span><span class="per"><span class="n">/ user / month</span><span class="w">/ month billed annually</span></span></p>
+          <p class="p-desc">For teams that share a workspace and need more control.</p>
+          <ul class="p-list">
+            <li><svg class="ico"><use href="#i-check"/></svg><span>Everything in Pro</span></li>
+            <li><svg class="ico"><use href="#i-check"/></svg><span>Teams and workspaces</span></li>
+            <li><svg class="ico"><use href="#i-check"/></svg><span>Roles and permissions</span></li>
+            <li><svg class="ico"><use href="#i-check"/></svg><span>Single sign-on</span></li>
+            <li><svg class="ico"><use href="#i-check"/></svg><span>Priority support</span></li>
+          </ul>
+          <a class="btn" href="auth.html" target="_top">Choose Team</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="band-sec" aria-labelledby="bandTitle">
+    <div class="wrap">
+      <div class="band" data-reveal>
+        <h2 id="bandTitle">Your next design review starts here</h2>
+        <p>Write the doc, type the diagram and share the link. Free for up to 5 files.</p>
+        <div class="cta">
+          <a class="btn primary lg" href="auth.html" target="_top">Get started free</a>
+          <a class="btn lg" href="auth.html" target="_top">Log in</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot" id="footer">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="logo" href="#top"><span class="brand"><svg class="ico" style="width:20px;height:20px"><use href="#i-logo"/></svg></span>Draftboard</a>
+        <p>Docs and diagrams for engineering teams.</p>
+      </div>
+      <nav aria-label="Product">
+        <h3>Product</h3>
+        <ul><li><a href="#features">Features</a></li><li><a href="#pricing">Pricing</a></li><li><a href="#">Docs</a></li><li><a href="#">Changelog</a></li></ul>
+      </nav>
+      <nav aria-label="Company">
+        <h3>Company</h3>
+        <ul><li><a href="#">About</a></li><li><a href="#">Careers</a></li><li><a href="#">Contact</a></li></ul>
+      </nav>
+      <nav aria-label="Legal">
+        <h3>Legal</h3>
+        <ul><li><a href="privacy.html" target="_top">Privacy</a></li><li><a href="#">Terms</a></li></ul>
+      </nav>
+    </div>
+    <p class="legal">© 2026 Draftboard. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+/* ===== LANDING BEHAVIOUR ===== */
+(function () {
+  var root = document.documentElement;
+  if (!root.classList.contains('inner')) return; // the outer page only draws the switch bar
+  var $ = function (s) { return document.querySelector(s); };
+
+  // ---- mobile menu drawer ----
+  var btn = $('#menuBtn'), wrap = $('#drawerWrap'), drawer = $('#drawer'), closeBtn = $('#drawerClose');
+  function openMenu() { wrap.hidden = false; btn.setAttribute('aria-expanded', 'true'); root.classList.add('lock'); closeBtn.focus(); }
+  function closeMenu(returnFocus) {
+    if (wrap.hidden) return;
+    wrap.hidden = true; btn.setAttribute('aria-expanded', 'false'); root.classList.remove('lock');
+    if (returnFocus !== false) btn.focus();
+  }
+  btn.addEventListener('click', openMenu);
+  closeBtn.addEventListener('click', function () { closeMenu(); });
+  $('#scrim').addEventListener('click', function () { closeMenu(); });
+  drawer.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', function () { closeMenu(false); }); });
+  document.addEventListener('keydown', function (e) {
+    if (wrap.hidden) return;
+    if (e.key === 'Escape') { closeMenu(); return; }
+    if (e.key !== 'Tab') return;
+    var f = drawer.querySelectorAll('a[href], button'), first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+  matchMedia('(min-width: 768px)').addEventListener('change', function (e) { if (e.matches) closeMenu(false); });
+
+  // ---- scale the editor picture to fit its box ----
+  var fit = $('#shotFit'), inner = $('#shotInner');
+  function scale() {
+    var s = fit.clientWidth / inner.offsetWidth;
+    fit.style.setProperty('--s', s);
+    fit.style.setProperty('--h', inner.offsetHeight * s + 'px');
+  }
+  scale();
+  if ('ResizeObserver' in window) new ResizeObserver(scale).observe(fit);
+  addEventListener('resize', scale);
+
+  // ---- reveal on scroll (plays once; blocks already on screen stay finished) ----
+  if (root.dataset.motion === 'reduced' || !('IntersectionObserver' in window)) return;
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('rv-in'); io.unobserve(en.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('[data-reveal]').forEach(function (el) {
+    if (el.getBoundingClientRect().top < innerHeight) return;
+    var i = Array.prototype.indexOf.call(el.parentNode.children, el) % 3;
+    el.classList.add('rv');
+    el.style.transitionDelay = i * 70 + 'ms';
+    el.addEventListener('transitionend', function () { el.style.transitionDelay = ''; }, { once: true });
+    io.observe(el);
+  });
+})();
+</script>
+
+<!-- ===== SWITCH BAR (outer page) — copy as-is into every screen; only LOOKS and NOTE change ===== -->
+<script>
+(function () {
+  var P = new URLSearchParams(location.search);
+  if (P.has('inner')) return;
+  var LOOKS = [['graphite', '1 · Graphite (Eraser.io)'], ['blueprint', '2 · Blueprint (Linear / Vercel)'], ['all', 'All']];
+  var NOTE = 'Scroll inside each frame to see the whole page. Content = Worst case gives a very long headline, long plan names and prices, and 8 feature cards. Reduced motion turns off the hero entrance and the scroll reveal. The menu button appears below 768.';
+  var SIZES = ['320', '375', '639', '640', '767', '768', '1023', '1024', '1279', '1280', 'full'];
+  var GROUPS = [
+    ['look', 'Look', LOOKS],
+    ['size', 'Screen', SIZES.map(function (s) { return [s, s === 'full' ? 'Full' : s]; })],
+    ['mode', 'Mode', [['dark', 'Dark'], ['light', 'Light']]],
+    ['content', 'Content', [['normal', 'Normal'], ['worst', 'Worst case']]],
+    ['motion', 'Motion', [['on', 'On'], ['reduced', 'Reduced']]]
+  ];
+  var S = { look: 'graphite', size: 'full', mode: 'dark', content: 'normal', motion: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'reduced' : 'on' };
+  Object.keys(S).forEach(function (k) { if (P.get(k)) S[k] = P.get(k); });
+
+  document.documentElement.className = 'proto-outer';
+  document.body.innerHTML = '<div class="pbar" role="toolbar" aria-label="Prototype switches"></div><p class="pnote"></p><div class="pstage"></div>';
+  var css = document.createElement('style');
+  css.textContent = [
+    'html.proto-outer, html.proto-outer body { height: auto; background: #e9e9ee; color: #1b1b22; font: 13px/1.4 system-ui, sans-serif; }',
+    '.pbar { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; padding: 8px 12px; background: #fff; border-bottom: 2px dashed #ff2fb3; }',
+    '.pgrp { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; } .pgrp > b { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #6b6b78; margin-right: 2px; }',
+    '.pbar button { min-height: 32px; padding: 0 10px; border: 1px solid #c9c9d3; border-radius: 6px; background: #fff; color: #1b1b22; font: inherit; cursor: pointer; }',
+    '.pbar button[aria-pressed="true"] { background: #1b1b22; border-color: #1b1b22; color: #fff; }',
+    '.pnote { margin: 8px 12px; color: #4a4a55; } .pnote b { color: #c0168a; }',
+    '.pstage { display: grid; gap: 24px; padding: 0 12px 24px; justify-items: center; }',
+    '.pframe { width: 100%; display: grid; gap: 6px; justify-items: center; } .pframe > span { justify-self: start; font-weight: 600; color: #c0168a; border: 1.5px dashed #ff2fb3; border-radius: 6px; padding: 2px 8px; }',
+    '.pframe iframe { box-sizing: content-box; border: 1px solid #b9b9c4; background: #fff; height: calc(100vh - 130px); min-height: 560px; max-width: 100%; }'
+  ].join('\n');
+  document.head.appendChild(css);
+  var bar = document.querySelector('.pbar'), stage = document.querySelector('.pstage');
+  document.querySelector('.pnote').innerHTML = '<b>Prototype.</b> ' + NOTE;
+
+  GROUPS.forEach(function (g) {
+    var wrap = document.createElement('div'); wrap.className = 'pgrp'; wrap.innerHTML = '<b>' + g[1] + '</b>';
+    g[2].forEach(function (o) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = o[1]; b.dataset.k = g[0]; b.dataset.v = o[0];
+      b.onclick = function () { S[g[0]] = o[0]; draw(); }; wrap.appendChild(b);
+    });
+    bar.appendChild(wrap);
+  });
+  var rp = document.createElement('button'); rp.type = 'button'; rp.textContent = 'Replay'; rp.onclick = draw; bar.appendChild(rp);
+
+  function draw() {
+    history.replaceState(null, '', '?' + new URLSearchParams(S));
+    bar.querySelectorAll('button[data-k]').forEach(function (b) { b.setAttribute('aria-pressed', String(S[b.dataset.k] === b.dataset.v)); });
+    stage.innerHTML = '';
+    var looks = S.look === 'all' ? LOOKS.filter(function (l) { return l[0] !== 'all'; }) : LOOKS.filter(function (l) { return l[0] === S.look; });
+    looks.forEach(function (l) {
+      var q = new URLSearchParams(S); q.set('look', l[0]); q.set('inner', '1');
+      var f = document.createElement('div'); f.className = 'pframe';
+      f.innerHTML = '<span>' + l[1] + '</span><iframe title="' + l[1] + '" src="' + location.pathname.split('/').pop() + '?' + q + '"></iframe>';
+      f.querySelector('iframe').style.width = S.size === 'full' ? '100%' : S.size + 'px';
+      stage.appendChild(f);
+    });
+  }
+  draw();
+})();
+</script>
+</body>
+</html>

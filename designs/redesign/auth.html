@@ -1,0 +1,699 @@
+<!doctype html>
+<!--
+  PROTOTYPE · Sign-in redesign (never shipped) · 2026-10-23
+  Choosing: the look and layout of the four sign-in screens (Log in, Sign up, Forgot password, New password).
+  1 · Graphite  — anchored to Eraser.io / Linear sign-in: split screen. Form column on the left (400px max),
+                  large dot-grid panel on the right showing the product (diagram code + the diagram it draws).
+                  The right panel is hidden below 1024px.
+  2 · Blueprint — anchored to Vercel's login: one centred card on the navy line-grid, square corners,
+                  mono uppercase labels, orange accent, thin registration marks on the card corners.
+  Same page structure in both looks; only the CSS changes the layout. Links switch screens inside the page,
+  buttons fake a ~0.8 second request. Try the password "wrong" on Log in to see the wrong-password error.
+  Real project values: breakpoints 475/640/768/1024/1280 (lib/design-tokens.ts), accents
+  #38bdf8 / #0369a1 (primary 400 / 700), Blueprint accent #fb923c / #c2410c (accent.orange 400 / 700),
+  Inter (project font). Features match the real app: email + password log in, Continue with Google,
+  sign up, forgot password ("Check your email"), set new password (two fields).
+  New, not in the project: every surface and text colour, JetBrains Mono, IBM Plex Sans,
+  product name "Draftboard" (placeholder until you pick the real name), all wording, the strength meter.
+  Approximated: nothing is sent anywhere; Google sign-in is a fake delay; the product visual on the
+  right is a static picture, not the live editor.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · Draftboard prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<script>
+/* ===== PROTOTYPE STATE (inner frame) — copy as-is into every screen ===== */
+(function () {
+  var P = new URLSearchParams(location.search), h = document.documentElement;
+  if (!P.has('inner')) return;
+  h.dataset.look = P.get('look') || 'graphite';
+  h.dataset.theme = P.get('mode') || 'dark';
+  h.dataset.content = P.get('content') || 'normal';
+  h.dataset.screen = P.get('screen') || 'login';
+  h.dataset.motion = P.get('motion') || 'on';
+  h.classList.add('inner');
+})();
+</script>
+<style>
+/* ===== DESIGN TOKENS — shared by every screen ===== */
+:root {
+  --font: 'Inter', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --bg: #0b0b0f; --panel: #111116; --panel-2: #17171e; --hover: #1f1f28;
+  --line: #24242d; --line-2: #33333f;
+  --text: #ececf1; --muted: #a1a1b0; --faint: #8a8a9c;
+  --accent: #38bdf8; --accent-ink: #03131d; --accent-soft: rgba(56,189,248,.14);
+  --grid: #26262f; --danger: #f87171; --ok: #34d399;
+  --radius: 10px; --radius-sm: 7px; --shadow: 0 12px 32px rgba(0,0,0,.5);
+  --node-bg: #15151c;
+  --c-blue: #38bdf8; --c-green: #34d399; --c-purple: #a78bfa; --c-orange: #fb923c; --c-red: #f87171; --c-gray: #94a3b8;
+  color-scheme: dark;
+}
+[data-theme="light"] {
+  --bg: #f6f6f8; --panel: #ffffff; --panel-2: #f2f2f5; --hover: #e9e9ef;
+  --line: #e4e4ea; --line-2: #d2d2db;
+  --text: #111117; --muted: #52525f; --faint: #6a6a78;
+  --accent: #0369a1; --accent-ink: #ffffff; --accent-soft: rgba(3,105,161,.10);
+  --grid: #d9d9e1; --danger: #dc2626; --ok: #059669;
+  --shadow: 0 12px 32px rgba(20,20,40,.12);
+  --node-bg: #ffffff;
+  --c-blue: #0284c7; --c-green: #059669; --c-purple: #7c3aed; --c-orange: #ea580c; --c-red: #dc2626; --c-gray: #64748b;
+  color-scheme: light;
+}
+[data-look="blueprint"] {
+  --font: 'IBM Plex Sans', system-ui, sans-serif;
+  --bg: #071022; --panel: #0b1730; --panel-2: #10203f; --hover: #16294e;
+  --line: #1b2f57; --line-2: #284372;
+  --text: #e7eefc; --muted: #a3b5d6; --faint: #8193b8;
+  --accent: #fb923c; --accent-ink: #1a0b02; --accent-soft: rgba(251,146,60,.14);
+  --grid: #142a52; --node-bg: #0b1730;
+  --radius: 4px; --radius-sm: 3px;
+}
+[data-look="blueprint"][data-theme="light"] {
+  --bg: #edf2fa; --panel: #ffffff; --panel-2: #f3f6fc; --hover: #e4ebf7;
+  --line: #cfdbee; --line-2: #b3c4e1;
+  --text: #0a1630; --muted: #42557a; --faint: #586b8e;
+  --accent: #c2410c; --accent-ink: #ffffff; --accent-soft: rgba(194,65,12,.10);
+  --grid: #d3dff1; --node-bg: #ffffff;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--text); font: 14px/1.5 var(--font); -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ico { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--line-2); background: var(--panel-2); font-weight: 500; white-space: nowrap; transition: background .15s, border-color .15s; }
+.btn:hover { background: var(--hover); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.btn.ghost:hover { color: var(--text); background: var(--hover); }
+.icon-btn { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: var(--radius-sm); border: 0; background: transparent; color: var(--muted); }
+.icon-btn:hover, .icon-btn[aria-pressed="true"] { background: var(--hover); color: var(--text); }
+[data-look="blueprint"] .btn.primary { text-transform: uppercase; letter-spacing: .06em; font-size: 12px; }
+
+/* ===== SIGN-IN LAYOUT — Graphite is the base, Blueprint overrides below ===== */
+.auth { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr); }
+.pane { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 100vh; padding: 20px 16px 8px; background: var(--panel); }
+.logo { display: inline-flex; align-items: center; gap: 10px; align-self: flex-start; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+.logo .mark { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); flex: none; }
+.card { position: relative; width: 100%; max-width: 400px; margin: auto; padding: 32px 0; }
+.legal { display: flex; flex-wrap: wrap; align-items: center; gap: 0 18px; color: var(--muted); font-size: 13px; }
+.reg { display: none; }
+
+/* screens: only one is visible; no attribute = Log in */
+.screen { display: none; }
+html:not([data-screen]) .screen[data-s="login"], html[data-screen="login"] .screen[data-s="login"],
+html[data-screen="signup"] .screen[data-s="signup"], html[data-screen="forgot"] .screen[data-s="forgot"],
+html[data-screen="reset"] .screen[data-s="reset"] { display: block; }
+.v-done { display: none; }
+.screen.is-done .v-form { display: none; }
+.screen.is-done .v-done { display: block; }
+[tabindex="-1"]:focus { outline: none; }
+
+.screen h1 { margin: 0 0 6px; font-size: 26px; line-height: 1.2; letter-spacing: -.02em; font-weight: 600; overflow-wrap: anywhere; }
+.sub { margin: 0 0 24px; color: var(--muted); font-size: 15px; overflow-wrap: anywhere; }
+.lnk { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; color: var(--accent); font-weight: 500;
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; background: none; border: 0; }
+.lnk:hover { text-decoration-thickness: 2px; }
+
+/* buttons: full width, 44px+, labels may wrap */
+.auth .btn { width: 100%; justify-content: center; min-height: 46px; padding: 10px 16px; white-space: normal; text-align: center; line-height: 1.3; border-radius: var(--radius-sm); }
+.auth a.btn { color: var(--text); text-decoration: none; }
+.auth a.btn.primary { color: var(--accent-ink); }
+.auth .btn[aria-busy="true"] { cursor: progress; opacity: .9; }
+.auth .btn svg.g { stroke: none; }
+.w { display: none; }
+[data-content="worst"] .w { display: inline; }
+[data-content="worst"] .n { display: none; }
+.spin { display: none; width: 16px; height: 16px; flex: none; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .7s linear infinite; }
+.btn.busy .spin { display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.or { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--muted); font-size: 13px; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line-2); }
+
+/* fields */
+.field { margin: 0 0 16px; }
+.field label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 14px; color: var(--text); }
+.inp { position: relative; }
+.inp input { width: 100%; min-width: 0; height: 46px; padding: 0 14px; font-size: 16px; color: var(--text); background: var(--panel-2);
+  border: 1px solid var(--faint); border-radius: var(--radius-sm); }
+.inp input:hover { border-color: var(--muted); }
+.inp input:focus-visible { border-color: var(--accent); outline-offset: 1px; }
+.inp.has-btn input { padding-right: 50px; }
+.field.invalid input { border-color: var(--danger); }
+.eye { position: absolute; top: 0; right: 0; width: 46px; height: 46px; display: grid; place-items: center; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--muted); }
+.eye:hover { color: var(--text); background: var(--hover); }
+.err { display: none; align-items: flex-start; gap: 6px; margin: 6px 0 0; color: var(--danger); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.err .ico { width: 16px; height: 16px; margin-top: 2px; }
+.field.invalid .err, [data-content="worst"] .err { display: flex; }
+.opts { display: flex; justify-content: flex-end; margin: -8px 0 8px; }
+.alt { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0 6px; margin-top: 8px; color: var(--muted); }
+.fine { margin: 16px 0 0; color: var(--muted); font-size: 13px; text-align: center; }
+.fine a { color: var(--accent); }
+.banner { display: none; align-items: flex-start; gap: 10px; margin: 0 0 20px; padding: 12px 14px; font-size: 14px; line-height: 1.4; color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--danger) 10%, var(--panel)); overflow-wrap: anywhere; }
+.banner .ico { color: var(--danger); margin-top: 2px; }
+[data-content="worst"] .banner { display: flex; }
+
+/* password rules + strength (Sign up) */
+.pwhint { display: grid; gap: 8px; margin-top: 10px; }
+.meter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.meter i { height: 4px; border-radius: 2px; background: var(--line-2); }
+.meter[data-level="1"] i:nth-child(-n+1) { background: var(--danger); }
+.meter[data-level="2"] i:nth-child(-n+2) { background: var(--c-orange); }
+.meter[data-level="3"] i:nth-child(-n+3) { background: var(--ok); }
+.meter[data-level="4"] i { background: var(--ok); }
+.strength { margin: 0; font-size: 13px; color: var(--muted); }
+.rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.rules li { display: flex; align-items: center; gap: 8px; }
+.mk { display: grid; place-items: center; width: 16px; height: 16px; flex: none; border-radius: 50%; border: 1.5px solid var(--faint); }
+.mk .ico { width: 11px; height: 11px; stroke-width: 3; color: var(--bg); opacity: 0; }
+.rules li.met { color: var(--text); }
+.rules li.met .mk { background: var(--ok); border-color: var(--ok); }
+.rules li.met .mk .ico { opacity: 1; }
+
+/* finished states */
+.badge { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 16px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); }
+.badge .ico { width: 22px; height: 22px; }
+.addr { display: block; margin: 12px 0 16px; padding: 10px 12px; font-weight: 600; color: var(--text); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: var(--radius-sm); overflow-wrap: anywhere; }
+.v-done p { margin: 0 0 12px; color: var(--muted); font-size: 15px; overflow-wrap: anywhere; }
+.v-done .btn { margin-top: 12px; }
+[data-content="worst"] .screen[data-s="forgot"] .v-form, [data-content="worst"] .screen[data-s="forgot"] .v-done { display: block; }
+[data-content="worst"] .screen[data-s="forgot"] .v-done { margin-top: 28px; padding-top: 28px; border-top: 1px dashed var(--line-2); }
+
+/* Graphite product panel (right side) */
+.showcase { display: none; position: relative; overflow: hidden; align-items: center; justify-content: center; padding: 48px 40px;
+  border-left: 1px solid var(--line); background-color: var(--bg); background-image: radial-gradient(var(--grid) 1.2px, transparent 1.2px); background-size: 20px 20px; }
+.showcase::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(60% 50% at 50% 45%, var(--accent-soft), transparent 70%); }
+.stack { position: relative; width: 100%; max-width: 540px; display: grid; gap: 14px; }
+.codecard, .dgcard { background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--radius); box-shadow: var(--shadow); }
+.codecard { width: min(360px, 100%); justify-self: start; overflow: hidden; }
+.codecard .ch { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 600; color: var(--muted); }
+.codecard .ch .ico { width: 15px; height: 15px; color: var(--accent); }
+.codecard pre { margin: 0; padding: 12px 16px; font: 12.5px/1.75 var(--mono); color: var(--text); white-space: pre; overflow: hidden; }
+.t-c { color: var(--muted); font-style: italic; } .t-a { color: var(--accent); } .t-g { color: var(--c-purple); font-weight: 600; }
+.mid { justify-self: start; display: inline-flex; align-items: center; gap: 8px; margin-left: 24px; padding: 4px 12px 4px 8px; font-size: 12px; color: var(--muted); border: 1px solid var(--line-2); border-radius: 99px; background: var(--panel); }
+.mid .ico { width: 15px; height: 15px; color: var(--accent); }
+.dgcard { padding: 18px 16px; }
+.dg { display: block; width: 100%; height: auto; }
+.dg .nbox { fill: var(--node-bg); stroke: var(--line-2); }
+.dg .tile { fill: color-mix(in srgb, var(--nc) 16%, transparent); }
+.dg .ico { color: var(--nc); }
+.dg text { fill: var(--text); font: 500 13px var(--font); }
+.dg .edge { fill: none; stroke: var(--faint); stroke-width: 1.6; }
+.dg marker path { fill: var(--faint); }
+.quote { margin: 8px 0 0; text-align: center; color: var(--muted); font-size: 15px; }
+
+/* entrance motion: only when the script adds .anim */
+.anim .screen.in { animation: rise .4s ease-out both; }
+.anim .nd, .anim .codecard, .anim .mid, .anim .dgcard { animation: rise .5s ease-out both; }
+.anim .codecard { animation-delay: .05s; } .anim .mid { animation-delay: .15s; } .anim .dgcard { animation-delay: .22s; }
+.anim .nd { animation-name: nodeIn; animation-delay: calc(.3s + var(--i, 0) * 90ms); }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes nodeIn { from { opacity: 0; } to { opacity: 1; } }
+[data-motion="reduced"].anim .screen.in, [data-motion="reduced"].anim .nd, [data-motion="reduced"].anim .codecard,
+[data-motion="reduced"].anim .mid, [data-motion="reduced"].anim .dgcard, [data-motion="reduced"] .spin { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .anim .screen.in, .anim .nd, .anim .codecard, .anim .mid, .anim .dgcard, .spin { animation: none; }
+}
+
+/* ===== BLUEPRINT overrides (same DOM, different layout) ===== */
+[data-look="blueprint"] .auth { grid-template-columns: minmax(0, 1fr); background-color: var(--bg);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+  linear-gradient(color-mix(in srgb, var(--grid) 45%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--grid) 45%, transparent) 1px, transparent 1px);
+  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px; }
+[data-look="blueprint"] .showcase { display: none; }
+[data-look="blueprint"] .pane { align-items: center; background: transparent; padding: 24px 16px; }
+[data-look="blueprint"] .logo { align-self: center; margin: auto 0 20px; font-family: var(--mono); font-size: 13px; text-transform: uppercase; letter-spacing: .12em; }
+[data-look="blueprint"] .logo .mark { border-radius: 3px; width: 30px; height: 30px; }
+[data-look="blueprint"] .card { margin: 0; max-width: 420px; padding: 28px 20px; background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--radius); }
+[data-look="blueprint"] .legal { margin: 20px 0 auto; justify-content: center; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+[data-look="blueprint"] .reg { display: block; position: absolute; width: 17px; height: 17px; pointer-events: none;
+  background: linear-gradient(var(--accent), var(--accent)) center / 1px 100% no-repeat, linear-gradient(var(--accent), var(--accent)) center / 100% 1px no-repeat; }
+[data-look="blueprint"] .reg::after { content: ""; position: absolute; inset: 4px; border: 1px solid var(--accent); border-radius: 50%; }
+[data-look="blueprint"] .reg.tl { top: -9px; left: -9px; } [data-look="blueprint"] .reg.tr { top: -9px; right: -9px; }
+[data-look="blueprint"] .reg.bl { bottom: -9px; left: -9px; } [data-look="blueprint"] .reg.br { bottom: -9px; right: -9px; }
+[data-look="blueprint"] .screen h1 { font-family: var(--mono); font-size: 18px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 8px; }
+[data-look="blueprint"] .sub { font-size: 14px; }
+[data-look="blueprint"] .field label, [data-look="blueprint"] .or, [data-look="blueprint"] .strength { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 500; }
+[data-look="blueprint"] .or { gap: 10px; }
+[data-look="blueprint"] .auth .btn { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; font-weight: 500; }
+[data-look="blueprint"] .auth .btn.primary { font-weight: 600; }
+[data-look="blueprint"] .lnk { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+[data-look="blueprint"] .alt { font-size: 13px; }
+[data-look="blueprint"] .meter i { border-radius: 0; height: 3px; }
+[data-look="blueprint"] .mk { border-radius: 2px; }
+[data-look="blueprint"] .badge { border-radius: var(--radius); border: 1px solid var(--accent); background: transparent; }
+[data-look="blueprint"] .banner { border-left: 3px solid var(--danger); }
+
+/* ===== RESPONSIVE ===== */
+@media (min-width: 640px) {
+  .pane { padding: 28px 32px 12px; }
+  [data-look="blueprint"] .pane { padding: 32px 24px; }
+  [data-look="blueprint"] .card { padding: 36px 32px; }
+}
+@media (min-width: 768px) {
+  .pane { padding: 32px 40px 16px; }
+  [data-look="blueprint"] .card { padding: 40px; max-width: 440px; }
+}
+@media (min-width: 1024px) {
+  .auth { grid-template-columns: minmax(440px, 1fr) minmax(0, 1.2fr); }
+  .showcase { display: flex; }
+  .pane { padding: 32px 48px 16px; }
+}
+@media (min-width: 1280px) {
+  .auth { grid-template-columns: minmax(480px, 1fr) minmax(0, 1.4fr); }
+  .showcase { padding: 64px; }
+}
+@media (max-width: 639px) {
+  .screen h1 { font-size: 24px; }
+  .legal { padding-bottom: 8px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-logo" viewBox="0 0 24 24"><path d="M5 4h14v16H3z" fill="currentColor" stroke="none"/><path d="M10 9h6M9 13h7M8 17h5" stroke="var(--accent)" stroke-width="2"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="8" rx="2"/><rect x="3" y="13" width="18" height="8" rx="2"/><path d="M7 7h.01M7 17h.01"/></symbol>
+  <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-6.4 0-10-7-10-7a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.1 9.1 0 0 1 12 4c6.4 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24M1 1l22 22"/></symbol>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-alert-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></symbol>
+  <symbol id="i-google" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.07H2.18a11 11 0 0 0 0 9.86z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></symbol>
+</svg>
+
+<div class="auth">
+  <main class="pane">
+    <div class="logo"><span class="mark"><svg class="ico" style="width:20px;height:20px"><use href="#i-logo"/></svg></span>Draftboard</div>
+
+    <div class="card">
+      <i class="reg tl"></i><i class="reg tr"></i><i class="reg bl"></i><i class="reg br"></i>
+
+      <!-- ===== LOG IN ===== -->
+      <section class="screen" data-s="login" aria-labelledby="h-login">
+        <div class="v-form">
+          <h1 id="h-login" tabindex="-1">Log in to Draftboard</h1>
+          <p class="sub">Welcome back. Pick up where you left off.</p>
+          <div class="banner" role="alert"><svg class="ico"><use href="#i-alert-circle"/></svg><span>Google sign-in failed. Check that pop-ups are allowed and try again, or log in with your email.</span></div>
+          <button class="btn" type="button" data-google><span class="spin" aria-hidden="true"></span><svg class="ico g"><use href="#i-google"/></svg><span class="lbl"><span class="n">Continue with Google</span><span class="w">Continue with Google using your company Workspace account</span></span></button>
+          <div class="or">or</div>
+          <form novalidate data-busy="Signing in…">
+            <div class="field">
+              <label for="login-email">Email</label>
+              <div class="inp"><input id="login-email" name="email" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" inputmode="email" data-chk="email"></div>
+              <p class="err" id="login-email-err"><svg class="ico"><use href="#i-alert-circle"/></svg><span>Enter a valid email address, like name@company.com.</span></p>
+            </div>
+            <div class="field">
+              <label for="login-pw">Password</label>
+              <div class="inp has-btn"><input id="login-pw" name="password" type="password" autocomplete="current-password" data-chk="pwlogin"><button class="eye" type="button" data-toggle="login-pw" aria-label="Show password"><svg class="ico"><use href="#i-eye"/></svg></button></div>
+              <p class="err" id="login-pw-err"><svg class="ico"><use href="#i-alert-circle"/></svg><span>That password is not right. Try again, or reset it.</span></p>
+            </div>
+            <div class="opts"><a class="lnk" href="#forgot" data-go="forgot">Forgot password?</a></div>
+            <button class="btn primary" type="submit"><span class="spin" aria-hidden="true"></span><span class="lbl"><span class="n">Log in</span><span class="w">Log in to your Draftboard workspace</span></span></button>
+          </form>
+          <p class="alt">No account? <a class="lnk" href="#signup" data-go="signup">Sign up</a></p>
+        </div>
+        <div class="v-done">
+          <div class="badge"><svg class="ico"><use href="#i-check"/></svg></div>
+          <h1 tabindex="-1">Welcome back</h1>
+          <p>You are signed in.</p>
+          <a class="btn primary" href="dashboard.html"><span class="lbl"><span class="n">Signed in, open dashboard</span><span class="w">Signed in, open the dashboard for your workspace</span></span></a>
+        </div>
+      </section>
+
+      <!-- ===== SIGN UP ===== -->
+      <section class="screen" data-s="signup" aria-labelledby="h-signup">
+        <div class="v-form">
+          <h1 id="h-signup" tabindex="-1">Create your account</h1>
+          <p class="sub">Write docs and draw diagrams in one place.</p>
+          <div class="banner" role="alert"><svg class="ico"><use href="#i-alert-circle"/></svg><span>Google sign-in failed. Check that pop-ups are allowed and try again, or sign up with your email.</span></div>
+          <button class="btn" type="button" data-google><span class="spin" aria-hidden="true"></span><svg class="ico g"><use href="#i-google"/></svg><span class="lbl"><span class="n">Continue with Google</span><span class="w">Continue with Google using your company Workspace account</span></span></button>
+          <div class="or">or</div>
+          <form novalidate data-busy="Creating your account…">
+            <div class="field">
+              <label for="su-name">Name</label>
+              <div class="inp"><input id="su-name" name="name" type="text" autocomplete="name" data-chk="name"></div>
+              <p class="err" id="su-name-err"><svg class="ico"><use href="#i-alert-circle"/></svg><span>Enter your name.</span></p>
+            </div>
+            <div class="field">
+              <label for="su-email">Email</label>
+              <div class="inp"><input id="su-email" name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" inputmode="email" data-chk="email"></div>
+              <p class="err" id="su-email-err"><svg class="ico"><use href="#i-alert-circle"/></svg><span>Enter a valid email address, like name@company.com.</span></p>
+            </div>
+            <div class="field">
+              <label for="su-pw">Password</label>
+              <div class="inp has-btn"><input id="su-pw" name="password" type="password" autocomplete="new-password" data-chk="pwnew" data-hint="su-hint" aria-describedby="su-hint"><button class="eye" type="button" data-toggle="su-pw" aria-label="Show password"><svg class="ico"><use href="#i-eye"/></svg></button></div>
+              <div class="pwhint" id="su-hint">
+                <div class="meter" id="su-meter" data-level="0" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                <p class="strength" id="su-strength" aria-live="polite">Strength: not entered yet</p>
+                <ul class="rules">
+                  <li data-rule="len"><span class="mk"><svg class="ico"><use href="#i-check"/></svg></span><span>At least 8 characters</span><span class="sr">, not met</span></li>
+                  <li data-rule="mix"><span class="mk"><svg class="ico"><use href="#i-check"/></svg></span><span>A number or symbol (makes it stronger)</span><span class="sr">, not met</span></li>
+                </ul>
+              </div>
+              <p class="err" id="su-pw-err"><svg class="ico"><use href="#i-alert-circle"/></svg><span>Use at least 8 characters.</span></p>
+            </div>
+            <button class="btn primary" type="submit"><span class="spin" aria-hidden="true"></span><span class="lbl"><span class="n">Create account</span><span class="w">Create my free Draftboard account</span></span></button>
+          </form>
+          <p class="alt">Already have an account? <a class="lnk" href="#login" data-go="login">Log in</a></p>
+          <p class="fine">By creating an account you agree to the <a href="privacy.html">Privacy policy</a>.</p>
+        </div>
+        <div class="v-done">
+          <div class="badge"><svg class="ico"><use href="#i-check"/></svg></div>
+          <h1 tabindex="-1">Account created</h1>
+          <p>Welcome to Draftboard.</p>
+          <a class="btn primary" href="dashboard.html"><span class="lbl"><span class="n">Account created, open dashboard</span><span class="w">Account created, open the dashboard for your new workspace</span></span></a>
+        </div>
+      </section>
+
+      <!-- ===== FORGOT PASSWORD ===== -->
+      <section class="screen" data-s="forgot" aria-labelledby="h-forgot">
+        <div class="v-form">
+          <h1 id="h-forgot" tabindex="-1">Reset your password</h1>
+          <p class="sub">Enter your email and we will send you a link to set a new password.</p>
+          <form novalidate data-busy="Sending the reset link…">
+            <div class="field">
+              <label for="fp-email">Email</label>
+              <div class="inp"><input id="fp-email" name="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" inputmode="email" data-chk="email"></div>
+              <p class="err" id="fp-email-err"><svg class="ico"><use href="#i-alert-circle"/></svg><span>Enter a valid email address, like name@company.com.</span></p>
+            </div>
+            <button class="btn primary" type="submit"><span class="spin" aria-hidden="true"></span><span class="lbl"><span class="n">Send reset link</span><span class="w">Email me a link to reset my password</span></span></button>
+          </form>
+          <p class="alt"><a class="lnk" href="#login" data-go="login"><svg class="ico" style="margin-right:6px"><use href="#i-arrow-left"/></svg>Back to log in</a></p>
+        </div>
+        <div class="v-done">
+          <div class="badge"><svg class="ico"><use href="#i-mail"/></svg></div>
+          <h1 tabindex="-1">Check your email</h1>
+          <p>We sent a password reset link to</p>
+          <strong class="addr">you@company.com</strong>
+          <p>It can take a minute to arrive. Check your spam folder if you do not see it.</p>
+          <a class="btn" href="#login" data-go="login"><svg class="ico"><use href="#i-arrow-left"/></svg><span class="lbl"><span class="n">Back to log in</span><span class="w">Back to the log in screen</span></span></a>
+        </div>
+      </section>
+
+      <!-- ===== NEW PASSWORD ===== -->
+      <section class="screen" data-s="reset" aria-labelledby="h-reset">
+        <div class="v-form">
+          <h1 id="h-reset" tabindex="-1">Set a new password</h1>
+          <p class="sub">Choose a new password for your account.</p>
+          <form novalidate data-busy="Saving your new password…">
+            <div class="field">
+              <label for="rp-pw">New password</label>
+              <div class="inp has-btn"><input id="rp-pw" name="password" type="password" autocomplete="new-password" data-chk="pwnew" data-hint="rp-hint" aria-describedby="rp-hint"><button class="eye" type="button" data-toggle="rp-pw" aria-label="Show password"><svg class="ico"><use href="#i-eye"/></svg></button></div>
+              <p class="strength" id="rp-hint">Use at least 8 characters.</p>
+              <p class="err" id="rp-pw-err"><svg class="ico"><use href="#i-alert-circle"/></svg><span>Use at least 8 characters.</span></p>
+            </div>
+            <div class="field">
+              <label for="rp-pw2">Repeat new password</label>
+              <div class="inp has-btn"><input id="rp-pw2" name="password2" type="password" autocomplete="new-password" data-chk="match"><button class="eye" type="button" data-toggle="rp-pw2" aria-label="Show password"><svg class="ico"><use href="#i-eye"/></svg></button></div>
+              <p class="err" id="rp-pw2-err"><svg class="ico"><use href="#i-alert-circle"/></svg><span>The two passwords do not match.</span></p>
+            </div>
+            <button class="btn primary" type="submit"><span class="spin" aria-hidden="true"></span><span class="lbl"><span class="n">Set new password</span><span class="w">Save my new password and continue</span></span></button>
+          </form>
+        </div>
+        <div class="v-done">
+          <div class="badge"><svg class="ico"><use href="#i-check"/></svg></div>
+          <h1 tabindex="-1">Password updated</h1>
+          <p>You can now log in with your new password.</p>
+          <a class="btn primary" href="#login" data-go="login"><span class="lbl"><span class="n">Back to log in</span><span class="w">Back to the log in screen</span></span></a>
+        </div>
+      </section>
+    </div>
+
+    <footer class="legal"><span>© 2026 Draftboard</span><a class="lnk" href="privacy.html">Privacy</a></footer>
+  </main>
+
+  <!-- Graphite only: the product, drawn as a still picture -->
+  <aside class="showcase" aria-hidden="true">
+    <div class="stack">
+      <div class="codecard">
+        <div class="ch"><svg class="ico"><use href="#i-code"/></svg>Diagram code</div>
+<pre><span class="t-c">// Checkout flow</span>
+direction right
+
+Customer <span class="t-a">[icon: user]</span>
+Web app <span class="t-a">[icon: monitor]</span>
+API Gateway <span class="t-a">[icon: server]</span>
+Orders DB <span class="t-a">[icon: database]</span>
+
+Customer <span class="t-g">&gt;</span> Web app
+Web app <span class="t-g">&gt;</span> API Gateway
+API Gateway <span class="t-g">&gt;</span> Orders DB</pre>
+      </div>
+      <div class="mid"><svg class="ico"><use href="#i-down"/></svg>The diagram redraws as you type</div>
+      <div class="dgcard">
+        <svg class="dg" viewBox="0 0 520 112" focusable="false">
+          <defs><marker id="dg-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z"/></marker></defs>
+          <g class="nd" style="--i:0;--nc:var(--c-blue)"><rect class="nbox" x="0" y="8" width="100" height="96" rx="10"/><rect class="tile" x="32" y="22" width="36" height="36" rx="8"/><use class="ico" href="#i-user" x="41" y="31" width="18" height="18"/><text x="50" y="86" text-anchor="middle">Customer</text></g>
+          <g class="nd" style="--i:1"><path class="edge" d="M105 56H135" marker-end="url(#dg-ah)"/></g>
+          <g class="nd" style="--i:1;--nc:var(--c-purple)"><rect class="nbox" x="140" y="8" width="100" height="96" rx="10"/><rect class="tile" x="172" y="22" width="36" height="36" rx="8"/><use class="ico" href="#i-monitor" x="181" y="31" width="18" height="18"/><text x="190" y="86" text-anchor="middle">Web app</text></g>
+          <g class="nd" style="--i:2"><path class="edge" d="M245 56H275" marker-end="url(#dg-ah)"/></g>
+          <g class="nd" style="--i:2;--nc:var(--c-orange)"><rect class="nbox" x="280" y="8" width="100" height="96" rx="10"/><rect class="tile" x="312" y="22" width="36" height="36" rx="8"/><use class="ico" href="#i-server" x="321" y="31" width="18" height="18"/><text x="330" y="86" text-anchor="middle">API Gateway</text></g>
+          <g class="nd" style="--i:3"><path class="edge" d="M385 56H415" marker-end="url(#dg-ah)"/></g>
+          <g class="nd" style="--i:3;--nc:var(--c-green)"><rect class="nbox" x="420" y="8" width="100" height="96" rx="10"/><rect class="tile" x="452" y="22" width="36" height="36" rx="8"/><use class="ico" href="#i-database" x="461" y="31" width="18" height="18"/><text x="470" y="86" text-anchor="middle">Orders DB</text></g>
+        </svg>
+      </div>
+      <p class="quote">“Describe the system in text. The diagram draws itself.”</p>
+    </div>
+  </aside>
+</div>
+<p class="sr" id="live" role="status" aria-live="polite"></p>
+
+<script>
+/* ===== SIGN-IN BEHAVIOUR ===== */
+(function () {
+  var doc = document.documentElement;
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var worst = doc.dataset.content === 'worst';
+  var live = $('#live');
+  var LONG_EMAIL = 'alexandria.montgomery-fitzgerald@long-company-na.example.com'; // 60 characters
+  var LONG_NAME = 'Alexandria Montgomery-Fitzgerald of Greater Metropolis';
+  var screens = {};
+  $$('.screen').forEach(function (s) { screens[s.dataset.s] = s; });
+
+  var MSG = {
+    emailEmpty: 'Enter your email address.',
+    email: 'Enter a valid email address, like name@company.com.',
+    name: 'Enter your name.',
+    pwEmpty: 'Enter your password.',
+    pwWrong: 'That password is not right. Try again, or reset it.',
+    pwShort: 'Use at least 8 characters.',
+    mismatch: 'The two passwords do not match.'
+  };
+  var CHECK = {
+    email: function (v) { return !v ? MSG.emailEmpty : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? '' : MSG.email; },
+    name: function (v) { return v.trim() ? '' : MSG.name; },
+    pwlogin: function (v) { return v ? '' : MSG.pwEmpty; },
+    pwnew: function (v) { return v.length >= 8 ? '' : MSG.pwShort; },
+    match: function (v, form) { return v === $('[data-chk="pwnew"]', form).value ? '' : MSG.mismatch; }
+  };
+  var WORST_MSG = { email: MSG.email, name: MSG.name, pwlogin: MSG.pwWrong, pwnew: MSG.pwShort, match: MSG.mismatch };
+  var DONE = { login: 'Signed in.', signup: 'Account created.', forgot: 'Check your email. Reset link sent.', reset: 'Password updated.' };
+
+  // Show or clear one field's error and keep aria-invalid / aria-describedby in step with it.
+  function setErr(input, msg) {
+    var f = input.closest('.field'), err = $('.err', f), ids = [];
+    if (input.dataset.hint) ids.push(input.dataset.hint);
+    if (msg) { $('span', err).textContent = msg; ids.push(err.id); input.setAttribute('aria-invalid', 'true'); }
+    else input.removeAttribute('aria-invalid');
+    f.classList.toggle('invalid', !!msg);
+    if (ids.length) input.setAttribute('aria-describedby', ids.join(' ')); else input.removeAttribute('aria-describedby');
+  }
+  function run(input) {
+    var m = CHECK[input.dataset.chk](input.value, input.form);
+    setErr(input, m);
+    return !m;
+  }
+
+  function restart(el) { el.classList.remove('in'); void el.offsetWidth; el.classList.add('in'); }
+  function focusHead(s) {
+    var h = $(s.classList.contains('is-done') ? '.v-done h1' : '.v-form h1', s);
+    if (h) h.focus({ preventScroll: true });
+  }
+  function go(name) {
+    if (!screens[name]) return;
+    doc.dataset.screen = name;
+    Object.keys(screens).forEach(function (k) { screens[k].classList.remove('is-done'); });
+    if (!worst) $$('input[data-chk]').forEach(function (i) { setErr(i, ''); });
+    window.scrollTo(0, 0);
+    restart(screens[name]);
+    focusHead(screens[name]);
+  }
+  $$('[data-go]').forEach(function (a) {
+    a.addEventListener('click', function (e) { e.preventDefault(); go(a.dataset.go); });
+  });
+
+  // Fake request: busy spinner for ~800ms, then continue.
+  function busy(btn, say, next) {
+    btn.classList.add('busy'); btn.setAttribute('aria-busy', 'true'); btn.setAttribute('aria-disabled', 'true');
+    live.textContent = say;
+    setTimeout(function () {
+      btn.classList.remove('busy'); btn.removeAttribute('aria-busy'); btn.removeAttribute('aria-disabled');
+      next();
+    }, 800);
+  }
+  function isBusy(btn) { return btn.getAttribute('aria-busy') === 'true'; }
+  function done(name) {
+    var s = screens[name];
+    if (doc.dataset.screen !== name) return; // user already moved on
+    if (name === 'forgot') $('.addr', s).textContent = $('#fp-email').value;
+    s.classList.add('is-done');
+    restart(s); focusHead(s);
+    live.textContent = DONE[name];
+  }
+
+  $$('form').forEach(function (f) {
+    var btn = $('button[type="submit"]', f), name = f.closest('.screen').dataset.s;
+    f.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (isBusy(btn)) return;
+      var first = null;
+      $$('input[data-chk]', f).forEach(function (i) { if (!run(i) && !first) first = i; });
+      if (first) { first.focus(); return; }
+      busy(btn, f.dataset.busy, function () {
+        var pw = $('#login-pw');
+        if (name === 'login' && pw.value === 'wrong') { setErr(pw, MSG.pwWrong); pw.focus(); live.textContent = MSG.pwWrong; return; }
+        done(name);
+      });
+    });
+  });
+  $$('[data-google]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (isBusy(b)) return;
+      var name = b.closest('.screen').dataset.s;
+      busy(b, 'Connecting to Google…', function () { done(name); });
+    });
+  });
+
+  $$('input[data-chk]').forEach(function (i) {
+    i.addEventListener('blur', function () { if (i.value) run(i); });
+    i.addEventListener('input', function () {
+      if (i.closest('.field').classList.contains('invalid')) run(i);
+      var rep = i.dataset.chk === 'pwnew' && $('[data-chk="match"]', i.form);
+      if (rep && rep.value) run(rep);
+    });
+  });
+  $$('[data-toggle]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var i = document.getElementById(b.dataset.toggle), show = i.type === 'password';
+      i.type = show ? 'text' : 'password';
+      b.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      $('use', b).setAttribute('href', show ? '#i-eye-off' : '#i-eye');
+    });
+  });
+
+  // Live strength + rules on Sign up. Only "8+ characters" is required; the second rule just makes it stronger.
+  var su = $('#su-pw'), LABELS = ['not entered yet', 'too short', 'okay', 'good', 'strong'];
+  function strength() {
+    var v = su.value, n = v.length, ok = n >= 8, mix = /\d|[^A-Za-z0-9]/.test(v);
+    var lvl = !n ? 0 : !ok ? 1 : !mix ? 2 : n >= 12 ? 4 : 3;
+    $('#su-meter').dataset.level = lvl;
+    $('#su-strength').textContent = 'Strength: ' + LABELS[lvl];
+    [['len', ok], ['mix', mix]].forEach(function (r) {
+      var li = $('[data-rule="' + r[0] + '"]');
+      li.classList.toggle('met', r[1]);
+      $('.sr', li).textContent = r[1] ? ', met' : ', not met';
+    });
+  }
+  su.addEventListener('input', strength);
+
+  // ---- start up ----
+  if (!doc.dataset.screen) doc.dataset.screen = 'login';
+  if (worst) {
+    $$('input[type="email"]').forEach(function (i) { i.value = LONG_EMAIL; });
+    $('#su-name').value = LONG_NAME;
+    $('#login-pw').value = 'wrong';
+    su.value = 'abc'; $('#rp-pw').value = 'abc'; $('#rp-pw2').value = 'abd';
+    $$('input[data-chk]').forEach(function (i) { setErr(i, WORST_MSG[i.dataset.chk]); });
+    $$('.addr').forEach(function (a) { a.textContent = LONG_EMAIL; });
+  }
+  strength();
+  doc.classList.add('anim');
+  restart(screens[doc.dataset.screen] || screens.login);
+})();
+</script>
+
+<!-- ===== SWITCH BAR (outer page) — copy as-is into every screen; only LOOKS and NOTE change ===== -->
+<script>
+(function () {
+  var P = new URLSearchParams(location.search);
+  if (P.has('inner')) return;
+  var LOOKS = [['graphite', '1 · Graphite (Eraser.io / Linear)'], ['blueprint', '2 · Blueprint (Vercel)'], ['all', 'All']];
+  var NOTE = 'Use the Screen switch to see Log in, Sign up, Forgot password and New password; links and buttons inside also work. Type "wrong" as the password to see the wrong-password error. Worst case = every error at once, a 60-character email and the longest button labels.';
+  var SIZES = ['320', '375', '639', '640', '767', '768', '1023', '1024', '1279', '1280', 'full'];
+  var GROUPS = [
+    ['look', 'Look', LOOKS],
+    ['screen', 'Page', [['login','Log in'],['signup','Sign up'],['forgot','Forgot password'],['reset','New password']]],
+    ['size', 'Screen', SIZES.map(function (s) { return [s, s === 'full' ? 'Full' : s]; })],
+    ['mode', 'Mode', [['dark', 'Dark'], ['light', 'Light']]],
+    ['content', 'Content', [['normal', 'Normal'], ['worst', 'Worst case']]],
+    ['motion', 'Motion', [['on', 'On'], ['reduced', 'Reduced']]]
+  ];
+  var S = { look: 'graphite', screen: 'login', size: 'full', mode: 'dark', content: 'normal', motion: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'reduced' : 'on' };
+  Object.keys(S).forEach(function (k) { if (P.get(k)) S[k] = P.get(k); });
+
+  document.documentElement.className = 'proto-outer';
+  document.body.innerHTML = '<div class="pbar" role="toolbar" aria-label="Prototype switches"></div><p class="pnote"></p><div class="pstage"></div>';
+  var css = document.createElement('style');
+  css.textContent = [
+    'html.proto-outer, html.proto-outer body { height: auto; background: #e9e9ee; color: #1b1b22; font: 13px/1.4 system-ui, sans-serif; }',
+    '.pbar { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; padding: 8px 12px; background: #fff; border-bottom: 2px dashed #ff2fb3; }',
+    '.pgrp { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; } .pgrp > b { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #6b6b78; margin-right: 2px; }',
+    '.pbar button { min-height: 32px; padding: 0 10px; border: 1px solid #c9c9d3; border-radius: 6px; background: #fff; color: #1b1b22; font: inherit; cursor: pointer; }',
+    '.pbar button[aria-pressed="true"] { background: #1b1b22; border-color: #1b1b22; color: #fff; }',
+    '.pnote { margin: 8px 12px; color: #4a4a55; } .pnote b { color: #c0168a; }',
+    '.pstage { display: grid; gap: 24px; padding: 0 12px 24px; justify-items: center; }',
+    '.pframe { width: 100%; display: grid; gap: 6px; justify-items: center; } .pframe > span { justify-self: start; font-weight: 600; color: #c0168a; border: 1.5px dashed #ff2fb3; border-radius: 6px; padding: 2px 8px; }',
+    '.pframe iframe { box-sizing: content-box; border: 1px solid #b9b9c4; background: #fff; height: calc(100vh - 130px); min-height: 560px; max-width: 100%; }'
+  ].join('\n');
+  document.head.appendChild(css);
+  var bar = document.querySelector('.pbar'), stage = document.querySelector('.pstage');
+  document.querySelector('.pnote').innerHTML = '<b>Prototype.</b> ' + NOTE;
+
+  GROUPS.forEach(function (g) {
+    var wrap = document.createElement('div'); wrap.className = 'pgrp'; wrap.innerHTML = '<b>' + g[1] + '</b>';
+    g[2].forEach(function (o) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = o[1]; b.dataset.k = g[0]; b.dataset.v = o[0];
+      b.onclick = function () { S[g[0]] = o[0]; draw(); }; wrap.appendChild(b);
+    });
+    bar.appendChild(wrap);
+  });
+  var rp = document.createElement('button'); rp.type = 'button'; rp.textContent = 'Replay'; rp.onclick = draw; bar.appendChild(rp);
+
+  function draw() {
+    history.replaceState(null, '', '?' + new URLSearchParams(S));
+    bar.querySelectorAll('button[data-k]').forEach(function (b) { b.setAttribute('aria-pressed', String(S[b.dataset.k] === b.dataset.v)); });
+    stage.innerHTML = '';
+    var looks = S.look === 'all' ? LOOKS.filter(function (l) { return l[0] !== 'all'; }) : LOOKS.filter(function (l) { return l[0] === S.look; });
+    looks.forEach(function (l) {
+      var q = new URLSearchParams(S); q.set('look', l[0]); q.set('inner', '1');
+      var f = document.createElement('div'); f.className = 'pframe';
+      f.innerHTML = '<span>' + l[1] + '</span><iframe title="' + l[1] + '" src="' + location.pathname.split('/').pop() + '?' + q + '"></iframe>';
+      f.querySelector('iframe').style.width = S.size === 'full' ? '100%' : S.size + 'px';
+      stage.appendChild(f);
+    });
+  }
+  draw();
+})();
+</script>
+</body>
+</html>

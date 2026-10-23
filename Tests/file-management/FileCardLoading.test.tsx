@@ -51,7 +51,7 @@ describe('FileCard Loading States', () => {
       />
     );
 
-    const fileCard = screen.getByRole('button');
+    const fileCard = screen.getByTestId('file-card');
     
     // Click the file card
     fireEvent.click(fileCard);
@@ -63,7 +63,7 @@ describe('FileCard Loading States', () => {
     expect(screen.getByText('Opening...')).toBeInTheDocument();
     
     // Should navigate to workspace
-    expect(mockRouter.push).toHaveBeenCalledWith('/wokspace/test-file-id');
+    expect(mockRouter.push).toHaveBeenCalledWith('/workspace/test-file-id');
   });
 
   it('should disable card interactions while loading', () => {
@@ -75,7 +75,7 @@ describe('FileCard Loading States', () => {
       />
     );
 
-    const fileCard = screen.getByRole('button');
+    const fileCard = screen.getByTestId('file-card');
     
     // Click the file card to start loading
     fireEvent.click(fileCard);
@@ -96,7 +96,7 @@ describe('FileCard Loading States', () => {
       />
     );
 
-    const fileCard = screen.getByRole('button');
+    const fileCard = screen.getByTestId('file-card');
     
     // Click multiple times rapidly
     fireEvent.click(fileCard);
@@ -121,7 +121,7 @@ describe('FileCard Loading States', () => {
       />
     );
 
-    const fileCard = screen.getByRole('button');
+    const fileCard = screen.getByTestId('file-card');
     
     // Click the file card
     fireEvent.click(fileCard);
@@ -148,7 +148,7 @@ describe('FileCard Loading States', () => {
       />
     );
 
-    const fileCard = screen.getByRole('button');
+    const fileCard = screen.getByTestId('file-card');
     
     // Click the file card
     fireEvent.click(fileCard);
@@ -186,7 +186,7 @@ describe('FileCard Loading States', () => {
       />
     );
 
-    const fileCard = screen.getByRole('button');
+    const fileCard = screen.getByTestId('file-card');
     
     // Initially should show file icon
     expect(screen.getByTestId('file-icon')).toBeInTheDocument();
@@ -209,7 +209,7 @@ describe('FileCard Loading States', () => {
       />
     );
 
-    const fileCard = screen.getByRole('button');
+    const fileCard = screen.getByTestId('file-card');
     
     // File name should be visible initially
     expect(screen.getByText('Test Document.txt')).toBeInTheDocument();
@@ -240,7 +240,7 @@ describe('FileCard Loading States', () => {
       />
     );
 
-    const fileCard = screen.getByRole('button');
+    const fileCard = screen.getByTestId('file-card');
     
     // Click the file card
     fireEvent.click(fileCard);
@@ -250,6 +250,6 @@ describe('FileCard Loading States', () => {
     expect(screen.getByText('Opening...')).toBeInTheDocument();
     
     // Should navigate to workspace
-    expect(mockRouter.push).toHaveBeenCalledWith('/wokspace/test-file-id');
+    expect(mockRouter.push).toHaveBeenCalledWith('/workspace/test-file-id');
   });
 });

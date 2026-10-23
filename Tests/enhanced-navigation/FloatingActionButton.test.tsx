@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { FloatingActionButton, FloatingActionItem } from '@/components/ui/floating-action-button';
 import { FileText, Image, Users } from 'lucide-react';
@@ -84,7 +84,8 @@ describe('FloatingActionButton Component', () => {
       render(<FloatingActionButton items={multipleActions} />);
       
       const triggerButton = screen.getByRole('button');
-      fireEvent.click(triggerButton);
+      // Radix dropdown triggers open on pointerdown, not click
+      fireEvent.pointerDown(triggerButton, { button: 0, ctrlKey: false });
       
       // Check if dropdown items are visible
       expect(screen.getByText('New Project')).toBeInTheDocument();
@@ -92,23 +93,26 @@ describe('FloatingActionButton Component', () => {
       expect(screen.getByText('Invite Team')).toBeInTheDocument();
     });
 
-    it('calls correct onClick when dropdown item is selected', () => {
+    it('calls correct onClick when dropdown item is selected', async () => {
       render(<FloatingActionButton items={multipleActions} />);
       
       const triggerButton = screen.getByRole('button');
-      fireEvent.click(triggerButton);
+      // Radix dropdown triggers open on pointerdown, not click
+      fireEvent.pointerDown(triggerButton, { button: 0, ctrlKey: false });
       
       const newFileItem = screen.getByText('New Project');
       fireEvent.click(newFileItem);
       
-      expect(mockOnClick).toHaveBeenCalledTimes(1);
+      // The component closes the menu first and runs the action after a short delay
+      await waitFor(() => expect(mockOnClick).toHaveBeenCalledTimes(1));
     });
 
     it('rotates plus icon when dropdown is open', () => {
       render(<FloatingActionButton items={multipleActions} />);
       
       const triggerButton = screen.getByRole('button');
-      fireEvent.click(triggerButton);
+      // Radix dropdown triggers open on pointerdown, not click
+      fireEvent.pointerDown(triggerButton, { button: 0, ctrlKey: false });
       
       expect(triggerButton).toHaveClass('rotate-45');
     });
@@ -157,7 +161,8 @@ describe('FloatingActionButton Component', () => {
       render(<FloatingActionButton />);
       
       const triggerButton = screen.getByRole('button');
-      fireEvent.click(triggerButton);
+      // Radix dropdown triggers open on pointerdown, not click
+      fireEvent.pointerDown(triggerButton, { button: 0, ctrlKey: false });
       
       // Should show default items
       expect(screen.getByText('New Project')).toBeInTheDocument();

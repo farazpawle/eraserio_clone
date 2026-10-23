@@ -4,8 +4,8 @@ Description: Atomic task list for Plan/supabase-migration-plan.md. Stages 0–7:
   setup, database + RLS, login (replace Kinde), data (replace Convex), cleanup, Docker deploy behind Nginx Proxy Manager, verification.
   [User] tasks need DNS, Google Cloud, Kinde, NPM admin or a human judgement; each says why.
 Total Tasks: 131
-Status: In progress (Stage 4 done except postponed checks 4.25–4.26 and avatar fix 4.27; next Stage 5)
-Updated: 2026-10-14
+Status: In progress (all agent work done 2026-10-23; open: [User] checks 0.5, 4.25, 7.5, 7.6, 7.8, 7.10, 7.13, then 7.15 close-out)
+Updated: 2026-10-23
 ---
 # Tasks — Supabase migration Phase 1
 
@@ -101,10 +101,12 @@ Note (2026-10-22): RLS is enabled in each table's own migration (not only in 2.1
 - [X]  3.21 Delete `app/api/auth/[kindeAuth]/route.js`.
 
 Notes (2026-10-22):
+
 - Kinde still imported only by `app/_context/CollaborationContext.tsx` and `hooks/useAdminAuth.ts` — both deleted in Stage 5.
 - Checks run: `tsc` — no errors in changed files (pre-existing: `app/admin/settings/page_old.tsx` syntax, CollaborationContext, live-cursors, useRealTimeCollaboration, `components/ui/scroll-area.tsx` missing `@radix-ui/react-scroll-area`). Jest 290/317: the 27 failures are pre-existing (keyboard-shortcut tests fire events with no target, FileCardLoading `useRouter.mockReturnValue`, FAB/ExportDropdown text matchers, webhook, scroll-area module). `jest.setup.js` now sets dummy Supabase env so components using `useUser` render in tests.
 - **ESLint is not configured** (`next lint` asks to set it up) — 7.2 needs a config first.
 - Smoke test on `next dev` against the VPS: all auth pages 200; `/dashboard`, `/wokspace/..`, `/invite/..` → 307 `/login?next=…`; bad/missing callback code → login with error; wrong password shows "Invalid login credentials". Real sign-up email, Google, reset and sign-out still need a human inbox → user check below.
+
 - [X]  3.22 [User] (confirmed by user 2026-10-22: sign-up email link, Google login, logout, password reset all work) Try sign-up by email (confirm link arrives and works), Google login, log out, and forgot password on `http://localhost:3000` (`npm run dev`) — needs your inbox and Google account.
 
 **Verify:** route-guard test passes; sign-up email arrives; email login, Google login, sign-out, forgot/update password all work locally against the VPS.
@@ -136,12 +138,13 @@ Notes (2026-10-22):
 - [X]  4.23 (removed by Claude 2026-10-22 after user asked) Delete `/tmp/eraser-srk.env` on VPS `main` (`rm -f /tmp/eraser-srk.env`) — temp copy of the service-role key (mode 600) left when the copy was blocked; Claude's cleanup command was blocked too.
 - [X]  4.24 [User] Signed-in smoke test against the VPS. Passed 2026-10-22 (user): create team, create file, save document + whiteboard, reload keeps changes, delete file; invitation created (shows as pending); edit share link opened and saved from another session.
 - [ ]  4.25 [User] Postponed by user: accept the pending invite — copy the link from the invite window, sign in as the invited email (farazpawle@gmail.com), open it, click "Join team", confirm the team's files show. No email is sent by design (needs your second account).
-- [ ]  4.26 [User] Postponed by user: revoke the share link in the share window, reopen it → "revoked" message (needs your browser session).
-- [ ]  4.27 Fix the broken owner avatar in the team-invitation modal members list (Google photo shows alt text "Fara" instead of the image).
+- [X]  4.26 (done by Claude in Chrome 2026-10-23; found and fixed the cached-lookup bug, see Stage 7 findings) [User] Postponed by user: revoke the share link in the share window, reopen it → "revoked" message (needs your browser session).
+- [X]  4.27 (2026-10-23: photo loads fine now; the members list uses the shared Avatar so a failed photo shows the initial, not alt text) Fix the broken owner avatar in the team-invitation modal members list (Google photo shows alt text "Fara" instead of the image).
 
 Ideas raised, not planned (ask the user before building): send invite emails from the app via the Supabase server's SMTP (currently the inviter copies the link).
 
 Notes (2026-10-22):
+
 - Data functions take the Supabase client as first argument (`lib/data/db.ts`); writes use `.select().single()` so an RLS-blocked write (viewer) errors instead of silently changing 0 rows. List of files skips `document`/`whiteboard`.
 - `FILE` / `TEAM` types are now the database row shapes (`id`, `name`, `team_id`, `created_by` uuid, `created_at`/`updated_at` ISO strings); document/whiteboard are stored as JSON values, not strings.
 - Checks: Jest 329/356 (39 new data tests pass; the 27 failures are the same pre-existing ones as Stage 3). tsc: no errors outside files deleted in Stage 5 and `Tests/*` (no `@types/jest`). Signed-out smoke test: all protected pages → login.
@@ -151,56 +154,61 @@ Notes (2026-10-22):
 ## Stage 5 — Cleanup
 
 - [X]  5.1 Remove `useWorkspaceCollaboration` + `WorkspaceNotificationBar` from the workspace page. (Done early 2026-10-22: the bar's dialog imports `@radix-ui/react-scroll-area`, which isn't installed, so opening a file failed to compile.)
-- [ ]  5.2 Remove `ConvexClientProvider` from `app/layout.tsx`; delete the file.
-- [ ]  5.3 Delete `convex/` folder.
-- [ ]  5.4 Delete collaboration extras: `app/_context/CollaborationContext.tsx`, `hooks/useWorkspaceCollaboration.ts`, `useRealTimeCollaboration.ts`, `useConflictAwareSave.ts`, `types/collaboration.ts`, `types/todos.ts`.
-- [ ]  5.5 Delete collaboration UI: `components/ui/` live-cursors, comments-panel, notifications-panel, conflict-resolution-dialog, collaboration-toolbar, user-presence-indicator, workspace-notification-bar.
-- [ ]  5.6 Delete admin extras: `app/admin/`, `components/AdminRouteGuard.tsx`, `hooks/useAdminAuth.ts`, `lib/adminAuth.ts`.
-- [ ]  5.7 Delete placeholder page `app/dashboard/[userid]/page.tsx`.
-- [ ]  5.8 Delete tests for removed code (`Tests/admin-auth`, `Tests/todos`, `Tests/webhook-system`).
+- [X]  5.2 Remove `ConvexClientProvider` from `app/layout.tsx`; delete the file.
+- [X]  5.3 Delete `convex/` folder.
+- [X]  5.4 Delete collaboration extras: `app/_context/CollaborationContext.tsx`, `hooks/useWorkspaceCollaboration.ts`, `useRealTimeCollaboration.ts`, `useConflictAwareSave.ts`, `types/collaboration.ts`, `types/todos.ts`.
+- [X]  5.5 Delete collaboration UI: `components/ui/` live-cursors, comments-panel, notifications-panel, conflict-resolution-dialog, collaboration-toolbar, user-presence-indicator, workspace-notification-bar.
+- [X]  5.6 Delete admin extras: `app/admin/`, `components/AdminRouteGuard.tsx`, `hooks/useAdminAuth.ts`, `lib/adminAuth.ts`.
+- [X]  5.7 Delete placeholder page `app/dashboard/[userid]/page.tsx`.
+- [X]  5.8 Delete tests for removed code (`Tests/admin-auth`, `Tests/todos`, `Tests/webhook-system`).
 - [X]  5.9 Update the Convex mock in `Tests/workspace-improvements/WorkspaceLoading.test.tsx`. (Now mocks `lib/data/files` + the Supabase client; also removed the Convex mock from `jest.setup.js`. Not run yet — waiting on the deletions.)
-- [ ]  5.10 Uninstall `convex` and `@kinde-oss/kinde-auth-nextjs`.
-- [ ]  5.11 Remove Convex/Kinde/ADMIN vars from local env; add `.env.example` with Supabase names only.
-- [ ]  5.12 Rename route folder `wokspace` → `workspace`; update links; add redirect from the old path in `next.config.mjs`.
+- [X]  5.10 Uninstall `convex` and `@kinde-oss/kinde-auth-nextjs`.
+- [X]  5.11 Remove Convex/Kinde/ADMIN vars from local env; add `.env.example` with Supabase names only.
+- [X]  5.12 (done 2026-10-23; the live site already redirected to `/workspace` while the folder was still `wokspace`, so opening a file 404'd) Rename route folder `wokspace` → `workspace`; update links; add redirect from the old path in `next.config.mjs`.
 - [X]  5.13 Mark `Docs/REAL_TIME_COLLABORATION.md` as Phase 2 / not implemented.
-- [ ]  5.14 Update `README.md` tech stack + setup steps. (Done except the `convex/` line in the project-structure block — that edit was blocked.)
+- [X]  5.14 Update `README.md` tech stack + setup steps.
 
-Stage 5 progress (2026-10-22): done so far — layout no longer uses `ConvexClientProvider`; `/admin` removed from the login-required list (+ its test line); `.env.example` created; 5.9, 5.13 and most of 5.14. **Blocked, waiting for the user's yes:** every file/folder deletion (5.2 file, 5.3–5.8), uninstall (5.10), local env cleanup (5.11), folder rename (5.12). Note: `components/ui/scroll-area.tsx` imports an uninstalled package and is only used by the files being deleted — remove it with them.
+Stage 5 progress (2026-10-22): all deletions, uninstall, env cleanup done (committed first as `c63210e`). `tsc` clean outside `Tests/`; Jest 276/310 — the 34 failures are the same pre-existing ones (`useRouter.mockReturnValue`, keyboard-shortcut, FAB/ExportDropdown text); `components/ui/scroll-area.tsx` removed too. **Left:** 5.12 rename (stop the dev server first), then `npm run build` and the `grep -ri convex|kinde` verify.
 
 **Verify:** `grep -ri "convex\|kinde"` in source returns nothing; `npm run build` passes.
 
 ## Stage 6 — Deploy (VPS)
 
-- [ ]  6.1 Set `output: 'standalone'` in `next.config.mjs`.
-- [ ]  6.2 Add multi-stage `Dockerfile` (Node LTS alpine, non-root user; `NEXT_PUBLIC_*` passed as build args because Next bakes them in at build time).
-- [ ]  6.3 Add `docker-compose.prod.yml` binding `10.0.0.1:8091:3000` (Docker bridge gateway — reachable by NPM, not the internet).
-- [ ]  6.4 Create `/opt/eraser/.env.prod` on the server (chmod 600): public Supabase URL, anon key, service-role key, `SITE_URL=https://eraser.garritwulf.com` (auth callback redirects).
-- [ ]  6.5 Copy the app source to `/opt/eraser` on the VPS.
-- [ ]  6.6 Build and start the container on the VPS.
-- [ ]  6.7 [User] In Nginx Proxy Manager add `eraser.garritwulf.com` → `10.0.0.1:8091`, Let's Encrypt SSL (needs the NPM admin login) — or give me the login.
-
-- [ ]  6.8 Add a public privacy policy page (`/privacy`) to the app — Google refuses to publish the OAuth app without a privacy policy link (Branding page otherwise complete; checked 2026-10-22).
-- [ ]  6.9 [User] In Google Auth Platform → Branding, set privacy policy link `https://eraser.garritwulf.com/privacy`, then Audience → Publish app (needs your Google account). Until then only listed test users can use Google login.
+- [X]  6.1 Set `output: 'standalone'` in `next.config.mjs`.
+- [X]  6.2 Add multi-stage `Dockerfile` (Node 24 alpine, non-root user; `NEXT_PUBLIC_*` passed as build args because Next bakes them in at build time). Also added `.dockerignore`, and removed the Windows-only `@next/swc-win32-x64-msvc` from `package.json` (it made `npm ci` fail on Linux; Next installs the right one itself).
+- [X]  6.3 Add `docker-compose.prod.yml` binding `10.0.0.1:8091:3000` (Docker bridge gateway — reachable by NPM, not the internet). Gateway confirmed `10.0.0.1` on `main`, port 8091 was free.
+- [X]  6.4 Create `/opt/eraser/.env.prod` on the server (chmod 600): public Supabase URL, anon key, service-role key, `SITE_URL=https://eraser.garritwulf.com` (auth callback redirects). Built on the server from `/opt/supabase/.env`; secrets never left it.
+- [X]  6.5 Copy the app source to `/opt/eraser` on the VPS. (Tarball without `.env*`, `.git`, `node_modules`; unpacked over the same folder on each redeploy.)
+- [X]  6.6 Build and start the container on the VPS. Done 2026-10-22: `npm run build` passed inside the image; `/` and `/login` 200, `/dashboard` → login redirect, `http://147.93.105.118:8091` unreachable from outside. Run: `cd /opt/eraser && docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build`.
+- [X]  6.7 [User] In Nginx Proxy Manager add `eraser.garritwulf.com` → `10.0.0.1:8091`, Let's Encrypt SSL (needs the NPM admin login) — or give me the login.
+- [X]  6.8 (deployed 2026-10-22, `/privacy` 200 on the server; no contact email on the page yet) Add a public privacy policy page (`/privacy`) to the app — Google refuses to publish the OAuth app without a privacy policy link (Branding page otherwise complete; checked 2026-10-22). Page is `app/privacy/page.tsx`; live at `https://eraser.garritwulf.com/privacy` (200, checked 2026-10-22). No contact email on it yet — user to decide.
+- [X]  6.9 [User] (done by user 2026-10-22: Branding saved, app published; test with a non-test Google account is part of 7.6) In Google Auth Platform → Branding, set privacy policy link `https://eraser.garritwulf.com/privacy`, then Audience → Publish app (needs your Google account). Until then only listed test users can use Google login.
 
 **Verify:** `https://eraser.garritwulf.com` loads over HTTPS; `http://147.93.105.118:8091` not reachable from outside.
 
 ## Stage 7 — Final verification
 
-- [ ]  7.1 `npx tsc --noEmit` passes.
-- [ ]  7.2 `npm run lint` passes (causes fixed, not silenced).
-- [ ]  7.3 `npm run build` passes.
-- [ ]  7.4 `npm test` passes.
-- [ ]  7.5 Browser smoke test on live URL: sign up by email, confirm, log in.
-- [ ]  7.6 Browser smoke test: Google login, sign out, forgot password.
-- [ ]  7.7 Browser smoke test: create team, create file, edit document + whiteboard, reload, changes kept.
-- [ ]  7.8 Browser smoke test: invite second user, accept link, second user sees team files.
-- [ ]  7.9 Browser smoke test: share link view + edit work; revoked and expired links refused.
-- [ ]  7.10 Isolation check: an outside user cannot open a team file URL or read it via the REST API with their token.
-- [ ]  7.11 Re-run Supabase advisors on the live database.
-- [ ]  7.12 Self-review diff: no debug logs, no secrets, no dead imports, `service_role` only in server files.
+- [X]  7.1 `npx tsc --noEmit` passes.
+- [X]  7.2 (not applicable: ESLint is not configured in this project; see CLAUDE.md) `npm run lint` passes (causes fixed, not silenced).
+- [X]  7.3 `npm run build` passes (2026-10-23).
+- [X]  7.4 `npm test` passes (2026-10-23: 312/312; the 34 old failures fixed — test router mock, PointerEvent polyfill, plus two real bugs in `useKeyboardShortcuts`: null event target crash and stale shortcut actions).
+- [ ]  7.5 [User] (needs your inbox) Browser smoke test on live URL: sign up by email, confirm, log in.
+- [ ]  7.6 [User] (needs your Google account) Browser smoke test: Google login, sign out, forgot password.
+- [X]  7.7 (2026-10-23 in Chrome on the live site: open file, edit document + canvas, save, reload — kept; create team/file done by user in 4.24) Browser smoke test: create team, create file, edit document + whiteboard, reload, changes kept.
+- [ ]  7.8 [User] (needs a second account; same check as 4.25) Browser smoke test: invite second user, accept link, second user sees team files.
+- [X]  7.9 (2026-10-23: view link opens read-only; revoked link shows "revoked" and its save returns 410 after the cache fix; edit link checked by user in 4.24; expiry covered by `Tests/data/shares.test.ts`) Browser smoke test: share link view + edit work; revoked and expired links refused.
+- [ ]  7.10 [User] (needs a second account; database-level isolation is already covered by `supabase/tests/rls.sql`) Isolation check: an outside user cannot open a team file URL or read it via the REST API with their token.
+- [X]  7.11 (2026-10-23: security 0, performance 0) Re-run Supabase advisors on the live database.
+- [X]  7.12 (2026-10-23: service-role key only in `lib/supabase/admin.ts` with `server-only`, used by `/shared` page + API; only `.env.example` tracked; no Convex/Kinde left; the few `console.log`s are older than this migration) Self-review diff: no debug logs, no secrets, no dead imports, `service_role` only in server files.
 - [ ]  7.13 [User] Try the app yourself and confirm it looks and feels right (human judgement).
-- [ ]  7.14 Add the recurring project rules (Supabase keys, RLS-first, server-only service role) to the project `CLAUDE.md`.
+- [X]  7.14 (already in CLAUDE.md) Add the recurring project rules (Supabase keys, RLS-first, server-only service role) to the project `CLAUDE.md`.
 - [ ]  7.15 Move plan + task file to `Plan/completed/`; write the Phase 2 plan.
+
+Stage 7 findings (2026-10-23):
+
+- **Fixed — revoked share links kept working (security).** Next.js cached the service-role share lookup in its fetch cache, so `/shared/<token>` and `PUT /api/shared/<token>` kept reading the first answer ("active") after a revoke. `createAdminClient` now sends every request with `cache: 'no-store'` (test `Tests/supabase/admin.test.ts`).
+- **Fixed — `/workspace/*` and `/shared/*` answered 500 on every load.** Editor.js and Excalidraw touch the DOM on import, so server rendering crashed (`Element is not defined`) and the browser silently re-rendered. Both pages now load them with `next/dynamic` and `ssr: false` (first-load JS 1.14 MB → ~435 KB).
+- Share links need the visitor to be signed in (middleware protects `/shared`), although the share window says "Anyone with the link". Decide later whether that wording or the rule should change.
 
 ## Implementation verification (acceptance)
 

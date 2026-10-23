@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+.vscode
+.superdesign
+.claude
+Tests
+Plan
+Docs
+docs
+supabase
+*.md
+
+designs

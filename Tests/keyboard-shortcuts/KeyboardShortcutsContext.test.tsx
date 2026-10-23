@@ -169,10 +169,12 @@ describe('KeyboardShortcutsProvider', () => {
     fireEvent.click(openButton);
     expect(helpStatus).toHaveTextContent('open');
 
-    // Get the event handler
-    const eventHandler = (document.addEventListener as jest.Mock).mock.calls.find(
-      call => call[0] === 'keydown'
-    )?.[1];
+    // The handler is re-registered when help opens, so use the latest one
+    // (the first one still closes over isHelpOpen = false). Radix registers its
+    // own keydown listeners with an options argument; ours has none.
+    const eventHandler = (document.addEventListener as jest.Mock).mock.calls
+      .filter(call => call[0] === 'keydown' && call.length === 2)
+      .pop()?.[1];
 
     // Simulate Escape keypress
     const event = new KeyboardEvent('keydown', {
@@ -251,7 +253,8 @@ describe('KeyboardShortcutsHelp Modal', () => {
     fireEvent.click(openButton);
 
     // Check if formatted shortcuts are displayed
-    expect(screen.getByText('Ctrl + /')).toBeInTheDocument();
+    // Shown in the shortcut list and again in the footer hint
+    expect(screen.getAllByText('Ctrl + /')).toHaveLength(2);
     expect(screen.getByText('Esc')).toBeInTheDocument();
   });
 
@@ -265,8 +268,10 @@ describe('KeyboardShortcutsHelp Modal', () => {
     expect(screen.getByText('Keyboard Shortcuts')).toBeInTheDocument();
 
     // Click close button in modal
-    const closeButton = screen.getByRole('button', { name: /close/i });
-    fireEvent.click(closeButton);
+    // Two close buttons: the dialog's corner X and the footer Close button
+    const closeButtons = screen.getAllByRole('button', { name: /close/i });
+    expect(closeButtons).toHaveLength(2);
+    fireEvent.click(closeButtons[closeButtons.length - 1]);
 
     // Modal should be closed
     expect(screen.queryByText('Keyboard Shortcuts')).not.toBeInTheDocument();

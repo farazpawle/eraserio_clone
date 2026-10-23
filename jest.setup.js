@@ -28,25 +28,27 @@ jest.mock('next/router', () => ({
   },
 }))
 
-// Mock next/navigation
+// Mock next/navigation. The hooks are jest.fn() so tests can override them with
+// mockReturnValue; the defaults keep components working when they don't.
 jest.mock('next/navigation', () => ({
-  useRouter() {
-    return {
-      push: jest.fn(),
-      replace: jest.fn(),
-      prefetch: jest.fn(),
-      back: jest.fn(),
-      forward: jest.fn(),
-      refresh: jest.fn(),
-    }
-  },
-  useSearchParams() {
-    return new URLSearchParams()
-  },
-  usePathname() {
-    return '/'
-  },
+  useRouter: jest.fn(() => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    prefetch: jest.fn(),
+    back: jest.fn(),
+    forward: jest.fn(),
+    refresh: jest.fn(),
+  })),
+  useSearchParams: jest.fn(() => new URLSearchParams()),
+  usePathname: jest.fn(() => '/'),
+  useParams: jest.fn(() => ({})),
 }))
+
+// jsdom has no PointerEvent, so fireEvent.pointerDown loses `button`/`ctrlKey`.
+// Radix menus open only on pointerdown with button 0, so give them a real one.
+if (typeof window.PointerEvent === 'undefined') {
+  window.PointerEvent = class PointerEvent extends MouseEvent {}
+}
 
 // Global test setup
 global.ResizeObserver = jest.fn().mockImplementation(() => ({

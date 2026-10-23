@@ -104,7 +104,7 @@ describe('ExportDropdown', () => {
     );
 
     const exportButton = screen.getByRole('button', { name: /export/i });
-    fireEvent.click(exportButton);
+    fireEvent.pointerDown(exportButton, { button: 0, ctrlKey: false });
 
     await waitFor(() => {
       expect(screen.getByText('Export as PDF')).toBeInTheDocument();
@@ -125,7 +125,7 @@ describe('ExportDropdown', () => {
     );
 
     const exportButton = screen.getByRole('button', { name: /export/i });
-    fireEvent.click(exportButton);
+    fireEvent.pointerDown(exportButton, { button: 0, ctrlKey: false });
 
     await waitFor(() => {
       expect(screen.getByText('Export as PNG')).toBeInTheDocument();
@@ -147,7 +147,7 @@ describe('ExportDropdown', () => {
     );
 
     const exportButton = screen.getByRole('button', { name: /export/i });
-    fireEvent.click(exportButton);
+    fireEvent.pointerDown(exportButton, { button: 0, ctrlKey: false });
 
     await waitFor(() => {
       const pdfOption = screen.getByText('Export as PDF');
@@ -172,7 +172,7 @@ describe('ExportDropdown', () => {
     );
 
     const exportButton = screen.getByRole('button', { name: /export/i });
-    fireEvent.click(exportButton);
+    fireEvent.pointerDown(exportButton, { button: 0, ctrlKey: false });
 
     await waitFor(() => {
       const pngOption = screen.getByText('Export as PNG');
@@ -202,7 +202,7 @@ describe('ExportDropdown', () => {
     );
 
     const exportButton = screen.getByRole('button', { name: /export/i });
-    fireEvent.click(exportButton);
+    fireEvent.pointerDown(exportButton, { button: 0, ctrlKey: false });
 
     await waitFor(() => {
       expect(screen.getByText('Export 2 Files')).toBeInTheDocument();
@@ -317,7 +317,7 @@ describe('ExportDropdown', () => {
     );
 
     const exportButton = screen.getByRole('button', { name: /export/i });
-    fireEvent.click(exportButton);
+    fireEvent.pointerDown(exportButton, { button: 0, ctrlKey: false });
 
     await waitFor(() => {
       const pngOption = screen.getByText('Export as PNG');

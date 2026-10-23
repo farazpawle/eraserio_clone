@@ -117,10 +117,10 @@ describe('useKeyboardShortcuts', () => {
   it('should not trigger shortcuts when typing in input fields', () => {
     const shortcuts = [
       {
-        key: 's',
+        key: 'g',
         ctrlKey: true,
         action: mockAction,
-        description: 'Save file',
+        description: 'Toggle grid',
       },
     ];
 
@@ -130,7 +130,7 @@ describe('useKeyboardShortcuts', () => {
     
     // Mock input element as target
     const inputElement = document.createElement('input');
-    const event = createKeyboardEvent('s', { ctrlKey: true });
+    const event = createKeyboardEvent('g', { ctrlKey: true });
     Object.defineProperty(event, 'target', { value: inputElement });
     
     act(() => {
@@ -138,6 +138,31 @@ describe('useKeyboardShortcuts', () => {
     });
 
     expect(mockAction).not.toHaveBeenCalled();
+  });
+
+  it('should still trigger save shortcuts when typing in input fields', () => {
+    const shortcuts = [
+      {
+        key: 's',
+        ctrlKey: true,
+        action: mockAction,
+        description: 'Save file',
+      },
+    ];
+
+    renderHook(() => useKeyboardShortcuts({ shortcuts, enabled: true }));
+
+    const eventHandler = (document.addEventListener as jest.Mock).mock.calls[0][1];
+
+    const inputElement = document.createElement('input');
+    const event = createKeyboardEvent('s', { ctrlKey: true });
+    Object.defineProperty(event, 'target', { value: inputElement });
+
+    act(() => {
+      eventHandler(event);
+    });
+
+    expect(mockAction).toHaveBeenCalledTimes(1);
   });
 
   it('should allow Escape key even in input fields', () => {

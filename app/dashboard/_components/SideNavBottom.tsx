@@ -55,13 +55,13 @@ const SideNavBottom = ({onFileCreate,Files,isCreating}:SideNavBottomProps) => {
     
     // Handle recent file actions
     const handleRecentFileClick = (file: RecentFile) => {
-        router.push(`/wokspace/${file.id}`);
+        router.push(`/workspace/${file.id}`);
     };
     
     const handleRecentFileAction = (action: string, file: RecentFile) => {
         switch (action) {
             case 'open':
-                router.push(`/wokspace/${file.id}`);
+                router.push(`/workspace/${file.id}`);
                 break;
             case 'view-all':
                 // Could navigate to a full files view

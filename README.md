@@ -26,8 +26,8 @@ This project is a fully functional clone of [Eraser.io](https://eraser.io) built
 eraserio_clone-main/
 ├── app/                      # Application files
 ├── components/               # React components
-├── convex/                   # Real-time data backend
-├── lib/                      # Utility libraries
+├── lib/                      # Utility libraries (Supabase clients, data access)
+├── supabase/                 # Database migrations and RLS tests
 ├── public/                   # Static assets
 ├── .vscode/                  # VSCode workspace settings
 ├── .gitignore                # Files to ignore in git

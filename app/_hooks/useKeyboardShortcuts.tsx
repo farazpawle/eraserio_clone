@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useCallback } from 'react';
 
 interface KeyboardShortcut {
   key: string;
@@ -18,8 +18,9 @@ interface UseKeyboardShortcutsProps {
 }
 
 export const useKeyboardShortcuts = ({ shortcuts, enabled = true }: UseKeyboardShortcutsProps) => {
-  // Memoize shortcuts to prevent unnecessary re-renders
-  const memoizedShortcuts = useMemo(() => shortcuts, [JSON.stringify(shortcuts)]);
+  // Depend on the array itself: JSON.stringify drops the action functions, so a
+  // stringified key would leave stale action closures registered.
+  const memoizedShortcuts = shortcuts;
   
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -37,12 +38,14 @@ export const useKeyboardShortcuts = ({ shortcuts, enabled = true }: UseKeyboardS
       });
 
       // Don't trigger shortcuts when user is typing in input fields
-      const target = event.target as HTMLElement;
+      // event.target can be null or a non-element (document/window), so guard it.
+      const target = event.target instanceof HTMLElement ? event.target : null;
       if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.contentEditable === 'true' ||
-        target.closest('[contenteditable="true"]')
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.contentEditable === 'true' ||
+          target.closest('[contenteditable="true"]'))
       ) {
         // Allow Escape key and save-related shortcuts in input fields
         if (event.key !== 'Escape' && (!matchingShortcut || !matchingShortcut.description.toLowerCase().includes('save'))) {

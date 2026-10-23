@@ -381,7 +381,7 @@ const FileList = ({}: FileListProps = {}) => {
                   toggleFileSelection(file.id);
                 } else if (!isProcessing && !isNavigating) {
                   setNavigatingFileId(file.id);
-                  router.push("/wokspace/" + file.id);
+                  router.push("/workspace/" + file.id);
                   // Note: setNavigatingFileId(null) is not needed as component will unmount during navigation
                 }
               };

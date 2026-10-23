@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { X, Mail, Users, Trash2, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
@@ -277,19 +278,13 @@ const TeamInvitationModal = ({ isOpen, onClose, teamId, teamName }: TeamInvitati
                       className="flex items-center justify-between p-3 border rounded-lg"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                          {member.profile?.avatar_url ? (
-                            <img
-                              src={member.profile.avatar_url}
-                              alt={displayName}
-                              className="w-8 h-8 rounded-full"
-                            />
-                          ) : (
-                            <span className="text-sm font-medium">
-                              {displayName.charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                        </div>
+                        {/* Shows the initial instead of alt text when the photo fails to load. */}
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={member.profile?.avatar_url ?? undefined} alt={displayName} />
+                          <AvatarFallback className="text-sm font-medium bg-gray-200 dark:bg-gray-700">
+                            {displayName.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
                         <div>
                           <p className="font-medium">{displayName}</p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
