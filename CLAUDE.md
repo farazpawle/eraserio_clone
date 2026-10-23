@@ -7,4 +7,5 @@
 - Checks: `npx tsc --noEmit`, `npm test`, `npm run build`. ESLint is not configured yet (`npm run lint` only asks to set it up).
 - Live database access and applying migrations: use the `eraser-supabase-db` skill. Deploying the app to the VPS: use the `eraser-deploy` skill.
 - The canvas is Excalidraw only (no React Flow or tldraw). A typed diagram is an Excalidraw frame with `customData.kind = "diagram"` holding its code; parsing, layout (ELK) and element generation live in `lib/diagram/` as pure TypeScript with no React or DOM imports. See `Plan/redesign-eraser-canvas-plan.md`.
+- Browser-only libraries (Editor.js, Excalidraw) are loaded with `next/dynamic` and `ssr: false`; importing them normally crashes server rendering. Server-side Supabase clients send requests with `cache: 'no-store'` so Next.js never serves stale rows.
 - One topic per skill in `.claude/skills/`; create a new small skill when a task needs knowledge that fits none of them.
