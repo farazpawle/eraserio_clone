@@ -2,7 +2,7 @@
 Title: Plan — Stage 0 Foundations (security upgrades, Graphite tokens, brand)
 Description: Step plan for Stage 0 of Plan/redesign-eraser-canvas-tasks.md. Upgrades Next to 14.2.35 and Excalidraw to 0.18.1 behind a 0.17.6 whiteboard regression test, then adds the brand constant, Graphite colour tokens, Inter and JetBrains Mono fonts, and a dark default theme.
 Total Tasks: 12
-Status: In progress
+Status: Complete
 Updated: 2026-10-24
 ---
 
@@ -27,7 +27,7 @@ Updated: 2026-10-24
 - [x] 0.3 Read one real whiteboard from the live `files` table (read-only select, `eraser-supabase-db` skill), check it has no private text, save as `Tests/canvas/fixtures/whiteboard-0176.json`. (Only one file in production has a saved whiteboard — the user's own `test` file, 3 shapes, text "smoke 23 Oct"; read approved by the user.)
 - [x] 0.4 `Tests/canvas/restore.test.ts`: fixture → `restoreElements(elements, null)` keeps count, ids and text. Run on 0.17.6 (baseline green). (Needed two jsdom polyfills in `jest.setup.js` — `Path2D` and a `getContext` stub — since importing the package root pulls in Excalidraw's full UI bundle, which does canvas feature-detection at module load even for this pure data helper.)
 - [x] 0.5 `npm i @excalidraw/excalidraw@0.18.1`; 0.4 test stays green.
-- [x] 0.6 Fix integration in `WSCanvas.tsx` (CSS import `@excalidraw/excalidraw/index.css`, `window.EXCALIDRAW_ASSET_PATH`, `transpilePackages` only if the build needs it); `tsc` + `build` green; browser smoke on a real file. (Needed `transpilePackages` for excalidraw's own ESM transitive deps — nanoid, roughjs, hachure-fill, path-data-parser, points-on-curve, points-on-path, fractional-indexing — plus the explicit CSS import, since 0.18 stopped self-injecting styles via JS. `window.EXCALIDRAW_ASSET_PATH` wasn't needed — the build didn't ask for it. Browser smoke blocked: no browser extension connected this session; left for the user or a later check.)
+- [x] 0.6 Fix integration in `WSCanvas.tsx` (CSS import `@excalidraw/excalidraw/index.css`, `window.EXCALIDRAW_ASSET_PATH`, `transpilePackages` only if the build needs it); `tsc` + `build` green; browser smoke on a real file. (Needed `transpilePackages` for excalidraw's own ESM transitive deps — nanoid, roughjs, hachure-fill, path-data-parser, points-on-curve, points-on-path, fractional-indexing — plus the explicit CSS import, since 0.18 stopped self-injecting styles via JS. `window.EXCALIDRAW_ASSET_PATH` wasn't needed — the build didn't ask for it. Browser smoke done: the real `test` file opens with its diamond, ellipse and text intact on 0.18.1.)
 - [x] 0.7 `lib/brand.ts` (`BRAND_NAME = "Draftboard"`), used in `app/layout.tsx` metadata title (test: title contains the constant).
 - [x] 0.8 Graphite tokens from `designs/redesign/editor.html` (dark default + `[data-theme="light"]`, `--faint` as in the prototype) into `app/globals.css` as `--g-*` variables, non-clashing with shadcn names. (`--g-faint` checked against `--g-bg`/`--g-panel` in both themes — already ≥4.5:1, no value change needed.)
 - [x] 0.9 Map `--g-*` to Tailwind names under `extend.colors` (e.g. `g-bg`, `g-panel`, `g-line`, `g-text`, `g-muted`, `g-faint`, `g-accent`).

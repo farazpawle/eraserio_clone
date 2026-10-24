@@ -4,7 +4,7 @@ Description: Atomic task list for Plan/redesign-eraser-canvas-plan.md. Stages 0�
   typed diagrams (flowchart + cloud, then sequence, ER, BPMN) on the Excalidraw canvas with ELK and a CodeMirror code panel, full cloud icon
   sets, then dashboard, login and landing redesigns. [User] tasks need a human look, a browser login or accepting icon licence terms; each says why.
 Total Tasks: 110
-Status: Stage 0 complete (browser smoke test outstanding); stages 1-9 not started
+Status: Stage 0 complete; stages 1-9 not started
 Updated: 2026-10-24
 ---
 
@@ -23,7 +23,7 @@ Each stage gets a detailed test-first step plan (writing-plans) when it starts. 
 - [x] 0.3 Save a real 0.17.6 whiteboard from the live database as `Tests/canvas/fixtures/whiteboard-0176.json`.
 - [x] 0.4 Write a failing test: the 0.17.6 fixture goes through Excalidraw's `restoreElements` with the same element count, ids and text.
 - [x] 0.5 Upgrade `@excalidraw/excalidraw` to the newest 0.18.x (0.18.1 or later fixes the Mermaid XSS CVE-2025-54881) and make 0.4 pass.
-- [x] 0.6 Fix the Excalidraw 0.18 integration: CSS import, fonts path and ESM build (add `transpilePackages` only if the build needs it). (Browser smoke test on a real file still outstanding — no browser automation was connected this session.)
+- [x] 0.6 Fix the Excalidraw 0.18 integration: CSS import, fonts path and ESM build (add `transpilePackages` only if the build needs it). (Browser smoke test passed: the real `test` file's diamond, ellipse and text all render intact on 0.18.1.)
 - [x] 0.7 Add `lib/brand.ts` exporting `BRAND_NAME = "Draftboard"`, and use it for the page `<title>` in `app/layout.tsx`.
 - [x] 0.8 Port the Graphite tokens from `designs/redesign/editor.html` (light, dark and the `--faint` values after the contrast fix) into `app/globals.css` as CSS variables.
 - [x] 0.9 Map the new variables to Tailwind colour names in `tailwind.config.ts`, keeping the shadcn variable names working.
@@ -34,7 +34,7 @@ Each stage gets a detailed test-first step plan (writing-plans) when it starts. 
 **Verify:** tsc, tests and build all pass. An old file opens with every shape intact. `npm audit` shows no critical issues for next or excalidraw.
 - tsc, tests (315/315) and build: pass.
 - `npm audit`: excalidraw clean; next still shows unpatched critical issues with no 14.2.x fix (backlog item 9, user-approved deferral).
-- Browser check (old file opens, every shape intact): not done — no browser automation connected this session. Dev server was left running at `http://localhost:3000/workspace/b01ca541-e28c-4ae9-8a90-7eacd240144e` for a manual look, or re-run once the browser extension is connected.
+- Browser check (old file opens, every shape intact): pass — the real `test` file opens with its diamond, ellipse and "smoke 23 Oct" text all intact on Excalidraw 0.18.1, dark theme on by default.
 
 ## Stage 1 — New editor (Graphite shell)
 
