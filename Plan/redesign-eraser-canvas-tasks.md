@@ -4,8 +4,8 @@ Description: Atomic task list for Plan/redesign-eraser-canvas-plan.md. Stages 0�
   typed diagrams (flowchart + cloud, then sequence, ER, BPMN) on the Excalidraw canvas with ELK and a CodeMirror code panel, full cloud icon
   sets, then dashboard, login and landing redesigns. [User] tasks need a human look, a browser login or accepting icon licence terms; each says why.
 Total Tasks: 110
-Status: Not started (awaiting plan review)
-Updated: 2026-10-23
+Status: Stage 0 complete (browser smoke test outstanding); stages 1-9 not started
+Updated: 2026-10-24
 ---
 
 # Tasks — Graphite redesign and Eraser-style canvas
@@ -14,22 +14,27 @@ Each stage gets a detailed test-first step plan (writing-plans) when it starts. 
 
 **Model:** stages marked **Opus (hard)** run on Opus; every other stage runs on Sonnet (high effort). The end-of-stage review always runs on Opus.
 
+**Versions (as of stage 0, 2026-10-24):** next 14.2.35, @excalidraw/excalidraw 0.18.1. elkjs and codemirror are not installed yet — they arrive in Stage 2.
+
 ## Stage 0 — Foundations
 
-- [ ] 0.1 Create branch `feat/redesign-canvas` from `main` once the Supabase migration branch is merged.
-- [ ] 0.2 Upgrade `next` to the newest 14.2.x patch (14.2.3 is open to the middleware login bypass CVE-2025-29927, and `middleware.ts` guards logins).
-- [ ] 0.3 Save a real 0.17.6 whiteboard from the live database as `Tests/canvas/fixtures/whiteboard-0176.json`.
-- [ ] 0.4 Write a failing test: the 0.17.6 fixture goes through Excalidraw's `restoreElements` with the same element count, ids and text.
-- [ ] 0.5 Upgrade `@excalidraw/excalidraw` to the newest 0.18.x (0.18.1 or later fixes the Mermaid XSS CVE-2025-54881) and make 0.4 pass.
-- [ ] 0.6 Fix the Excalidraw 0.18 integration: CSS import, fonts path and ESM build (add `transpilePackages` only if the build needs it).
-- [ ] 0.7 Add `lib/brand.ts` exporting `BRAND_NAME = "Draftboard"`, and use it for the page `<title>` in `app/layout.tsx`.
-- [ ] 0.8 Port the Graphite tokens from `designs/redesign/editor.html` (light, dark and the `--faint` values after the contrast fix) into `app/globals.css` as CSS variables.
-- [ ] 0.9 Map the new variables to Tailwind colour names in `tailwind.config.ts`, keeping the shadcn variable names working.
-- [ ] 0.10 Load Inter and JetBrains Mono with `next/font` in `app/layout.tsx`.
-- [ ] 0.11 Make dark the default theme in the `next-themes` provider, with light still selectable.
-- [ ] 0.12 Record the installed versions (next, excalidraw, elkjs, codemirror) at the top of this file.
+- [x] 0.1 Create branch `feat/redesign-canvas` from `main` once the Supabase migration branch is merged.
+- [x] 0.2 Upgrade `next` to the newest 14.2.x patch (14.2.3 is open to the middleware login bypass CVE-2025-29927, and `middleware.ts` guards logins). (`npm audit` still flags unpatched critical Next.js RCEs with no 14.2.x fix — the real fix is a breaking Next 15/16 upgrade, logged as its own backlog item in `Plan/later-backlog.md` rather than folded into this stage.)
+- [x] 0.3 Save a real 0.17.6 whiteboard from the live database as `Tests/canvas/fixtures/whiteboard-0176.json`.
+- [x] 0.4 Write a failing test: the 0.17.6 fixture goes through Excalidraw's `restoreElements` with the same element count, ids and text.
+- [x] 0.5 Upgrade `@excalidraw/excalidraw` to the newest 0.18.x (0.18.1 or later fixes the Mermaid XSS CVE-2025-54881) and make 0.4 pass.
+- [x] 0.6 Fix the Excalidraw 0.18 integration: CSS import, fonts path and ESM build (add `transpilePackages` only if the build needs it). (Browser smoke test on a real file still outstanding — no browser automation was connected this session.)
+- [x] 0.7 Add `lib/brand.ts` exporting `BRAND_NAME = "Draftboard"`, and use it for the page `<title>` in `app/layout.tsx`.
+- [x] 0.8 Port the Graphite tokens from `designs/redesign/editor.html` (light, dark and the `--faint` values after the contrast fix) into `app/globals.css` as CSS variables.
+- [x] 0.9 Map the new variables to Tailwind colour names in `tailwind.config.ts`, keeping the shadcn variable names working.
+- [x] 0.10 Load Inter and JetBrains Mono with `next/font` in `app/layout.tsx`.
+- [x] 0.11 Make dark the default theme in the `next-themes` provider, with light still selectable. (Theme default actually lives in `useUserSettings.tsx`/`ThemeContext.tsx`, not `next-themes`, which is installed but unused — see the stage's own step plan.)
+- [x] 0.12 Record the installed versions (next, excalidraw, elkjs, codemirror) at the top of this file.
 
 **Verify:** tsc, tests and build all pass. An old file opens with every shape intact. `npm audit` shows no critical issues for next or excalidraw.
+- tsc, tests (315/315) and build: pass.
+- `npm audit`: excalidraw clean; next still shows unpatched critical issues with no 14.2.x fix (backlog item 9, user-approved deferral).
+- Browser check (old file opens, every shape intact): not done — no browser automation connected this session. Dev server was left running at `http://localhost:3000/workspace/b01ca541-e28c-4ae9-8a90-7eacd240144e` for a manual look, or re-run once the browser extension is connected.
 
 ## Stage 1 — New editor (Graphite shell)
 

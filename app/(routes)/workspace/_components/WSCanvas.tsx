@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { Excalidraw, MainMenu, WelcomeScreen, exportToCanvas, exportToSvg } from "@excalidraw/excalidraw";
+// 0.18 no longer injects its styles via JS; this must be imported explicitly.
+import "@excalidraw/excalidraw/index.css";
 import { createClient } from "@/lib/supabase/client";
 import { saveWhiteboard } from "@/lib/data/files";
 import type { SharedFile } from "@/lib/data/shares";
@@ -87,8 +89,10 @@ const WSCanvas = ({
         getDimensions: () => ({ width: 1920, height: 1080 })
       });
 
-      // Convert canvas to blob
-      canvas.toBlob((blob) => {
+      // Convert canvas to blob. Typed explicitly: 0.18's exportToCanvas re-exports
+      // from the (uninstalled, type-only) @excalidraw/utils package, so its return
+      // type resolves to `any` here and the callback param needs an annotation.
+      canvas.toBlob((blob: Blob | null) => {
         if (blob) {
           const fileName = generateExportFileName(fileData?.name ?? '', 'png');
           const url = URL.createObjectURL(blob);
