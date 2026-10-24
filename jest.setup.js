@@ -50,6 +50,27 @@ if (typeof window.PointerEvent === 'undefined') {
   window.PointerEvent = class PointerEvent extends MouseEvent {}
 }
 
+// jsdom has no canvas Path2D; Excalidraw's roundRect polyfill reads it at
+// module load time even for pure data helpers like restoreElements.
+if (typeof global.Path2D === 'undefined') {
+  global.Path2D = class Path2D {}
+}
+
+// jsdom's HTMLCanvasElement.getContext returns null (no native canvas
+// backend). Excalidraw's bundle does canvas feature-detection at module
+// load time even when a test only needs a data helper like restoreElements,
+// so hand it a context stub that answers any property/method access.
+if (typeof HTMLCanvasElement !== 'undefined') {
+  HTMLCanvasElement.prototype.getContext = () =>
+    new Proxy(
+      {},
+      {
+        get: () => jest.fn(),
+        has: () => true,
+      }
+    )
+}
+
 // Global test setup
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),

@@ -24,8 +24,8 @@ Updated: 2026-10-24
 
 - [x] 0.1 `git checkout -b feat/redesign-canvas` from `main`.
 - [x] 0.2 `npm i next@14.2.35`; run `npx tsc --noEmit`, `npm test`, `npm run build`. Commit. (`npm audit` still shows unpatched critical Next.js RCEs with no 14.2.x fix — logged as backlog item 9 in `Plan/later-backlog.md`, user confirmed deferring the Next 15/16 upgrade to its own plan.)
-- [ ] 0.3 Read one real whiteboard from the live `files` table (read-only select, `eraser-supabase-db` skill), check it has no private text, save as `Tests/canvas/fixtures/whiteboard-0176.json`.
-- [ ] 0.4 `Tests/canvas/restore.test.ts`: fixture → `restoreElements(elements, null)` keeps count, ids and text. Run on 0.17.6 (baseline green).
+- [x] 0.3 Read one real whiteboard from the live `files` table (read-only select, `eraser-supabase-db` skill), check it has no private text, save as `Tests/canvas/fixtures/whiteboard-0176.json`. (Only one file in production has a saved whiteboard — the user's own `test` file, 3 shapes, text "smoke 23 Oct"; read approved by the user.)
+- [x] 0.4 `Tests/canvas/restore.test.ts`: fixture → `restoreElements(elements, null)` keeps count, ids and text. Run on 0.17.6 (baseline green). (Needed two jsdom polyfills in `jest.setup.js` — `Path2D` and a `getContext` stub — since importing the package root pulls in Excalidraw's full UI bundle, which does canvas feature-detection at module load even for this pure data helper.)
 - [ ] 0.5 `npm i @excalidraw/excalidraw@0.18.1`; 0.4 test stays green.
 - [ ] 0.6 Fix integration in `WSCanvas.tsx` (CSS import `@excalidraw/excalidraw/index.css`, `window.EXCALIDRAW_ASSET_PATH`, `transpilePackages` only if the build needs it); `tsc` + `build` green; browser smoke on a real file.
 - [x] 0.7 `lib/brand.ts` (`BRAND_NAME = "Draftboard"`), used in `app/layout.tsx` metadata title (test: title contains the constant).
