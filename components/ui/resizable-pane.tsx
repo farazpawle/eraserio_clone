@@ -15,6 +15,8 @@ interface ResizablePaneProps {
   className?: string;
   resizerClassName?: string;
   disabled?: boolean;
+  // Panels stay mounted when hidden, so editors keep their unsaved state.
+  show?: 'both' | 'left' | 'right';
 }
 
 const ResizablePane: React.FC<ResizablePaneProps> = ({
@@ -30,6 +32,7 @@ const ResizablePane: React.FC<ResizablePaneProps> = ({
   className,
   resizerClassName,
   disabled = false,
+  show = 'both',
 }) => {
   const [leftWidth, setLeftWidth] = useState(initialLeftWidth);
   const [isDragging, setIsDragging] = useState(false);
@@ -154,8 +157,8 @@ const ResizablePane: React.FC<ResizablePaneProps> = ({
     >
       {/* Left Panel */}
       <div 
-        className="h-full transition-all duration-150 ease-out"
-        style={{ width: `${leftWidth}%` }}
+        className={cn("h-full transition-all duration-150 ease-out", show === 'right' && "hidden")}
+        style={{ width: `${show === 'left' ? 100 : leftWidth}%` }}
       >
         {leftPanel}
       </div>
@@ -170,6 +173,7 @@ const ResizablePane: React.FC<ResizablePaneProps> = ({
           isDragging && "w-2 bg-blue-500 dark:bg-blue-400",
           isSnapped && "bg-green-500 dark:bg-green-400",
           disabled ? "cursor-not-allowed opacity-50" : "cursor-col-resize",
+          show !== 'both' && "hidden",
           resizerClassName
         )}
         onMouseDown={handleMouseDown}
@@ -197,8 +201,11 @@ const ResizablePane: React.FC<ResizablePaneProps> = ({
 
       {/* Right Panel */}
       <div 
-        className="h-full border-l border-gray-200 dark:border-gray-700 transition-all duration-150 ease-out"
-        style={{ width: `${100 - leftWidth}%` }}
+        className={cn(
+          "h-full border-l border-gray-200 dark:border-gray-700 transition-all duration-150 ease-out",
+          show === 'left' && "hidden"
+        )}
+        style={{ width: `${show === 'right' ? 100 : 100 - leftWidth}%` }}
       >
         {rightPanel}
       </div>

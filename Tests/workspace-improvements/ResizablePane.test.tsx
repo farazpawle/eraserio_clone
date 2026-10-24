@@ -301,4 +301,43 @@ describe('ResizablePane', () => {
     
     expect(screen.getByText(/snap to 50%/)).toBeInTheDocument();
   });
+
+  describe('show', () => {
+    const wrappers = (container: HTMLElement) => {
+      const left = screen.getByTestId('left-panel').parentElement as HTMLElement;
+      const right = screen.getByTestId('right-panel').parentElement as HTMLElement;
+      const resizer = container.querySelector('.cursor-col-resize') as HTMLElement;
+      return { left, right, resizer };
+    };
+
+    it('hides the right panel and resizer but keeps it mounted when show is left', () => {
+      const { container } = render(<ResizablePane {...defaultProps} show="left" />);
+      const { left, right, resizer } = wrappers(container);
+
+      expect(right).toHaveClass('hidden');
+      expect(resizer).toHaveClass('hidden');
+      expect(left.style.width).toBe('100%');
+      expect(screen.getByTestId('right-panel')).toBeInTheDocument();
+    });
+
+    it('hides the left panel and resizer but keeps it mounted when show is right', () => {
+      const { container } = render(<ResizablePane {...defaultProps} show="right" />);
+      const { left, right, resizer } = wrappers(container);
+
+      expect(left).toHaveClass('hidden');
+      expect(resizer).toHaveClass('hidden');
+      expect(right.style.width).toBe('100%');
+      expect(screen.getByTestId('left-panel')).toBeInTheDocument();
+    });
+
+    it('shows both panels by default', () => {
+      const { container } = render(<ResizablePane {...defaultProps} initialLeftWidth={40} />);
+      const { left, right, resizer } = wrappers(container);
+
+      expect(left).not.toHaveClass('hidden');
+      expect(right).not.toHaveClass('hidden');
+      expect(resizer).not.toHaveClass('hidden');
+      expect(left.style.width).toBe('40%');
+    });
+  });
 });
