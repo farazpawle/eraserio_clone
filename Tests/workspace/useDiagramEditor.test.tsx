@@ -201,6 +201,40 @@ describe('useDiagramEditor', () => {
     expect(hook.result.current.errors).toEqual([expect.objectContaining({ line: 2 })])
   })
 
+  // The panel flushes its last 150 ms of typing when it closes or switches diagram: that code
+  // belongs to the diagram the panel was showing, not to whatever is active by then.
+  it('setCode for a diagram that is no longer active still redraws that diagram', async () => {
+    const first = await sceneWithDiagram()
+    const { elements: second } = await createDiagram({ code: 'X > Y', diagramType: 'flowchart', at: { x: 900, y: 0 } })
+    const scene = [...first, ...(second as El[])]
+    const [a, b] = scene.filter((e) => e.type === 'frame').map((f) => f.id)
+    const { api, hook, scene: now } = setup(scene)
+    act(() => hook.result.current.open(b))
+
+    act(() => hook.result.current.setCode('A > B > C', a))
+    await waitFor(() => expect(api.updateScene).toHaveBeenCalled())
+
+    expect(frameOf(now(), a).customData.code).toBe('A > B > C')
+    expect(frameOf(now(), b).customData.code).toBe('X > Y')
+    expect(hook.result.current.active?.frameId).toBe(b)
+    expect(hook.result.current.active?.data.code).toBe('X > Y')
+  })
+
+  it('setCode after close() still redraws the diagram the code is for', async () => {
+    const scene = await sceneWithDiagram()
+    const id = frameOf(scene).id
+    const { api, hook, scene: now } = setup(scene)
+    act(() => hook.result.current.open(id))
+    act(() => hook.result.current.close())
+    api.updateScene.mockClear()
+
+    act(() => hook.result.current.setCode('A > B > C', id))
+    await waitFor(() => expect(api.updateScene).toHaveBeenCalled())
+
+    expect(frameOf(now(), id).customData.code).toBe('A > B > C')
+    expect(hook.result.current.active).toBeNull()
+  })
+
   it('drops a slow layout that finishes after a newer one', async () => {
     const scene = await sceneWithDiagram()
     const id = frameOf(scene).id

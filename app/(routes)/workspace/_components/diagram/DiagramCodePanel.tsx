@@ -48,10 +48,19 @@ export default function DiagramCodePanel({
   const readOnlyCompartment = useRef(new Compartment())
   const completionCompartment = useRef(new Compartment())
   const timer = useRef<ReturnType<typeof setTimeout>>()
+  // Typing not reported yet (still inside the debounce), so closing the panel does not lose it.
+  const pending = useRef<string | null>(null)
   const latest = useRef({ onChange, onClose })
   latest.current = { onChange, onClose }
 
   useEffect(() => {
+    const report = () => {
+      clearTimeout(timer.current)
+      if (pending.current === null) return
+      const text = pending.current
+      pending.current = null
+      latest.current.onChange(text)
+    }
     const editor = new EditorView({
       parent: host.current!,
       state: EditorState.create({
@@ -79,14 +88,15 @@ export default function DiagramCodePanel({
           EditorView.updateListener.of((u) => {
             if (!u.docChanged || u.transactions.some((t) => t.annotation(fromProps))) return
             clearTimeout(timer.current)
-            timer.current = setTimeout(() => latest.current.onChange(u.state.doc.toString()), DEBOUNCE_MS)
+            pending.current = u.state.doc.toString()
+            timer.current = setTimeout(report, DEBOUNCE_MS)
           }),
         ],
       }),
     })
     view.current = editor
     return () => {
-      clearTimeout(timer.current)
+      report()
       editor.destroy()
       view.current = null
     }
@@ -100,6 +110,7 @@ export default function DiagramCodePanel({
     if (v && v.state.doc.toString() !== code) {
       // A pending keystroke report would overwrite this newer text.
       clearTimeout(timer.current)
+      pending.current = null
       v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: code }, annotations: fromProps.of(true) })
     }
   }, [code])

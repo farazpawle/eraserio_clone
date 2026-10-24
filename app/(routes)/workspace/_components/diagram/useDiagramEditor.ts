@@ -65,8 +65,13 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
   const [errors, setErrors] = useState<DiagramError[]>([])
   // Refs so callbacks from Excalidraw and the panel always see the latest values.
   const activeRef = useRef<Active>(null)
-  // Each redraw takes a ticket; a layout that finishes after a newer one is dropped.
-  const ticket = useRef(0)
+  // Each redraw takes a ticket per frame; a layout that finishes after a newer one for the same frame is dropped.
+  const tickets = useRef(new Map<string, number>())
+  const nextTicket = (frameId: string) => {
+    const n = (tickets.current.get(frameId) ?? 0) + 1
+    tickets.current.set(frameId, n)
+    return n
+  }
   // The type and code each frame holds from our own redraws. A frame holding anything else was changed by undo.
   const applied = useRef(new Map<string, string>())
   // Positions from the previous change event, and whether the drag notice was shown on this page.
@@ -100,28 +105,33 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
     if (!optsRef.current.readOnly) api?.updateScene({ appState: { selectedElementIds: {} }, captureUpdate: CaptureUpdateAction.NEVER })
   }
 
-  const redraw = async (change: { code: string; diagramType?: DiagramType }) => {
-    const current = activeRef.current
-    if (optsRef.current.readOnly || !api || !current) return
-    const mine = ++ticket.current
-    const next = { ...current.data, ...change }
-    setActive({ ...current, data: next })
+  // Defaults to the active diagram. The panel names its own diagram: typing it flushes on close or
+  // on a switch belongs to that diagram, even when another one (or none) is active by then.
+  const redraw = async (change: { code: string; diagramType?: DiagramType }, frameId = activeRef.current?.frameId) => {
+    if (optsRef.current.readOnly || !api || !frameId) return
+    const isActive = () => activeRef.current?.frameId === frameId
+    const frame = isActive() ? undefined : api.getSceneElements().find((el) => el.id === frameId)
+    const data = isActive() ? activeRef.current!.data : frame && readDiagram(frame)
+    if (!data) return
+    const mine = nextTicket(frameId)
+    const next = { ...data, ...change }
+    if (isActive()) setActive({ frameId, data: next })
     try {
       // A getter: the redraw applies to the scene as it is after the layout, keeping edits made meanwhile.
       const latest = () => api.getSceneElementsIncludingDeleted()
-      const result = await updateDiagram(latest, current.frameId, change, optsRef.current.elk)
-      if (mine !== ticket.current) return
+      const result = await updateDiagram(latest, frameId, change, optsRef.current.elk)
+      if (mine !== tickets.current.get(frameId)) return
       // Before updateScene: the change event it fires must not look like an undo.
-      applied.current.set(current.frameId, stamp(next))
+      applied.current.set(frameId, stamp(next))
       api.updateScene({ elements: result.elements, captureUpdate: CaptureUpdateAction.IMMEDIATELY })
-      if (activeRef.current?.frameId === current.frameId) setErrors(result.errors)
+      if (isActive()) setErrors(result.errors)
     } catch (error) {
       console.error('Error drawing diagram:', error)
       toast.error('Could not draw the diagram')
     }
   }
 
-  const setCode = (code: string) => void redraw({ code })
+  const setCode = (code: string, frameId?: string) => void redraw({ code }, frameId)
 
   const setType = (diagramType: DiagramType) => {
     const current = activeRef.current
@@ -207,7 +217,7 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
     if (!frame || frame.isDeleted) return setActive(null)
     const data = readDiagram(frame)
     if (data && stamp(data) !== applied.current.get(frame.id)) {
-      ticket.current++ // a layout still running would undo the undo
+      nextTicket(frame.id) // a layout still running would undo the undo
       show(frame)
     }
   }

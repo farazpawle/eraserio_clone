@@ -56,6 +56,45 @@ describe('DiagramCodePanel', () => {
     expect(onChange).toHaveBeenCalledWith('A > B\nCD')
   })
 
+  it('reports typing still waiting for its 150 ms when the panel closes', () => {
+    jest.useFakeTimers()
+    const { onChange, typeAtEnd, unmount } = setup()
+
+    typeAtEnd('\nC')
+    act(() => void jest.advanceTimersByTime(50))
+    unmount()
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange).toHaveBeenCalledWith('A > B\nC')
+    act(() => void jest.advanceTimersByTime(500))
+    expect(onChange).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not report on close when nothing is waiting', () => {
+    const { onChange, unmount } = setup()
+    unmount()
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  // A live region is announced when its text changes in the DOM; a redraw with the same result must not touch it.
+  it('leaves the status text alone when a redraw gives the same footer', () => {
+    const { rerender, onChange, onClose } = setup()
+    const status = screen.getByRole('status')
+    const changes: MutationRecord[] = []
+    const observer = new MutationObserver((records) => changes.push(...records))
+    observer.observe(status, { childList: true, characterData: true, subtree: true })
+
+    rerender(
+      <DiagramCodePanel code="A > B" errors={[]} nodeNames={['A', 'B']} readOnly={false} onChange={onChange} onClose={onClose} />
+    )
+
+    return Promise.resolve().then(() => {
+      observer.disconnect()
+      expect(changes).toEqual([])
+      expect(screen.getByRole('status')).toBe(status)
+    })
+  })
+
   it('replaces the text without reporting when the code prop changes', () => {
     jest.useFakeTimers()
     const { view, onChange, rerender } = setup()

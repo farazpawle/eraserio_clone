@@ -216,7 +216,8 @@ const WSCanvas = ({
           errors={diagram.errors}
           nodeNames={nodeNames}
           readOnly={!!readOnly}
-          onChange={diagram.setCode}
+          // Bound to this panel's diagram (`diagram` is this render's value): typing flushed on close or switch must not land on another one.
+          onChange={(code) => diagram.setCode(code, diagram.active?.frameId)}
           onClose={closePanel}
           header={
             !readOnly ? (
