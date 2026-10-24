@@ -252,6 +252,9 @@ h6.ce-header{
       --g-c-orange: #fb923c;
       --g-c-red: #f87171;
       --g-c-gray: #94a3b8;
+      --g-code-keyword: #fb923c;
+      --g-code-string: #34d399;
+      --g-code-ok: #34d399;
     }
 
     [data-theme="light"] {
@@ -278,6 +281,9 @@ h6.ce-header{
       --g-c-orange: #ea580c;
       --g-c-red: #dc2626;
       --g-c-gray: #64748b;
+      --g-code-keyword: #c2410c;
+      --g-code-string: #047857;
+      --g-code-ok: #047857;
     }
   }
 

@@ -69,6 +69,31 @@ describe('DiagramCodePanel', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
+  it('does not let a pending keystroke overwrite a newer code prop', () => {
+    jest.useFakeTimers()
+    const { view, onChange, typeAtEnd, rerender } = setup()
+
+    typeAtEnd('\nC')
+    rerender(
+      <DiagramCodePanel code="X > Y" errors={[]} nodeNames={[]} readOnly={false} onChange={onChange} onClose={jest.fn()} />
+    )
+    act(() => void jest.advanceTimersByTime(150))
+
+    expect(onChange).not.toHaveBeenCalled()
+    expect(view.state.doc.toString()).toBe('X > Y')
+  })
+
+  it('becomes read-only when the prop changes after mount', () => {
+    const { view, onChange, rerender } = setup()
+    expect(view.contentDOM).toHaveAttribute('contenteditable', 'true')
+
+    rerender(
+      <DiagramCodePanel code="A > B" errors={[]} nodeNames={[]} readOnly onChange={onChange} onClose={jest.fn()} />
+    )
+
+    expect(view.contentDOM).toHaveAttribute('contenteditable', 'false')
+  })
+
   it('is not editable when read-only but still shows the code', () => {
     const { view } = setup({ readOnly: true })
 

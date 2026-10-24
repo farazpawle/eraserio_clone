@@ -7,6 +7,7 @@ import { ALLOWED } from '@/lib/diagram/parse/settings'
 import { COLOR_NAMES, SHAPES, type DiagramError } from '@/lib/diagram/types'
 
 const SETTING_KEYS = ['title', ...Object.keys(ALLOWED)]
+const SETTING_KEY_WORD = `(?:${SETTING_KEYS.join('|')})`
 const ATTRIBUTE_KEYS = ['icon', 'color', 'shape', 'label']
 
 export function toDiagnostics(
@@ -28,7 +29,7 @@ export function diagramCompletions(nodeNames: string[]): CompletionSource {
     const done = (word: string, options: { label: string; type: string }[]) => ({
       from: context.pos - word.length,
       options,
-      validFor: /^[\w ]*$/,
+      validFor: /^[\w -]*$/,
     })
 
     // Inside an unclosed [ ]: attribute keys, or the values of shape / color.
@@ -40,22 +41,23 @@ export function diagramCompletions(nodeNames: string[]): CompletionSource {
       return key ? done(key[1], toOptions(ATTRIBUTE_KEYS, 'property')) : null
     }
 
-    const setting = /^\s*(direction|colorMode|styleMode|typeface)\s+(\w*)$/.exec(before)
+    const setting = new RegExp(`^\\s*(${SETTING_KEYS.slice(1).join('|')})\\s+(\\w*)$`).exec(before)
     if (setting) {
       return done(setting[2], toOptions(ALLOWED[setting[1] as keyof typeof ALLOWED], 'enum'))
     }
 
     // After a colon the text is a label, which is free text.
-    if (before.includes(':')) return null
+    if (before.slice(before.lastIndexOf(']') + 1).includes(':')) return null
 
     const word = /^\s*(\w*)$/.exec(before)
     const keys = word ? toOptions(SETTING_KEYS, 'keyword') : []
-    // Names may hold spaces: the typed part starts after the last operator or comma.
-    const name = /[^><,{-]*$/.exec(before)![0].trimStart()
+    // Names may hold spaces and hyphens: the typed part starts after the last operator or comma.
+    const name = before.split(/[><,{]| - /).pop()!.trimStart()
     return done(word ? word[1] : name, [...keys, ...toOptions(nodeNames, 'variable')])
   }
 }
 
+const SETTING_KEY_START = new RegExp(`^${SETTING_KEY_WORD}\\b`)
 const OPERATOR = /^(?:<>|-->|>|<|-)/
 
 export const diagramLanguage = StreamLanguage.define<{ inBrackets: boolean }>({
@@ -82,9 +84,9 @@ export const diagramLanguage = StreamLanguage.define<{ inBrackets: boolean }>({
 
 const highlight = HighlightStyle.define([
   { tag: tags.comment, color: 'var(--g-faint)', fontStyle: 'italic' },
-  { tag: tags.keyword, color: 'var(--g-c-orange)' },
+  { tag: tags.keyword, color: 'var(--g-code-keyword)' },
   { tag: tags.operator, color: 'var(--g-accent)', fontWeight: '600' },
-  { tag: tags.string, color: 'var(--g-c-green)' },
+  { tag: tags.string, color: 'var(--g-code-string)' },
   { tag: tags.propertyName, color: 'var(--g-c-purple)' },
   { tag: tags.bracket, color: 'var(--g-muted)' },
 ])

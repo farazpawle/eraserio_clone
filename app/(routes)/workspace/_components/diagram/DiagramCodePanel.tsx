@@ -47,11 +47,11 @@ export default function DiagramCodePanel({
   // Extensions that can change after mount live in compartments; callbacks go through refs.
   const readOnlyCompartment = useRef(new Compartment())
   const completionCompartment = useRef(new Compartment())
+  const timer = useRef<ReturnType<typeof setTimeout>>()
   const latest = useRef({ onChange, onClose })
   latest.current = { onChange, onClose }
 
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined
     const editor = new EditorView({
       parent: host.current!,
       state: EditorState.create({
@@ -78,15 +78,15 @@ export default function DiagramCodePanel({
           EditorView.contentAttributes.of({ 'aria-label': 'Diagram code', spellcheck: 'false', autocapitalize: 'off' }),
           EditorView.updateListener.of((u) => {
             if (!u.docChanged || u.transactions.some((t) => t.annotation(fromProps))) return
-            clearTimeout(timer)
-            timer = setTimeout(() => latest.current.onChange(u.state.doc.toString()), DEBOUNCE_MS)
+            clearTimeout(timer.current)
+            timer.current = setTimeout(() => latest.current.onChange(u.state.doc.toString()), DEBOUNCE_MS)
           }),
         ],
       }),
     })
     view.current = editor
     return () => {
-      clearTimeout(timer)
+      clearTimeout(timer.current)
       editor.destroy()
       view.current = null
     }
@@ -98,10 +98,14 @@ export default function DiagramCodePanel({
   useEffect(() => {
     const v = view.current
     if (v && v.state.doc.toString() !== code) {
+      // A pending keystroke report would overwrite this newer text.
+      clearTimeout(timer.current)
       v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: code }, annotations: fromProps.of(true) })
     }
   }, [code])
 
+  // Depend on the names, not the array, so a fresh array each render does not reconfigure.
+  const nodeNamesKey = nodeNames.join('\n')
   useEffect(() => {
     view.current?.dispatch({
       effects: [
@@ -109,7 +113,9 @@ export default function DiagramCodePanel({
         completionCompartment.current.reconfigure(autocompletion({ override: [diagramCompletions(nodeNames)] })),
       ],
     })
-  }, [readOnly, nodeNames])
+    // nodeNames is read through nodeNamesKey on purpose.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readOnly, nodeNamesKey])
 
   useEffect(() => {
     const v = view.current
@@ -140,7 +146,7 @@ export default function DiagramCodePanel({
       </header>
       <div ref={host} className="diagram-code-editor min-h-0 flex-1" />
       <footer className="flex flex-col gap-1 border-t border-g-line px-3.5 py-2 text-xs text-g-muted">
-        <span role="status" className={hasErrors ? 'text-g-danger' : 'text-g-ok'}>
+        <span role="status" className={hasErrors ? 'text-g-danger' : 'text-[color:var(--g-code-ok)]'}>
           {footerText(errors)}
         </span>
         <a

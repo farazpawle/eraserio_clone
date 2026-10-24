@@ -1,6 +1,8 @@
 /** @jest-environment jsdom */
 import { CompletionContext } from '@codemirror/autocomplete'
+import { readFileSync } from 'fs'
 import { EditorState, Text } from '@codemirror/state'
+import { contrastRatio } from '@/lib/diagram/render/style'
 import { diagramCompletions, toDiagnostics } from '@/app/(routes)/workspace/_components/diagram/codeMirrorSetup'
 
 // `|` in the text marks the cursor.
@@ -47,7 +49,31 @@ describe('diagramCompletions', () => {
     expect(await complete('A > We|')).toContain('Web Server')
   })
 
+  it('completes hyphenated names', async () => {
+    expect(await complete('A > api-gate|', ['api-gateway'])).toContain('api-gateway')
+  })
+
+  it('still suggests names after an attribute block that has a colon', async () => {
+    expect(await complete('A [color: red] > Da|')).toContain('Database')
+  })
+
   it('offers nothing in an edge label', async () => {
     expect(await complete('A > B: We|')).toEqual([])
+  })
+})
+
+describe('code colour tokens', () => {
+  const css = readFileSync('app/globals.css', 'utf8')
+  const block = (re: RegExp) => re.exec(css)![1]
+  const themes = {
+    dark: block(/:root \{([^}]*--g-bg: #0b0b0f[^}]*)\}/),
+    light: block(/\[data-theme="light"\] \{([^}]*)\}/),
+  }
+
+  it.each(['dark', 'light'] as const)('keeps code text readable (4.5:1) in the %s theme', (theme) => {
+    const value = (name: string) => new RegExp(`--g-${name}: (#[0-9a-f]{6})`).exec(themes[theme])![1]
+    for (const token of ['code-keyword', 'code-string', 'code-ok', 'c-purple', 'accent', 'faint', 'muted']) {
+      expect(contrastRatio(value(token), value('panel'))).toBeGreaterThanOrEqual(4.5)
+    }
   })
 })
