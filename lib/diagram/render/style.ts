@@ -15,6 +15,8 @@ export type ElementStyle = {
 }
 
 const DARK = '#1e1e1e'
+// Text that sits straight on the canvas (edge labels, hachure fills); the dark theme's filter lightens it.
+export const CANVAS_TEXT = DARK
 const WHITE = '#ffffff'
 
 // [stroke, fill, text] per colour. Text is chosen so it reads at 4.5:1 on a light and on a dark canvas.
@@ -81,7 +83,8 @@ export function styleFor(
   return {
     strokeColor: stroke,
     backgroundColor: group ? (outline ? 'transparent' : GROUP_FILL[name]) : fill,
-    textColor: group ? DARK : text,
+    // Hachure leaves the canvas showing, so a fill colour can't carry the text.
+    textColor: group || watercolor ? CANVAS_TEXT : text,
     fillStyle: watercolor ? 'hachure' : 'solid',
     roughness: watercolor ? 2 : 0,
     strokeWidth: outline && !group ? 2 : 1,

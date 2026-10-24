@@ -1,7 +1,7 @@
 import type { ExcalidrawElementSkeleton } from '@excalidraw/excalidraw/data/transform'
 import { type Box, type DiagramSettings, type EdgeKind, type PositionedFlow } from '../types'
 import { outlinePoints } from './shapes'
-import { styleFor, type ElementStyle } from './style'
+import { CANVAS_TEXT, styleFor, type ElementStyle } from './style'
 
 const SHADOW_OFFSET = 6
 const ICON_FONT_SIZE = 12
@@ -160,7 +160,8 @@ export function toSkeletons(
       strokeColor: edgeStyle.strokeColor,
       roughness: edgeStyle.roughness,
       ...(e.kind === 'dashed' ? { strokeStyle: 'dashed' as const } : {}),
-      ...(e.label ? { label: label(e.label, edgeStyle) } : {}),
+      // Edge labels have no background: canvas text colour, never a fill's text colour.
+      ...(e.label ? { label: label(e.label, { ...edgeStyle, textColor: CANVAS_TEXT }) } : {}),
       ...tag(),
       // `elbowed` is missing from the skeleton's arrow type in 0.18.1 but honoured by the converter.
     } as ExcalidrawElementSkeleton)

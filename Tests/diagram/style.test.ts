@@ -1,7 +1,7 @@
 import { FONT_FAMILY } from '@excalidraw/excalidraw'
 import { COLOR_NAMES, DEFAULT_SETTINGS } from '@/lib/diagram/types'
 import type { ColorMode, DiagramSettings } from '@/lib/diagram/types'
-import { FONT, contrastRatio, darkCanvasColor, styleFor } from '@/lib/diagram/render/style'
+import { CANVAS_TEXT, FONT, contrastRatio, darkCanvasColor, styleFor } from '@/lib/diagram/render/style'
 
 const COLOR_MODES: ColorMode[] = ['pastel', 'bold', 'outline']
 const s = (over: Partial<DiagramSettings>): DiagramSettings => ({ ...DEFAULT_SETTINGS, ...over })
@@ -86,15 +86,22 @@ describe('contrast', () => {
     { name: 'dark', canvas: '#121212', map: darkCanvasColor },
   ]
   for (const theme of themes) {
-    it(`text is at least 4.5:1 on its background (${theme.name} canvas)`, () => {
+    it(`text is at least 4.5:1 on what is behind it (${theme.name} canvas)`, () => {
       const fails: string[] = []
+      const check = (name: string, text: string, bg: string) => {
+        const ratio = contrastRatio(theme.map(text), bg === 'transparent' ? theme.canvas : theme.map(bg))
+        if (ratio < 4.5) fails.push(`${name}: ${ratio.toFixed(2)}`)
+      }
       for (const colorMode of COLOR_MODES) {
+        // Edge labels have no fill and no colour: they sit on the canvas.
+        check(`${colorMode}/edge label on canvas`, CANVAS_TEXT, 'transparent')
         for (const color of COLOR_NAMES) {
           for (const kind of ['node', 'group'] as const) {
             const st = styleFor({ color }, s({ colorMode }), kind)
-            const bg = st.backgroundColor === 'transparent' ? theme.canvas : theme.map(st.backgroundColor)
-            const ratio = contrastRatio(theme.map(st.textColor), bg)
-            if (ratio < 4.5) fails.push(`${colorMode}/${color}/${kind}: ${ratio.toFixed(2)}`)
+            check(`${colorMode}/${color}/${kind}`, st.textColor, st.backgroundColor)
+            // Hachure leaves the canvas showing between the strokes.
+            const wc = styleFor({ color }, s({ colorMode, styleMode: 'watercolor' }), kind)
+            check(`${colorMode}/${color}/${kind} hachure on canvas`, wc.textColor, 'transparent')
           }
         }
       }

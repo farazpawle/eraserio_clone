@@ -1,7 +1,7 @@
 /** @jest-environment node */
 import { toSkeletons } from '@/lib/diagram/render/flow'
 import { outlinePoints } from '@/lib/diagram/render/shapes'
-import { styleFor } from '@/lib/diagram/render/style'
+import { CANVAS_TEXT, styleFor } from '@/lib/diagram/render/style'
 import { layoutFlow } from '@/lib/diagram/layout/flow'
 import { parseFlow } from '@/lib/diagram/parse/flow'
 import {
@@ -170,6 +170,12 @@ describe('toSkeletons edges', () => {
   })
   it('keeps the edge label as plain text', () => {
     expect(edge('arrow', 'yes').label.text).toBe('yes')
+  })
+  it('draws edge labels in the canvas text colour, even in bold', () => {
+    const sk = make(flow({ edges: [{ from: 'A', to: 'B', kind: 'arrow', label: 'yes', line: 1, points: ROUTE }] }), {
+      colorMode: 'bold',
+    })
+    expect(byId(sk, `${ID}:e:0`).label.strokeColor).toBe(CANVAS_TEXT)
   })
   it('binds to a group outline when the edge end is a group', () => {
     const g = { id: 'G', label: 'G', line: 1, x: 0, y: 0, width: 400, height: 200 }
