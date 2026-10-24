@@ -77,11 +77,13 @@ export type FlowModel = {
 }
 
 export type Box = { x: number; y: number; width: number; height: number }
+export type Point = { x: number; y: number }
 // Absolute coordinates; the top-left of the whole diagram is 0,0.
 export type PositionedFlow = {
   nodes: (FlowNode & Box)[]
   groups: (FlowGroup & Box)[]
-  edges: FlowEdge[]
+  // ELK's right-angle route, first point on `from`, last on `to`.
+  edges: (FlowEdge & { points: Point[] })[]
   width: number
   height: number
 }

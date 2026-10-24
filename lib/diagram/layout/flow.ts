@@ -1,5 +1,5 @@
-import type { ElkNode } from 'elkjs/lib/elk-api'
-import type { Box, DiagramSettings, FlowModel, FlowNode, PositionedFlow } from '../types'
+import type { ElkExtendedEdge, ElkNode } from 'elkjs/lib/elk-api'
+import type { Box, DiagramSettings, FlowModel, FlowNode, Point, PositionedFlow } from '../types'
 import { getElk, type ElkLike } from './elkWorker'
 
 const ROOT_OPTIONS = {
@@ -42,13 +42,12 @@ export async function layoutFlow(
     })
   for (const n of model.nodes) elkNodes.set(n.id, { id: n.id, ...estimateNodeSize(n) })
 
+  const edges = model.edges.filter((e) => known.has(e.from) && known.has(e.to))
   const root: ElkNode = {
     id: '__root__',
     layoutOptions: { ...ROOT_OPTIONS, 'elk.direction': settings.direction.toUpperCase() },
     children: [],
-    edges: model.edges
-      .filter((e) => known.has(e.from) && known.has(e.to))
-      .map((e, i) => ({
+    edges: edges.map((e, i) => ({
         id: `e${i}`,
         sources: [e.from],
         targets: [e.to],
@@ -68,7 +67,8 @@ export async function layoutFlow(
     boxes.set(node.id, { x, y, width: node.width ?? 0, height: node.height ?? 0 })
     for (const child of node.children ?? []) place(child, x, y)
   }
-  for (const child of (await elk.layout(root)).children ?? []) place(child, 0, 0)
+  const result = await elk.layout(root)
+  for (const child of result.children ?? []) place(child, 0, 0)
 
   // Shift so the diagram's top-left is exactly 0,0.
   const all = Array.from(boxes.values())
@@ -81,10 +81,20 @@ export async function layoutFlow(
   const nodes = model.nodes.map((n) => ({ ...n, ...at(n.id) }))
   const groups = model.groups.map((g) => ({ ...g, ...at(g.id) }))
   const placed = [...nodes, ...groups]
+  // With INCLUDE_CHILDREN, ELK gives each route relative to the edge's `container` (the lowest group holding both ends).
+  const elkEdges = (result.edges ?? []) as (ElkExtendedEdge & { container?: string })[]
+  const routed = edges.map((e, i) => {
+    const elkEdge = elkEdges.find((x) => x.id === `e${i}`)
+    const offset = boxes.get(elkEdge?.container ?? '') ?? { x: 0, y: 0 }
+    const points: Point[] = (elkEdge?.sections ?? [])
+      .flatMap((s) => [s.startPoint, ...(s.bendPoints ?? []), s.endPoint])
+      .map((p) => ({ x: p.x + offset.x - minX, y: p.y + offset.y - minY }))
+    return { ...e, points }
+  })
   return {
     nodes,
     groups,
-    edges: model.edges,
+    edges: routed,
     width: Math.max(...placed.map((b) => b.x + b.width)),
     height: Math.max(...placed.map((b) => b.y + b.height)),
   }

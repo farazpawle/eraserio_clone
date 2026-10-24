@@ -55,6 +55,31 @@ describe('layoutFlow', () => {
     expect(flow.edges).toHaveLength(4)
   })
 
+  it('returns each edge as an orthogonal route from its source box to its target box', async () => {
+    // Inside groups ELK gives routes relative to the group; these must come back absolute.
+    const flow = await layout([...code, 'Queue > Cache', 'Web > VPC'])
+    const boxes = new Map<string, Box>([...flow.nodes, ...flow.groups].map((b) => [b.id, b]))
+    const touches = (b: Box, p: { x: number; y: number }) =>
+      p.x >= b.x - 1 && p.x <= b.x + b.width + 1 && p.y >= b.y - 1 && p.y <= b.y + b.height + 1
+    expect(flow.edges).toHaveLength(6)
+    for (const e of flow.edges) {
+      expect(e.points.length).toBeGreaterThanOrEqual(2)
+      for (let i = 1; i < e.points.length; i++) {
+        const [a, b] = [e.points[i - 1], e.points[i]]
+        expect(a.x === b.x || a.y === b.y).toBe(true)
+      }
+      expect(touches(boxes.get(e.from)!, e.points[0])).toBe(true)
+      expect(touches(boxes.get(e.to)!, e.points[e.points.length - 1])).toBe(true)
+    }
+  })
+
+  it('drops edges whose ends are unknown', async () => {
+    const m = model('A > B')
+    m.edges.push({ from: 'A', to: 'Nope', kind: 'arrow', line: 2 })
+    const flow = await layoutFlow(m, DEFAULT_SETTINGS)
+    expect(flow.edges.map((e) => e.to)).toEqual(['B'])
+  })
+
   it('puts each group box around its children in absolute coordinates, from 0,0', async () => {
     const flow = await layout(code)
     const groups = new Map(flow.groups.map((g) => [g.id, g]))

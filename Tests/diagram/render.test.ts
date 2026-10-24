@@ -14,6 +14,13 @@ import {
 
 const ID = 'dia1'
 const ORIGIN = { x: 100, y: 200 }
+// A right-angle route from A's right side (120,38) to B's left side (200,38) via a detour.
+const ROUTE = [
+  { x: 120, y: 38 },
+  { x: 160, y: 38 },
+  { x: 160, y: 20 },
+  { x: 200, y: 20 },
+]
 // Loose view of a skeleton: the union type hides fields the tests read.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Sk = any
@@ -32,7 +39,7 @@ const node = (id: string, shape: Shape, x: number, extra = {}) => ({
 const flow = (over: Partial<PositionedFlow> = {}): PositionedFlow => ({
   nodes: [node('A', 'rectangle', 0), node('B', 'rectangle', 200)],
   groups: [],
-  edges: [{ from: 'A', to: 'B', kind: 'arrow', line: 1 }],
+  edges: [{ from: 'A', to: 'B', kind: 'arrow', line: 1, points: ROUTE }],
   width: 320,
   height: 76,
   ...over,
@@ -130,16 +137,30 @@ describe('toSkeletons nodes', () => {
 
 describe('toSkeletons edges', () => {
   const edge = (kind: string, label?: string) =>
-    byId(make(flow({ edges: [{ from: 'A', to: 'B', kind: kind as 'arrow', label, line: 1 }] })), `${ID}:e:0`)
+    byId(
+      make(flow({ edges: [{ from: 'A', to: 'B', kind: kind as 'arrow', label, line: 1, points: ROUTE }] })),
+      `${ID}:e:0`,
+    )
 
-  it('binds an elbow arrow to both node skeletons', () => {
+  it('binds a plain arrow to both node skeletons', () => {
     const e = edge('arrow')
     expect(e.type).toBe('arrow')
-    expect(e.elbowed).toBe(true)
+    expect(e.elbowed).toBe(false)
+    expect(e.roundness).toBeNull()
     expect(e.start.id).toBe(`${ID}:n:A`)
     expect(e.end.id).toBe(`${ID}:n:B`)
     expect(e.startArrowhead).toBeNull()
     expect(e.endArrowhead).toBe('arrow')
+  })
+  it('follows the laid-out route: starts at its first point, points relative to it', () => {
+    const e = edge('arrow')
+    expect([e.x, e.y]).toEqual([ORIGIN.x + 120, ORIGIN.y + 38])
+    expect(e.points).toEqual([
+      [0, 0],
+      [40, 0],
+      [40, -18],
+      [80, -18],
+    ])
   })
   it('both has two heads, line none, dashed is dashed', () => {
     expect([edge('both').startArrowhead, edge('both').endArrowhead]).toEqual(['arrow', 'arrow'])
@@ -152,7 +173,7 @@ describe('toSkeletons edges', () => {
   })
   it('binds to a group outline when the edge end is a group', () => {
     const g = { id: 'G', label: 'G', line: 1, x: 0, y: 0, width: 400, height: 200 }
-    const sk = make(flow({ groups: [g], edges: [{ from: 'A', to: 'G', kind: 'arrow', line: 1 }] }))
+    const sk = make(flow({ groups: [g], edges: [{ from: 'A', to: 'G', kind: 'arrow', line: 1, points: ROUTE }] }))
     expect(byId(sk, `${ID}:e:0`).end.id).toBe(`${ID}:g:G`)
   })
 })

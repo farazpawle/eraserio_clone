@@ -56,7 +56,31 @@ describe('createDiagram', () => {
     expect(elements[elements.length - 1]).toBe(frame)
   })
 
-  it('keeps what the converter promises: bound elbow arrows, tagged labels, filled outlines', async () => {
+  it('keeps the laid-out right-angle routes on the converted arrows, still bound at both ends', async () => {
+    // A fans out to B and C, so at least one route has to bend.
+    const { elements } = await createDiagram({
+      code: 'A > B\nA > C\nB > D\nC > D',
+      diagramType: 'flowchart',
+      at: { x: 0, y: 0 },
+    })
+    const byId = new Map(elements.map((e) => [e.id, e as El]))
+    const arrows = elements.filter((e) => e.type === 'arrow') as El[]
+    expect(arrows).toHaveLength(4)
+    expect(arrows.some((a) => a.points.length > 2)).toBe(true)
+    for (const a of arrows) {
+      expect(a.elbowed).toBe(false)
+      expect(a.roundness).toBeNull()
+      expect(byId.get(a.startBinding.elementId).type).toBe('rectangle')
+      expect(byId.get(a.endBinding.elementId).type).toBe('rectangle')
+      // The converter nudges each end by 0.5px; every segment must still be (almost) straight across or down.
+      for (let i = 1; i < a.points.length; i++) {
+        const [[x1, y1], [x2, y2]] = [a.points[i - 1], a.points[i]]
+        expect(Math.min(Math.abs(x1 - x2), Math.abs(y1 - y2))).toBeLessThanOrEqual(1)
+      }
+    }
+  })
+
+  it('keeps what the converter promises: bound arrows, tagged labels, filled outlines', async () => {
     const { elements } = await createDiagram({
       code: CODE,
       diagramType: 'flowchart',
@@ -67,7 +91,6 @@ describe('createDiagram', () => {
     const arrows = elements.filter((e) => e.type === 'arrow') as El[]
     expect(arrows).toHaveLength(2)
     for (const a of arrows) {
-      expect(a.elbowed).toBe(true)
       expect(byId.get(a.startBinding.elementId).type).toBe('rectangle')
       expect(byId.get(a.endBinding.elementId).type).toBe('rectangle')
     }

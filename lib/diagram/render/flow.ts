@@ -14,15 +14,6 @@ const HEADS: Record<EdgeKind, { start: 'arrow' | null; end: 'arrow' | null }> = 
   dashed: { start: null, end: 'arrow' },
 }
 
-// Start of the arrow: centre of the side of `from` that faces `to`. Excalidraw re-routes elbow arrows after binding.
-function facingPoint(from: Box, to: Box): { x: number; y: number } {
-  const dx = to.x + to.width / 2 - (from.x + from.width / 2)
-  const dy = to.y + to.height / 2 - (from.y + from.height / 2)
-  if (Math.abs(dx) >= Math.abs(dy))
-    return { x: from.x + (dx >= 0 ? from.width : 0), y: from.y + from.height / 2 }
-  return { x: from.x + from.width / 2, y: from.y + (dy >= 0 ? from.height : 0) }
-}
-
 export function toSkeletons(
   positioned: PositionedFlow,
   settings: DiagramSettings,
@@ -151,19 +142,17 @@ export function toSkeletons(
 
   const edgeStyle = styleFor({}, settings)
   positioned.edges.forEach((e, i) => {
-    const from = boxes.get(e.from)
-    const to = boxes.get(e.to)
-    if (!from || !to) return
-    const start = facingPoint(from, to)
-    const end = facingPoint(to, from)
+    if (!boxes.has(e.from) || !boxes.has(e.to) || e.points.length < 2) return
+    // A plain arrow along ELK's route: Excalidraw's own elbow routing looped and crossed shapes.
+    const [first] = e.points
     out.push({
       type: 'arrow',
       id: `${diagramId}:e:${i}`,
-      x: start.x,
-      y: start.y,
-      width: end.x - start.x,
-      height: end.y - start.y,
-      elbowed: true,
+      x: first.x + origin.x,
+      y: first.y + origin.y,
+      points: e.points.map((p) => [p.x - first.x, p.y - first.y]),
+      elbowed: false,
+      roundness: null,
       start: { id: targets.get(e.from)! },
       end: { id: targets.get(e.to)! },
       startArrowhead: HEADS[e.kind].start,
