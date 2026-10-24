@@ -25,6 +25,12 @@ export function isDiagramFrame(el: ExcalidrawElement): boolean {
   return el.type === 'frame' && el.customData?.kind === 'diagram'
 }
 
+// A shape drawn from the frame's code (it carries the frame's diagramId); shapes the user dropped
+// into the frame do not. Defaults to the element's own frame.
+export function isGeneratedChild(el: ExcalidrawElement, frameId = el.frameId): boolean {
+  return !!frameId && el.frameId === frameId && el.customData?.diagramId === frameId
+}
+
 export function readDiagram(el: ExcalidrawElement): DiagramData | null {
   if (!isDiagramFrame(el)) return null
   const d = el.customData!
@@ -123,12 +129,9 @@ export async function updateDiagram(
   if (!found) return { elements: [...scene], errors: [NOT_FOUND] }
   const { frame, data } = found
   const fields = frameFields(drawing, frame.id, change.code, change.diagramType ?? data.diagramType)
-  // Generated children carry the diagramId; shapes the user dropped into the frame do not.
-  const generated = (el: ExcalidrawElement) =>
-    el.frameId === frame.id && el.customData?.diagramId === frame.id && !el.isDeleted
   const elements = scene.flatMap((el) => {
     if (el === frame) return [...children(drawing, frame), newElementWith(frame, fields)]
-    if (generated(el)) return [newElementWith(el, { isDeleted: true })]
+    if (isGeneratedChild(el, frame.id) && !el.isDeleted) return [newElementWith(el, { isDeleted: true })]
     return [el]
   })
   return { elements, errors: drawing.errors }
@@ -146,6 +149,7 @@ export function claimCopies(scene: readonly ExcalidrawElement[]): ExcalidrawElem
   if (copies.size === 0) return null
   return scene.map((el) => {
     // Only generated children carry a diagramId; shapes the user added to the copy stay as they are.
+    // Not isGeneratedChild: a copy's shapes still carry the original's diagramId, so any one counts.
     const generated = el.frameId && copies.has(el.frameId) && el.customData?.diagramId !== undefined
     const owner = copies.has(el.id) ? el.id : generated ? el.frameId : null
     if (!owner) return el

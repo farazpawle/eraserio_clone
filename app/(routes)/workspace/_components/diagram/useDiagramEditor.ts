@@ -3,7 +3,7 @@ import { CaptureUpdateAction } from '@excalidraw/excalidraw'
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types'
 import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types'
 import { toast } from 'sonner'
-import { claimCopies, createDiagram, isDiagramFrame, readDiagram, updateDiagram } from '@/lib/diagram/block'
+import { claimCopies, createDiagram, isDiagramFrame, isGeneratedChild, readDiagram, updateDiagram } from '@/lib/diagram/block'
 import type { ElkLike } from '@/lib/diagram/layout/elkWorker'
 import { parseFlow } from '@/lib/diagram/parse/flow'
 import { STARTERS } from '@/lib/diagram/templates'
@@ -21,15 +21,13 @@ const NOTICE_KEY = 'diagram-drag-notice-seen'
 
 type Positions = ReadonlyMap<string, { x: number; y: number }>
 
-const isGenerated = (el: ExcalidrawElement) => !!el.frameId && el.customData?.diagramId === el.frameId
-
 // Where each diagram frame and each of its generated shapes is. Excalidraw moves shapes by
 // mutating them in place, so positions must be copied: kept element references would always
 // match the current scene.
 export function diagramPositions(elements: readonly ExcalidrawElement[]): Map<string, { x: number; y: number }> {
   const out = new Map<string, { x: number; y: number }>()
   for (const el of elements) {
-    if (!el.isDeleted && (isDiagramFrame(el) || isGenerated(el))) out.set(el.id, { x: el.x, y: el.y })
+    if (!el.isDeleted && (isDiagramFrame(el) || isGeneratedChild(el))) out.set(el.id, { x: el.x, y: el.y })
   }
   return out
 }
@@ -39,7 +37,7 @@ export function diagramPositions(elements: readonly ExcalidrawElement[]): Map<st
 export function movedDiagramChildren(prev: Positions, next: readonly ExcalidrawElement[]): boolean {
   const now = diagramPositions(next)
   for (const el of next) {
-    if (el.isDeleted || !isGenerated(el)) continue
+    if (el.isDeleted || !isGeneratedChild(el)) continue
     const old = prev.get(el.id)
     if (!old || (old.x === el.x && old.y === el.y)) continue
     const oldFrame = prev.get(el.frameId!)
@@ -184,7 +182,7 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
       if (!appState.editingGroupId) {
         const frames: Record<string, true> = {}
         for (const el of elements)
-          if (appState.selectedElementIds[el.id] && !el.isDeleted && isGenerated(el) && !appState.selectedElementIds[el.frameId!])
+          if (appState.selectedElementIds[el.id] && !el.isDeleted && isGeneratedChild(el) && !appState.selectedElementIds[el.frameId!])
             frames[el.frameId!] = true
         if (Object.keys(frames).length > 0)
           api?.updateScene({
