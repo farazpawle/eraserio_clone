@@ -13,7 +13,7 @@ describe('isProtectedPath', () => {
     expect(isProtectedPath(path)).toBe(true)
   })
 
-  it.each(['/', '/login', '/signup', '/auth/callback', '/dashboards', '/teamsx', '/privacy'])(
+  it.each(['/', '/login', '/signup', '/auth/callback', '/dashboards', '/teamsx', '/privacy', '/help/diagram-syntax'])(
     'is public: %s',
     (path) => {
       expect(isProtectedPath(path)).toBe(false)
