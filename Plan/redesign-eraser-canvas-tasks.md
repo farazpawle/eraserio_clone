@@ -4,7 +4,7 @@ Description: Atomic task list for Plan/redesign-eraser-canvas-plan.md. Stages 0�
   typed diagrams (flowchart + cloud, then sequence, ER, BPMN) on the Excalidraw canvas with ELK and a CodeMirror code panel, full cloud icon
   sets, then dashboard, login and landing redesigns. [User] tasks need a human look, a browser login or accepting icon licence terms; each says why.
 Total Tasks: 110
-Status: Stage 0 complete; stages 1-9 not started
+Status: Stage 0 complete; stage 1 built and tested in code, waiting for the live database change, the browser check and the human look check; stages 2-9 not started
 Updated: 2026-10-24
 ---
 
@@ -40,24 +40,24 @@ Each stage gets a detailed test-first step plan (writing-plans) when it starts. 
 
 Step plan (13 test-first tasks covering 1.1–1.19): `Plan/stage-1-editor-plan.md`. User decisions 2026-10-24: "Invite by email" creates a team invitation; the Save button stays and gets a status label.
 
-- [ ] 1.1 Rebuild the header in `WSHeader.tsx`: logo, breadcrumb (team / file name, editable), Document/Both/Canvas switch, saved status, avatars, Export, Share.
-- [ ] 1.2 Add a `useEditorView` hook (`"doc" | "both" | "canvas"`, remembered per file in localStorage, falling back safely when storage is blocked) with a unit test.
-- [ ] 1.3 Lay out the workspace page as a grid driven by the view (both = doc 40% + canvas; tabs only at ≤ 767px), keeping the existing resizable divider.
-- [ ] 1.4 Restyle the Editor.js document pane to the prototype's document styles (eyebrow, H1/H2, checklist, callout, code).
-- [ ] 1.5 Theme Excalidraw to Graphite with CSS overrides on its `--color-*` variables in a scoped stylesheet.
-- [ ] 1.6 Move the Export menu from the canvas into the header's Export button (PNG, SVG, PDF, as today).
-- [ ] 1.7 Write a failing test: canvas `onChange` hands both elements and binary files to the save function.
-- [ ] 1.8 Add migration `canvas_files` creating a private storage bucket `canvas-files` with RLS (team members of the file's team can read and write; nothing for `anon`).
-- [ ] 1.9 Add `lib/data/canvasFiles.ts` with `uploadCanvasFile(db, fileId, file)` and `loadCanvasFiles(db, fileId, ids)`, plus tests.
-- [ ] 1.10 Save pasted images to the bucket and reload them on open; today they disappear after a reload.
-- [ ] 1.11 Run `supabase/tests/rls.sql` against the new bucket policies.
-- [ ] 1.12 Apply the migration to the live database (eraser-supabase-db skill).
-- [ ] 1.13 Build a Share dialog matching the prototype (invite by email, link access, copy link) on the existing share functions.
-- [ ] 1.14 Make the shared view page (`shared/[token]`) use the same canvas theme in read-only mode.
-- [ ] 1.15 Keep the existing keyboard shortcuts working in the new shell (save, plus new shortcuts for Document/Both/Canvas), with a test.
-- [ ] 1.16 Update the existing `Tests/workspace-improvements` tests that the header rebuild breaks.
-- [ ] 1.17 Add a light/dark switch to the user menu (the app has none after `toggleTheme` was hidden on the canvas).
-- [ ] 1.18 Restyle the editor's loading skeleton and "file not found" state to Graphite.
+- [x] 1.1 Rebuild the header in `WSHeader.tsx`: logo, breadcrumb (team / file name, editable), Document/Both/Canvas switch, saved status, avatars, Export, Share. (Done in code (`WSHeader` plus name field, view switch, export, user menu). Avatar shows only the signed-in user; presence is later.)
+- [x] 1.2 Add a `useEditorView` hook (`"doc" | "both" | "canvas"`, remembered per file in localStorage, falling back safely when storage is blocked) with a unit test. (Done (`useEditorView`, 7 tests).)
+- [x] 1.3 Lay out the workspace page as a grid driven by the view (both = doc 40% + canvas; tabs only at ≤ 767px), keeping the existing resizable divider. (Done. Both panes stay mounted and are hidden with CSS, so unsaved work is never lost.)
+- [x] 1.4 Restyle the Editor.js document pane to the prototype's document styles (eyebrow, H1/H2, checklist, callout, code). (Done for the blocks that exist (headings incl. level 1, lists, checklist, inline code). Callout and code blocks need new Editor.js packages: backlog item 10.)
+- [x] 1.5 Theme Excalidraw to Graphite with CSS overrides on its `--color-*` variables in a scoped stylesheet. (Done in `workspace.css`; matching the canvas background to the Graphite colour needs a browser measurement (see Verify).)
+- [x] 1.6 Move the Export menu from the canvas into the header's Export button (PNG, SVG, PDF, as today). (Done. One Export menu: document PDF, canvas PNG and SVG; exports now include pasted images.)
+- [x] 1.7 Write a failing test: canvas `onChange` hands both elements and binary files to the save function. (Done (`persistCanvas`, tested).)
+- [x] 1.8 Add migration `canvas_files` creating a private storage bucket `canvas-files` with RLS (team members of the file's team can read and write; nothing for `anon`). (Done (migration `20261024070046_canvas_files.sql`).)
+- [x] 1.9 Add `lib/data/canvasFiles.ts` with `uploadCanvasFile(db, fileId, file)` and `loadCanvasFiles(db, fileId, ids)`, plus tests. (Done (`lib/data/canvasFiles.ts`, tested).)
+- [x] 1.10 Save pasted images to the bucket and reload them on open; today they disappear after a reload. (Done in code for signed-in users and share links. Needs the browser check below.)
+- [x] 1.11 Run `supabase/tests/rls.sql` against the new bucket policies. (Done on the local database: 30+ new checks pass, reviewed by `rls-security-reviewer`.)
+- [ ] 1.12 Apply the migration to the live database (eraser-supabase-db skill). ([User] approval needed to change the live database; the live Storage service has not been checked yet.)
+- [x] 1.13 Build a Share dialog matching the prototype (invite by email, link access, copy link) on the existing share functions. (Done. "Invite by email" creates a team invitation and copies its link (user decision 2026-10-24); the multi-link list is kept.)
+- [x] 1.14 Make the shared view page (`shared/[token]`) use the same canvas theme in read-only mode. (Done in code (Graphite banner, header and layout, plus image routes with server-side checks). Needs the browser check below.)
+- [x] 1.15 Keep the existing keyboard shortcuts working in the new shell (save, plus new shortcuts for Document/Both/Canvas), with a test. (Done. Save shortcut kept; Alt+1/2/3 switch views, even while typing.)
+- [x] 1.16 Update the existing `Tests/workspace-improvements` tests that the header rebuild breaks. (Done. Only `WorkspaceLoading.test.tsx` needed new mocks and a looser skeleton count.)
+- [x] 1.17 Add a light/dark switch to the user menu (the app has none after `toggleTheme` was hidden on the canvas). (Done. Theme choice (Light / Dark / System) sits in the avatar menu.)
+- [x] 1.18 Restyle the editor's loading skeleton and "file not found" state to Graphite. (Done (`WorkspaceStates.tsx`).)
 - [ ] 1.19 [User] Judge the new editor on the live site against the Graphite prototype (look and feel needs a human eye).
 
 **Verify:**

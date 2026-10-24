@@ -79,6 +79,16 @@ Parent plan: `Plan/redesign-eraser-canvas-plan.md`. Each item becomes its own pl
 - **Needs:** its own plan and task file; expect middleware and data-fetching rewrites, a React 19 bump, and a compatibility pass on Excalidraw, Radix and the Supabase SSR client.
 - **Open question for the user:** when to schedule it — given the severity (critical RCEs), recommend treating it as the next plan after this redesign ships, not left indefinite.
 
+## 10. Left over from stage 1 (editor shell, 2026-10-24)
+
+- **Editor.js callout and code blocks:** the prototype's document shows a callout and a code block. Editor.js has only headings, lists and checklists today, so these need new Editor.js add-on packages (check each is maintained, per Rule 17).
+- **Presence avatars:** the editor header shows only your own avatar. The prototype's "3 people here now" needs live collaboration (item 1).
+- **Autosave:** saving is still manual (Save button or shortcut) with an Unsaved / Saving / Saved label. Autosave writes far more often; decide after live collaboration is planned.
+- **Per-file invites:** "Invite by email" in the share window invites the person to the whole team. Inviting one person to a single file needs a new table, rules and screen.
+- **Orphan images:** deleting a file removes its pasted images, but deleting a whole team leaves its images in storage (see the `ponytail:` comment in `lib/data/files.ts`).
+- **Upload limits on edit links:** an edit link can add images without a count limit (see the `ponytail:` comment in `lib/data/sharedCanvasFiles.ts`).
+- **Customisable view shortcuts:** Alt+1 / Alt+2 / Alt+3 are fixed because saved shortcut settings replace the whole customisable list. On macOS, Alt+digit types a symbol, so these keys may not fire there.
+
 ## How to use this file
 
 When an item is picked up, write its plan with the writing-plans and plan-files skills. Then mark it here as `Planned → Plan/<file>.md`, and delete the entry once it ships.

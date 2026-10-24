@@ -2,6 +2,7 @@
 import React from "react";
 import { ResizablePane } from "@/components/ui/resizable-pane";
 import type { EditorView } from "@/app/_hooks/useEditorView";
+import "../workspace.css";
 
 const SHOW = { doc: "left", canvas: "right", both: "both" } as const;
 

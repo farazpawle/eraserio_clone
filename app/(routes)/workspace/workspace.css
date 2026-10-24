@@ -1,0 +1,225 @@
+/* Graphite look for the editor's two panes. Colours come from the --g-* tokens in
+   app/globals.css, so light and dark follow the theme with no per-theme rules here.
+   Scoped to .ws-doc (document pane) and .ws-canvas (canvas pane), set in WorkspaceLayout. */
+
+/* ---- Document pane ---- */
+
+.ws-doc {
+  background: var(--g-panel);
+  color: var(--g-text);
+}
+
+/* Left padding leaves room for Editor.js's "+" and drag handle, which sit outside the text column. */
+.ws-doc .ws-doc-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 20px 96px 56px;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+@media (min-width: 768px) {
+  .ws-doc .ws-doc-inner {
+    padding: 32px 28px 96px 72px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ws-doc .ws-doc-inner {
+    padding: 40px 48px 120px 72px;
+  }
+}
+
+.ws-doc .codex-editor__redactor {
+  padding-bottom: 120px !important;
+}
+
+/* The column width is set by .ws-doc-inner, not by Editor.js's own 650px limit. */
+.ws-doc .ce-block__content,
+.ws-doc .ce-toolbar__content {
+  max-width: none;
+}
+
+.ws-doc .ce-paragraph {
+  color: var(--g-text);
+  line-height: 1.7;
+}
+
+.ws-doc h1.ce-header,
+.ws-doc h2.ce-header,
+.ws-doc h3.ce-header,
+.ws-doc h4.ce-header {
+  color: var(--g-text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.ws-doc h1.ce-header {
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0 0 16px;
+}
+
+.ws-doc h2.ce-header {
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  margin: 32px 0 8px;
+}
+
+.ws-doc h3.ce-header {
+  font-size: 17px;
+  margin: 24px 0 6px;
+}
+
+.ws-doc h4.ce-header {
+  font-size: 15px;
+  margin: 20px 0 4px;
+}
+
+@media (max-width: 767px) {
+  .ws-doc h1.ce-header {
+    font-size: 24px;
+  }
+}
+
+/* Lists and checklists */
+.ws-doc .cdx-list__item,
+.ws-doc .cdx-checklist__item-text {
+  color: var(--g-text);
+}
+
+.ws-doc .cdx-checklist__item--checked .cdx-checklist__item-text {
+  color: var(--g-faint);
+  text-decoration: line-through;
+}
+
+.ws-doc .cdx-checklist__item-checkbox {
+  border-color: var(--g-line-2);
+  background: var(--g-panel-2);
+}
+
+.ws-doc .cdx-checklist__item--checked .cdx-checklist__item-checkbox {
+  background: var(--g-accent);
+  border-color: var(--g-accent);
+}
+
+.ws-doc .cdx-checklist__item--checked .cdx-checklist__item-checkbox::after {
+  border-color: var(--g-accent-ink);
+}
+
+/* Inline text styles */
+.ws-doc a {
+  color: var(--g-accent);
+}
+
+.ws-doc code,
+.ws-doc .inline-code {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13.5px;
+  background: var(--g-panel-2);
+  border: 1px solid var(--g-line);
+  padding: 1px 6px;
+  border-radius: 5px;
+  color: var(--g-text);
+}
+
+.ws-doc mark {
+  background: var(--g-accent-soft);
+  color: var(--g-text);
+}
+
+/* Editor.js controls: the "+" and drag handle, block menu, inline toolbar */
+.ws-doc .ce-toolbar__plus,
+.ws-doc .ce-toolbar__settings-btn {
+  color: var(--g-muted);
+  background: transparent;
+}
+
+.ws-doc .ce-toolbar__plus:hover,
+.ws-doc .ce-toolbar__settings-btn:hover {
+  color: var(--g-text);
+  background: var(--g-hover);
+}
+
+.ws-doc .ce-popover,
+.ws-doc .ce-popover__container,
+.ws-doc .ce-inline-toolbar,
+.ws-doc .ce-conversion-toolbar,
+.ws-doc .ce-settings {
+  background: var(--g-panel-2);
+  border: 1px solid var(--g-line-2);
+  color: var(--g-text);
+  box-shadow: var(--g-shadow);
+}
+
+.ws-doc .ce-popover-item,
+.ws-doc .ce-inline-tool,
+.ws-doc .ce-conversion-tool,
+.ws-doc .ce-settings__button {
+  color: var(--g-text);
+}
+
+.ws-doc .ce-popover-item:hover,
+.ws-doc .ce-inline-tool:hover,
+.ws-doc .ce-conversion-tool:hover,
+.ws-doc .ce-settings__button:hover {
+  background: var(--g-hover);
+}
+
+.ws-doc .ce-popover-item__icon {
+  background: var(--g-panel);
+  box-shadow: none;
+  color: var(--g-text);
+}
+
+.ws-doc .ce-block--selected .ce-block__content {
+  background: var(--g-accent-soft);
+}
+
+/* ---- Canvas pane ---- */
+
+.ws-canvas {
+  background: var(--g-bg);
+}
+
+/* Excalidraw reads these variables for its toolbar, menus and panels. Both selectors are
+   needed: its dark theme redefines them on .theme--dark. */
+.ws-canvas .excalidraw,
+.ws-canvas .excalidraw.theme--dark {
+  --island-bg-color: var(--g-panel);
+  --popup-bg-color: var(--g-panel);
+  --popup-secondary-bg-color: var(--g-panel-2);
+  --sidebar-bg-color: var(--g-panel);
+  --input-bg-color: var(--g-panel-2);
+  --button-hover-bg: var(--g-hover);
+  --text-primary-color: var(--g-text);
+  --color-surface-lowest: var(--g-panel);
+  --color-surface-low: var(--g-panel-2);
+  --color-surface-mid: var(--g-hover);
+  --color-surface-high: var(--g-line);
+  --color-on-surface: var(--g-text);
+  --color-border-outline: var(--g-line-2);
+  --color-primary: var(--g-accent);
+  --color-primary-hover: var(--g-accent);
+  --color-primary-light: var(--g-accent-soft);
+  --color-selection: var(--g-accent);
+  --color-brand-hover: var(--g-accent);
+  --color-brand-active: var(--g-accent);
+}
+
+/* Excalidraw fills its parent. */
+.ws-canvas .excalidraw,
+.ws-canvas .excalidraw .App,
+.ws-canvas .excalidraw .App-canvas {
+  height: 100%;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-doc *,
+  .ws-canvas * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
