@@ -1,6 +1,6 @@
 import { DEFAULT_SETTINGS, type DiagramError, type DiagramSettings } from '../types'
 
-const ALLOWED: Record<Exclude<keyof DiagramSettings, 'title'>, readonly string[]> = {
+export const ALLOWED: Record<Exclude<keyof DiagramSettings, 'title'>, readonly string[]> = {
   direction: ['right', 'down', 'left', 'up'],
   colorMode: ['pastel', 'bold', 'outline'],
   styleMode: ['plain', 'shadow', 'watercolor'],

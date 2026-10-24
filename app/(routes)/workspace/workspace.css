@@ -223,3 +223,40 @@
     animation-duration: 0.01ms !important;
   }
 }
+
+/* Diagram code panel: floats over the canvas on desktop, bottom sheet on phones.
+   The parent (Task 8) is the positioned canvas container. */
+.diagram-code {
+  position: absolute;
+  top: 60px;
+  left: 12px;
+  z-index: 6;
+  width: 360px;
+  max-height: calc(100% - 72px);
+}
+
+.diagram-code-editor {
+  min-height: 220px;
+  overflow: auto;
+}
+
+@media (max-width: 767px) {
+  .diagram-code {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    max-height: 50vh;
+    border-radius: var(--g-radius) var(--g-radius) 0 0;
+  }
+
+  .diagram-code-editor {
+    min-height: 120px;
+  }
+
+  /* 16px stops iOS from zooming in when the editor is focused. */
+  .diagram-code .cm-editor .cm-content {
+    font-size: 16px;
+  }
+}
