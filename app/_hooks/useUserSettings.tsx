@@ -19,7 +19,7 @@ interface UseUserSettingsReturn {
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
-  theme: 'system',
+  theme: 'dark',
   keyboardShortcuts: {},
   preferences: {},
 };
@@ -37,7 +37,7 @@ export const useUserSettings = (): UseUserSettingsReturn => {
   // Load settings from localStorage
   const loadLocalSettings = useCallback((): UserSettings => {
     try {
-      const theme = localStorage.getItem('theme') as 'light' | 'dark' | 'system' || 'system';
+      const theme = localStorage.getItem('theme') as 'light' | 'dark' | 'system' || 'dark';
       const keyboardShortcuts = JSON.parse(localStorage.getItem('keyboard-shortcuts-config') || '{}');
       const preferences = JSON.parse(localStorage.getItem('user-preferences') || '{}');
       

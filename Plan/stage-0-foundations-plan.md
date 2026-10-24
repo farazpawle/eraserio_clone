@@ -28,11 +28,11 @@ Updated: 2026-10-24
 - [ ] 0.4 `Tests/canvas/restore.test.ts`: fixture → `restoreElements(elements, null)` keeps count, ids and text. Run on 0.17.6 (baseline green).
 - [ ] 0.5 `npm i @excalidraw/excalidraw@0.18.1`; 0.4 test stays green.
 - [ ] 0.6 Fix integration in `WSCanvas.tsx` (CSS import `@excalidraw/excalidraw/index.css`, `window.EXCALIDRAW_ASSET_PATH`, `transpilePackages` only if the build needs it); `tsc` + `build` green; browser smoke on a real file.
-- [ ] 0.7 `lib/brand.ts` (`BRAND_NAME = "Draftboard"`), used in `app/layout.tsx` metadata title (test: title contains the constant).
-- [ ] 0.8 Graphite tokens from `designs/redesign/editor.html` (dark default + `[data-theme="light"]`, `--faint` as in the prototype) into `app/globals.css` as `--g-*` variables, non-clashing with shadcn names.
-- [ ] 0.9 Map `--g-*` to Tailwind names under `extend.colors` (e.g. `g-bg`, `g-panel`, `g-line`, `g-text`, `g-muted`, `g-faint`, `g-accent`).
-- [ ] 0.10 `next/font` Inter + JetBrains Mono in `app/layout.tsx`, exposed as `--font-inter` / `--font-mono` variables.
-- [ ] 0.11 `DEFAULT_SETTINGS.theme = 'dark'` in `useUserSettings.tsx`; initial `actualTheme` in `ThemeContext.tsx` follows it; light stays selectable. Existing theme tests updated.
+- [x] 0.7 `lib/brand.ts` (`BRAND_NAME = "Draftboard"`), used in `app/layout.tsx` metadata title (test: title contains the constant).
+- [x] 0.8 Graphite tokens from `designs/redesign/editor.html` (dark default + `[data-theme="light"]`, `--faint` as in the prototype) into `app/globals.css` as `--g-*` variables, non-clashing with shadcn names. (`--g-faint` checked against `--g-bg`/`--g-panel` in both themes — already ≥4.5:1, no value change needed.)
+- [x] 0.9 Map `--g-*` to Tailwind names under `extend.colors` (e.g. `g-bg`, `g-panel`, `g-line`, `g-text`, `g-muted`, `g-faint`, `g-accent`).
+- [x] 0.10 `next/font` Inter + JetBrains Mono in `app/layout.tsx`, exposed as `--font-inter` / `--font-mono` variables.
+- [x] 0.11 `DEFAULT_SETTINGS.theme = 'dark'` in `useUserSettings.tsx`; initial `actualTheme` in `ThemeContext.tsx` follows it; light stays selectable. (No existing tests referenced the old `'system'` default, so none needed updating.)
 - [ ] 0.12 Record installed versions (next, excalidraw, elkjs, codemirror) in the task file header.
 
 ## Verify

@@ -90,6 +90,31 @@ const config = {
         warning: designTokens.colors.semantic.warning,
         error: designTokens.colors.semantic.error,
         info: designTokens.colors.semantic.info,
+
+        // Graphite tokens (app/globals.css --g-*), kept separate from the
+        // names above so neither set clashes with the other.
+        "g-bg": "var(--g-bg)",
+        "g-panel": "var(--g-panel)",
+        "g-panel-2": "var(--g-panel-2)",
+        "g-hover": "var(--g-hover)",
+        "g-line": "var(--g-line)",
+        "g-line-2": "var(--g-line-2)",
+        "g-text": "var(--g-text)",
+        "g-muted": "var(--g-muted)",
+        "g-faint": "var(--g-faint)",
+        "g-accent": "var(--g-accent)",
+        "g-accent-ink": "var(--g-accent-ink)",
+        "g-accent-soft": "var(--g-accent-soft)",
+        "g-grid": "var(--g-grid)",
+        "g-danger": "var(--g-danger)",
+        "g-ok": "var(--g-ok)",
+        "g-node-bg": "var(--g-node-bg)",
+        "g-c-blue": "var(--g-c-blue)",
+        "g-c-green": "var(--g-c-green)",
+        "g-c-purple": "var(--g-c-purple)",
+        "g-c-orange": "var(--g-c-orange)",
+        "g-c-red": "var(--g-c-red)",
+        "g-c-gray": "var(--g-c-gray)",
       },
       
       // Animation system from design tokens

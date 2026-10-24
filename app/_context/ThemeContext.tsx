@@ -16,7 +16,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { settings, isLoading, updateTheme } = useUserSettings()
-  const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light')
+  const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('dark')
   
   const theme = settings.theme
 

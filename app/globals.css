@@ -221,6 +221,66 @@ h6.ce-header{
     }
   }
 
+  /* Graphite tokens (designs/redesign/editor.html). Dark is the default theme;
+     [data-theme="light"] overrides, matching what ThemeContext sets on <html>.
+     --g-faint checked against --g-bg and --g-panel in both themes: already
+     clears 4.5:1, so no value changes were needed. */
+  @layer base {
+    :root {
+      --g-bg: #0b0b0f;
+      --g-panel: #111116;
+      --g-panel-2: #17171e;
+      --g-hover: #1f1f28;
+      --g-line: #24242d;
+      --g-line-2: #33333f;
+      --g-text: #ececf1;
+      --g-muted: #a1a1b0;
+      --g-faint: #8a8a9c;
+      --g-accent: #38bdf8;
+      --g-accent-ink: #03131d;
+      --g-accent-soft: rgba(56, 189, 248, 0.14);
+      --g-grid: #26262f;
+      --g-danger: #f87171;
+      --g-ok: #34d399;
+      --g-node-bg: #15151c;
+      --g-radius: 10px;
+      --g-radius-sm: 7px;
+      --g-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+      --g-c-blue: #38bdf8;
+      --g-c-green: #34d399;
+      --g-c-purple: #a78bfa;
+      --g-c-orange: #fb923c;
+      --g-c-red: #f87171;
+      --g-c-gray: #94a3b8;
+    }
+
+    [data-theme="light"] {
+      --g-bg: #f6f6f8;
+      --g-panel: #ffffff;
+      --g-panel-2: #f2f2f5;
+      --g-hover: #e9e9ef;
+      --g-line: #e4e4ea;
+      --g-line-2: #d2d2db;
+      --g-text: #111117;
+      --g-muted: #52525f;
+      --g-faint: #6a6a78;
+      --g-accent: #0369a1;
+      --g-accent-ink: #ffffff;
+      --g-accent-soft: rgba(3, 105, 161, 0.1);
+      --g-grid: #d9d9e1;
+      --g-danger: #dc2626;
+      --g-ok: #059669;
+      --g-node-bg: #ffffff;
+      --g-shadow: 0 12px 32px rgba(20, 20, 40, 0.12);
+      --g-c-blue: #0284c7;
+      --g-c-green: #059669;
+      --g-c-purple: #7c3aed;
+      --g-c-orange: #ea580c;
+      --g-c-red: #dc2626;
+      --g-c-gray: #64748b;
+    }
+  }
+
   @layer base {
     * {
       @apply border-border;
