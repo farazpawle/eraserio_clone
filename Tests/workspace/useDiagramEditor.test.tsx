@@ -60,14 +60,16 @@ async function sceneWithDiagram(code = 'A > B') {
 function setup(scene: El[], opts: { readOnly?: boolean; elk?: ElkLike } = {}) {
   const fake = fakeApi(scene)
   const hook = renderHook(() => useDiagramEditor(fake.api as El, { readOnly: false, ...opts }))
-  const select = (...ids: string[]) =>
+  const selectIn = (editingGroupId: string | null, ...ids: string[]) =>
     act(() =>
       hook.result.current.onSceneChange(fake.scene(), {
         ...APP_STATE,
+        editingGroupId,
         selectedElementIds: Object.fromEntries(ids.map((id) => [id, true])),
       } as El),
     )
-  return { ...fake, hook, select }
+  const select = (...ids: string[]) => selectIn(null, ...ids)
+  return { ...fake, hook, select, selectIn }
 }
 
 describe('viewCentre', () => {
@@ -92,6 +94,43 @@ describe('useDiagramEditor', () => {
     act(() => hook.result.current.close())
     select(frame.id)
     expect(hook.result.current.active?.frameId).toBe(frame.id)
+  })
+
+  // A frame can't be in a group, so a click on a shape selects only the shapes: a drag would pull
+  // them out of the frame. The frame is selected instead, so the whole diagram moves.
+  describe('selecting a shape of a diagram', () => {
+    const selectsFrame = (frameId: string) => ({
+      appState: { selectedElementIds: { [frameId]: true }, selectedGroupIds: {} },
+      captureUpdate: CaptureUpdateAction.NEVER,
+    })
+
+    it('selects the frame instead', async () => {
+      const scene = await sceneWithDiagram()
+      const frame = frameOf(scene)
+      const child = scene.find((e) => e.frameId === frame.id)
+      const { api, select } = setup(scene)
+      select(child.id)
+      expect(api.updateScene).toHaveBeenCalledWith(selectsFrame(frame.id))
+    })
+
+    it('leaves it alone inside the group (double-click), so one shape can move', async () => {
+      const scene = await sceneWithDiagram()
+      const frame = frameOf(scene)
+      const child = scene.find((e) => e.frameId === frame.id)
+      const { api, selectIn } = setup(scene)
+      selectIn(frame.id, child.id)
+      expect(api.updateScene).not.toHaveBeenCalled()
+    })
+
+    it('does nothing when the frame is selected already', async () => {
+      const scene = await sceneWithDiagram()
+      const frame = frameOf(scene)
+      const child = scene.find((e) => e.frameId === frame.id)
+      const { api, select } = setup(scene)
+      select(frame.id, child.id)
+      select(frame.id)
+      expect(api.updateScene).not.toHaveBeenCalled()
+    })
   })
 
   it('keeps the panel open when the selection is cleared', async () => {

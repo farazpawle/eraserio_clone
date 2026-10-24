@@ -171,12 +171,26 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
   }
 
   // Runs on every Excalidraw change, our own updateScene calls included: keep it cheap.
-  const onSceneChange = (elements: readonly ExcalidrawElement[], appState: Pick<AppState, 'selectedElementIds'>) => {
+  const onSceneChange = (elements: readonly ExcalidrawElement[], appState: Pick<AppState, 'selectedElementIds' | 'editingGroupId'>) => {
     if (!optsRef.current.readOnly) {
       const claimed = claimCopies(elements)
       if (claimed) {
         api?.updateScene({ elements: claimed, captureUpdate: CaptureUpdateAction.NEVER })
         return
+      }
+      // A frame can't join a group, so clicking a shape selects only the shapes and a drag would
+      // pull them out of the frame. Select the frame instead so the whole diagram moves. Inside the
+      // group (double-click) the user moves one shape on purpose.
+      if (!appState.editingGroupId) {
+        const frames: Record<string, true> = {}
+        for (const el of elements)
+          if (appState.selectedElementIds[el.id] && !el.isDeleted && isGenerated(el) && !appState.selectedElementIds[el.frameId!])
+            frames[el.frameId!] = true
+        if (Object.keys(frames).length > 0)
+          api?.updateScene({
+            appState: { selectedElementIds: frames, selectedGroupIds: {} },
+            captureUpdate: CaptureUpdateAction.NEVER,
+          })
       }
     }
 
