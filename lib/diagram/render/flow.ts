@@ -163,7 +163,8 @@ export function toSkeletons(
       // Edge labels have no background: canvas text colour, never a fill's text colour.
       ...(e.label ? { label: label(e.label, { ...edgeStyle, textColor: CANVAS_TEXT }) } : {}),
       ...tag(),
-      // `elbowed` is missing from the skeleton's arrow type in 0.18.1 but honoured by the converter.
+      // The cast: the 0.18.1 skeleton arrow type has no `elbowed`. The converter copies it onto the
+      // element, and false keeps Excalidraw from re-routing the arrow away from ELK's points.
     } as ExcalidrawElementSkeleton)
   })
 
