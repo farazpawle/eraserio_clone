@@ -95,7 +95,12 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
     if (frame) show(frame)
   }
 
-  const close = () => setActive(null)
+  // A diagram that stays selected would reopen the panel on the very next change event.
+  // Viewers have no selection (view mode), so there is nothing to clear.
+  const close = () => {
+    setActive(null)
+    if (!optsRef.current.readOnly) api?.updateScene({ appState: { selectedElementIds: {} }, captureUpdate: CaptureUpdateAction.NEVER })
+  }
 
   const redraw = async (change: { code: string; diagramType?: DiagramType }) => {
     const current = activeRef.current
@@ -187,7 +192,7 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
     const current = activeRef.current
     if (!current) return
     const frame = elements.find((el) => el.id === current.frameId)
-    if (!frame || frame.isDeleted) return close()
+    if (!frame || frame.isDeleted) return setActive(null)
     const data = readDiagram(frame)
     if (data && stamp(data) !== applied.current.get(frame.id)) {
       ticket.current++ // a layout still running would undo the undo

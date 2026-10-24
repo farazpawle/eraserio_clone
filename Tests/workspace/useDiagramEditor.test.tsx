@@ -114,6 +114,21 @@ describe('useDiagramEditor', () => {
     expect(hook.result.current.active).toBeNull()
   })
 
+  // Browser smoke test: with the frame still selected, the next change event reopened the panel at once.
+  it('close() deselects the diagram so it does not reopen straight away', async () => {
+    const scene = await sceneWithDiagram()
+    const { api, hook, select } = setup(scene)
+    select(frameOf(scene).id)
+
+    act(() => hook.result.current.close())
+
+    expect(api.updateScene).toHaveBeenLastCalledWith(
+      expect.objectContaining({ appState: { selectedElementIds: {} }, captureUpdate: CaptureUpdateAction.NEVER }),
+    )
+    select()
+    expect(hook.result.current.active).toBeNull()
+  })
+
   it('insert() adds the flowchart starter in the middle of the view and opens it', async () => {
     const { api, hook, scene } = setup([])
 
