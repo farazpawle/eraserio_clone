@@ -2,10 +2,13 @@ import '../diagram/excalidrawEnv'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { CaptureUpdateAction } from '@excalidraw/excalidraw'
 import type { ElkNode } from 'elkjs/lib/elk-api'
+import { toast } from 'sonner'
 import { createDiagram } from '@/lib/diagram/block'
 import { getElk, type ElkLike } from '@/lib/diagram/layout/elkWorker'
 import { STARTERS } from '@/lib/diagram/templates'
-import { useDiagramEditor, viewCentre } from '@/app/(routes)/workspace/_components/diagram/useDiagramEditor'
+import { movedDiagramChildren, useDiagramEditor, viewCentre } from '@/app/(routes)/workspace/_components/diagram/useDiagramEditor'
+
+jest.mock('sonner', () => ({ toast: Object.assign(jest.fn(), { error: jest.fn() }) }))
 
 // Loose view of an element: the union type hides fields the tests read.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -245,5 +248,93 @@ describe('useDiagramEditor', () => {
 
     expect(api.updateScene).not.toHaveBeenCalled()
     expect(hook.result.current.active?.data.code).toBe('A > B')
+  })
+})
+
+describe('movedDiagramChildren', () => {
+  const nudge = (els: El[], pick: (e: El) => boolean, dx = 10) => els.map((e) => (pick(e) ? { ...e, x: e.x + dx } : e))
+
+  it('is true when one generated shape moves and its frame stays', async () => {
+    const scene = await sceneWithDiagram()
+    const child = scene.find((e) => e.frameId && e.type !== 'frame')
+    expect(movedDiagramChildren(scene, nudge(scene, (e) => e.id === child.id))).toBe(true)
+  })
+
+  it('is false when the whole frame moves with its shapes', async () => {
+    const scene = await sceneWithDiagram()
+    const frame = frameOf(scene)
+    expect(movedDiagramChildren(scene, nudge(scene, (e) => e.id === frame.id || e.frameId === frame.id))).toBe(false)
+  })
+
+  it('is false for our own redraw (new ids, old ones deleted)', async () => {
+    const scene = await sceneWithDiagram()
+    const frame = frameOf(scene)
+    const redrawn = scene.map((e) => (e.frameId === frame.id ? { ...e, isDeleted: true } : e))
+    const fresh = scene.filter((e) => e.frameId === frame.id).map((e) => ({ ...e, id: `new-${e.id}`, x: e.x + 40 }))
+    expect(movedDiagramChildren(scene, [...redrawn, ...fresh])).toBe(false)
+  })
+
+  it('ignores shapes the user drew inside the frame', async () => {
+    const scene = await sceneWithDiagram()
+    const frame = frameOf(scene)
+    const own = { id: 'own', type: 'rectangle', x: 0, y: 0, frameId: frame.id, isDeleted: false }
+    const before = [...scene, own]
+    expect(movedDiagramChildren(before, nudge(before, (e) => e.id === 'own'))).toBe(false)
+  })
+})
+
+describe('drag notice', () => {
+  const KEY = 'diagram-drag-notice-seen'
+  const TEXT = 'Shapes in this diagram are redrawn from its code'
+  const noticeCalls = () => (toast as unknown as jest.Mock).mock.calls.filter(([m]) => m === TEXT)
+
+  beforeEach(() => {
+    localStorage.clear()
+    ;(toast as unknown as jest.Mock).mockClear()
+  })
+  afterEach(() => jest.restoreAllMocks())
+
+  async function dragged(opts: { readOnly?: boolean } = {}) {
+    const scene = await sceneWithDiagram()
+    const child = scene.find((e) => e.frameId && e.type !== 'frame')
+    const { hook } = setup(scene, opts)
+    const moved = (dx: number) => scene.map((e) => (e.id === child.id ? { ...e, x: e.x + dx } : e))
+    const feed = (els: El[]) => act(() => hook.result.current.onSceneChange(els, APP_STATE as El))
+    feed(scene)
+    return { feed, moved }
+  }
+
+  it('shows once and remembers it', async () => {
+    const { feed, moved } = await dragged()
+    feed(moved(5))
+    feed(moved(9))
+    expect(noticeCalls()).toHaveLength(1)
+    expect(localStorage.getItem(KEY)).toBe('1')
+  })
+
+  it('stays quiet once it was seen before', async () => {
+    localStorage.setItem(KEY, '1')
+    const { feed, moved } = await dragged()
+    feed(moved(5))
+    expect(noticeCalls()).toHaveLength(0)
+  })
+
+  it('still shows once per page when storage throws', async () => {
+    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    const { feed, moved } = await dragged()
+    feed(moved(5))
+    feed(moved(9))
+    expect(noticeCalls()).toHaveLength(1)
+  })
+
+  it('stays quiet when read-only', async () => {
+    const { feed, moved } = await dragged({ readOnly: true })
+    feed(moved(5))
+    expect(noticeCalls()).toHaveLength(0)
   })
 })

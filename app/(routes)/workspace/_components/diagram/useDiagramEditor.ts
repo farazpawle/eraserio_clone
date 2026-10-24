@@ -17,6 +17,23 @@ export function viewCentre(s: View): { x: number; y: number } {
   return { x: -s.scrollX + s.width / 2 / s.zoom.value, y: -s.scrollY + s.height / 2 / s.zoom.value }
 }
 
+const NOTICE_KEY = 'diagram-drag-notice-seen'
+
+// True when a generated shape moved on its own while its frame stayed put. Our own redraw
+// never counts: it gives the shapes new ids and deletes the old ones.
+export function movedDiagramChildren(prev: readonly ExcalidrawElement[], next: readonly ExcalidrawElement[]): boolean {
+  const before = new Map(prev.map((el) => [el.id, el]))
+  for (const el of next) {
+    if (el.isDeleted || !el.frameId || el.customData?.diagramId !== el.frameId) continue
+    const old = before.get(el.id)
+    if (!old || (old.x === el.x && old.y === el.y)) continue
+    const oldFrame = before.get(el.frameId)
+    const frame = next.find((f) => f.id === el.frameId)
+    if (oldFrame && frame && oldFrame.x === frame.x && oldFrame.y === frame.y) return true
+  }
+  return false
+}
+
 const stamp = (d: Pick<DiagramData, 'diagramType' | 'code'>) => `${d.diagramType}:${d.code}`
 
 // The diagram whose frame, or one of whose shapes, is selected.
@@ -39,6 +56,9 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
   const ticket = useRef(0)
   // The type and code each frame holds from our own redraws. A frame holding anything else was changed by undo.
   const applied = useRef(new Map<string, string>())
+  // The scene of the previous change event, and whether the drag notice was shown on this page.
+  const prevScene = useRef<readonly ExcalidrawElement[] | null>(null)
+  const noticeShown = useRef(false)
   const optsRef = useRef(opts)
   optsRef.current = opts
 
@@ -114,6 +134,18 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
     }
   }
 
+  const noticeDrag = () => {
+    if (noticeShown.current) return
+    noticeShown.current = true
+    try {
+      if (localStorage.getItem(NOTICE_KEY)) return
+      localStorage.setItem(NOTICE_KEY, '1')
+    } catch {
+      // Storage blocked: the page-session flag above still limits it to one notice.
+    }
+    toast('Shapes in this diagram are redrawn from its code')
+  }
+
   // Runs on every Excalidraw change, our own updateScene calls included: keep it cheap.
   const onSceneChange = (elements: readonly ExcalidrawElement[], appState: Pick<AppState, 'selectedElementIds'>) => {
     if (!optsRef.current.readOnly) {
@@ -122,6 +154,12 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
         api?.updateScene({ elements: claimed, captureUpdate: CaptureUpdateAction.NEVER })
         return
       }
+    }
+
+    const prev = prevScene.current
+    prevScene.current = elements
+    if (!optsRef.current.readOnly && prev && prev !== elements && !noticeShown.current && movedDiagramChildren(prev, elements)) {
+      noticeDrag()
     }
 
     const selected = Object.keys(appState.selectedElementIds).length > 0 && selectedDiagram(elements, appState.selectedElementIds)
