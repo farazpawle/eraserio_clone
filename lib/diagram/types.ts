@@ -85,3 +85,13 @@ export type PositionedFlow = {
   width: number
   height: number
 }
+
+// Stored in a diagram frame's customData. Bump `version` only with a migration for old frames.
+export type DiagramData = {
+  kind: 'diagram'
+  version: 1
+  diagramId: string
+  diagramType: DiagramType
+  code: string
+  settings: DiagramSettings
+}
