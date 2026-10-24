@@ -100,18 +100,28 @@ export async function createDiagram(
 // Returns the whole new scene: old generated children deleted (version bumped, for sync), new
 // ones placed right before the frame, every other element (shapes the user put in the frame too)
 // the same object. Fractional indices are repaired by api.updateScene: pass the scene through it
-// before saving.
+// before saving. Pass a getter for a live scene: it is read again after the layout, so edits made
+// on the canvas meanwhile are kept.
 export async function updateDiagram(
-  scene: readonly ExcalidrawElement[],
+  sceneOrGetter: readonly ExcalidrawElement[] | (() => readonly ExcalidrawElement[]),
   frameId: string,
   change: { code: string; diagramType?: DiagramType },
   elk?: ElkLike,
 ): Promise<Result> {
-  const frame = scene.find((el) => el.id === frameId) as ExcalidrawFrameElement | undefined
-  const data = frame && readDiagram(frame)
-  if (!frame || frame.isDeleted || !data) return { elements: [...scene], errors: [NOT_FOUND] }
+  const read = typeof sceneOrGetter === 'function' ? sceneOrGetter : () => sceneOrGetter
+  const target = (scene: readonly ExcalidrawElement[]) => {
+    const frame = scene.find((el) => el.id === frameId) as ExcalidrawFrameElement | undefined
+    const data = frame && !frame.isDeleted ? readDiagram(frame) : null
+    return frame && data ? { frame, data } : null
+  }
+  // Checked before the layout too, so a missing frame costs no layout.
+  if (!target(read())) return { elements: [...read()], errors: [NOT_FOUND] }
 
   const drawing = await draw(change.code, elk)
+  const scene = read()
+  const found = target(scene)
+  if (!found) return { elements: [...scene], errors: [NOT_FOUND] }
+  const { frame, data } = found
   const fields = frameFields(drawing, frame.id, change.code, change.diagramType ?? data.diagramType)
   // Generated children carry the diagramId; shapes the user dropped into the frame do not.
   const generated = (el: ExcalidrawElement) =>

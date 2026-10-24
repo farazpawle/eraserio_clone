@@ -116,6 +116,38 @@ describe('updateDiagram', () => {
     return { frame: frameOf(one.elements), two: two.elements, rect, all }
   }
 
+  it('given a getter, applies the redraw to the scene as it is after the layout', async () => {
+    const { frame, all } = await scene()
+    const added = { id: 'drawn-meanwhile', type: 'rectangle', x: 5, y: 5, frameId: null } as El
+    const moved = { ...frame, x: frame.x + 300, y: frame.y + 40 }
+    const later = [...all.map((e) => (e.id === frame.id ? moved : e)), added] as ExcalidrawElement[]
+    const reads: string[] = []
+    const getScene = () => {
+      reads.push('read')
+      return reads.length === 1 ? all : later
+    }
+
+    const { elements } = await updateDiagram(getScene, frame.id, { code: 'A > B > C' })
+
+    expect(reads.length).toBe(2) // once to check the frame, once after the layout
+    expect(elements).toContain(added)
+    const now = frameOf(elements)
+    expect(now.x).toBe(moved.x)
+    expect(now.y).toBe(moved.y)
+    for (const el of childrenOf(elements, frame.id)) {
+      expect(el.x).toBeGreaterThanOrEqual(moved.x)
+      expect(el.y).toBeGreaterThanOrEqual(moved.y)
+    }
+  })
+
+  it('does not lay out when the getter has no such frame', async () => {
+    const elk = { layout: jest.fn() }
+    const { elements, errors } = await updateDiagram(() => [], 'missing', { code: 'A > B' }, elk)
+    expect(elements).toEqual([])
+    expect(errors).toEqual([{ line: 0, message: 'Diagram not found' }])
+    expect(elk.layout).not.toHaveBeenCalled()
+  })
+
   it('replaces only the target frame children and keeps everything else identical', async () => {
     const { frame, two, rect, all } = await scene()
     const oldChildren = childrenOf(all, frame.id)

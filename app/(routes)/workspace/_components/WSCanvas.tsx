@@ -63,6 +63,11 @@ const WSCanvas = ({
     () => (readOnly ? initialElements.filter((el) => isDiagramFrame(el) && !el.isDeleted) : []),
     [readOnly, initialElements]
   );
+  // Repeated or empty names get a number so viewers can tell diagrams apart.
+  const viewerNames = useMemo(() => {
+    const names = viewerDiagrams.map((el) => (el as { name?: string | null }).name || "");
+    return names.map((n, i) => (n && names.indexOf(n) === names.lastIndexOf(n) ? n : `${n || "Diagram"} ${i + 1}`));
+  }, [viewerDiagrams]);
 
   // Excalidraw only reads initialData when it mounts, so the images must be here first.
   useEffect(() => {
@@ -134,7 +139,7 @@ const WSCanvas = ({
   }
 
   return (
-    <div ref={container} tabIndex={-1} className="h-full relative outline-none">
+    <div ref={container} tabIndex={-1} data-testid="canvas" className="h-full relative outline-none">
       <div className="h-full">
         <Excalidraw
           excalidrawAPI={setApi}
@@ -207,9 +212,9 @@ const WSCanvas = ({
                 onChange={(e) => diagram.open(e.target.value)}
                 className="h-8 max-w-[10rem] rounded-md border border-g-line bg-g-panel px-2 text-xs text-g-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent max-md:h-11"
               >
-                {viewerDiagrams.map((d) => (
+                {viewerDiagrams.map((d, i) => (
                   <option key={d.id} value={d.id}>
-                    {(d as { name?: string | null }).name || "Diagram"}
+                    {viewerNames[i]}
                   </option>
                 ))}
               </select>

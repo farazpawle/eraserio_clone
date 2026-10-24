@@ -25,7 +25,7 @@ function fakeApi(initial: El[] = []) {
     }),
     setActiveTool: jest.fn(),
   }
-  return { api, scene: () => scene }
+  return { api, scene: () => scene, setScene: (next: El[]) => (scene = next) }
 }
 
 // A layout whose calls finish only when the test says so; finish(i) waits for the result to land.
@@ -162,6 +162,39 @@ describe('useDiagramEditor', () => {
     expect(api.updateScene).toHaveBeenCalledTimes(1)
     expect(frameOf(api.updateScene.mock.calls[0][0].elements, id).customData.code).toBe('Second > Two')
     expect(hook.result.current.active?.data.code).toBe('Second > Two')
+  })
+
+  it('redraws onto the scene as it is when the layout finishes', async () => {
+    const scene = await sceneWithDiagram()
+    const id = frameOf(scene).id
+    const { elk, finish } = slowElk()
+    const { api, hook, setScene, scene: current } = setup(scene, { elk })
+    act(() => hook.result.current.open(id))
+
+    act(() => hook.result.current.setCode('A > B > C'))
+    const drawn = { id: 'drawn-meanwhile', type: 'rectangle', frameId: null, isDeleted: false, version: 1 }
+    setScene([...current(), drawn])
+    await finish(0)
+
+    expect(api.updateScene).toHaveBeenCalledTimes(1)
+    expect(api.updateScene.mock.calls[0][0].elements).toContainEqual(drawn)
+  })
+
+  it('follows the frame when undo brings back another diagram type', async () => {
+    const scene = await sceneWithDiagram()
+    const frame = frameOf(scene)
+    const { api, hook, select, scene: current } = setup(scene)
+    select(frame.id)
+
+    act(() => hook.result.current.setType('cloud'))
+    await waitFor(() => expect(api.updateScene).toHaveBeenCalled())
+    select(frame.id)
+    expect(hook.result.current.active?.data.diagramType).toBe('cloud')
+
+    const undone = current().map((e: El) => (e.id === frame.id ? frame : e))
+    act(() => hook.result.current.onSceneChange(undone, APP_STATE as El))
+
+    expect(hook.result.current.active?.data.diagramType).toBe('flowchart')
   })
 
   it('follows the frame when undo brings back other code, but not after its own redraw', async () => {

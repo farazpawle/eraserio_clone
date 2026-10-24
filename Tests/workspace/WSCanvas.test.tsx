@@ -205,7 +205,7 @@ describe('WSCanvas', () => {
 
       await user.click(screen.getByRole('button', { name: 'Hide diagram code' }))
       expect(screen.queryByRole('complementary', { name: 'Diagram code' })).not.toBeInTheDocument()
-      expect(document.activeElement).toContainElement(screen.getByTestId('excalidraw'))
+      expect(document.activeElement).toBe(screen.getByTestId('canvas'))
     })
 
     it('lets viewers pick between several diagrams by name', async () => {
@@ -218,6 +218,18 @@ describe('WSCanvas', () => {
       await user.selectOptions(screen.getByRole('combobox', { name: 'Diagram' }), 'Login')
 
       expect(screen.getByRole('complementary', { name: 'Diagram code' })).toHaveTextContent('User > Auth')
+    })
+
+    it('numbers diagrams whose names repeat or are empty', async () => {
+      const user = userEvent.setup()
+      await mountWith(
+        [diagramFrame('d1', 'Flow', 'A > B'), diagramFrame('d2', 'Flow', 'C > D'), diagramFrame('d3', '', 'E > F'), diagramFrame('d4', 'Login', 'G > H')],
+        { readOnly: true }
+      )
+      await user.click(screen.getByRole('button', { name: 'Diagram code' }))
+
+      const names = screen.getAllByRole('option').map((o) => o.textContent)
+      expect(names).toEqual(['Flow 1', 'Flow 2', 'Diagram 3', 'Login'])
     })
   })
 })
