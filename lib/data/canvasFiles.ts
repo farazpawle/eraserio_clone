@@ -14,11 +14,11 @@ export interface CanvasFileStore {
   save(file: BinaryFileData): Promise<void>
 }
 
-type StorageErrorLike = { message: string; statusCode?: string | number; status?: number }
+export type StorageErrorLike = { message: string; statusCode?: string | number; status?: number }
 
-const isMissing = (e: StorageErrorLike) =>
+export const isMissing = (e: StorageErrorLike) =>
   String(e.statusCode) === '404' || e.status === 404 || /not.?found/i.test(e.message)
-const alreadyExists = (e: StorageErrorLike) => String(e.statusCode) === '409' || /already exists/i.test(e.message)
+export const alreadyExists = (e: StorageErrorLike) => String(e.statusCode) === '409' || /already exists/i.test(e.message)
 
 export function dataUrlToBlob(dataUrl: string): Blob {
   const match = /^data:([^;,]+)(?:;[^,]*)?;base64,(.*)$/s.exec(dataUrl)
@@ -83,4 +83,36 @@ export async function deleteCanvasFiles(db: Db, fileId: string): Promise<void> {
   if (!data?.length) return
   const { error: removeError } = await db.storage.from(CANVAS_BUCKET).remove(data.map((o) => `${fileId}/${o.name}`))
   if (removeError) throw new DataError(removeError.message)
+}
+
+// Browser side of the share link: the same store interface, backed by the share route.
+export function sharedCanvasFileStore(token: string): CanvasFileStore {
+  const url = (id: string) => `/api/shared/${token}/files/${encodeURIComponent(id)}`
+
+  return {
+    async load(ids) {
+      const loaded = await Promise.all(
+        ids.map(async (id) => {
+          const res = await fetch(url(id))
+          if (res.status === 404) return null
+          if (!res.ok) throw new DataError('Could not load an image')
+          const blob = await res.blob()
+          return { id, mimeType: blob.type, dataURL: await blobToDataUrl(blob), created: Date.now() } as BinaryFileData
+        })
+      )
+      return loaded.filter((f): f is BinaryFileData => f !== null)
+    },
+
+    async save(file) {
+      const res = await fetch(url(file.id), {
+        method: 'PUT',
+        headers: { 'Content-Type': file.mimeType },
+        body: dataUrlToBlob(file.dataURL),
+      })
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({ error: '' }))
+        throw new DataError(error || 'Could not save the image')
+      }
+    },
+  }
 }

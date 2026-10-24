@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import WSHeader from "../_components/WSHeader";
 import WorkspaceLayout from "../_components/WorkspaceLayout";
+import { DocEyebrow, WorkspaceError, WorkspaceSkeleton } from "../_components/WorkspaceStates";
 import { createClient } from "@/lib/supabase/client";
 import { getFile, renameFile, type FileRow } from "@/lib/data/files";
 import { listMyTeams } from "@/lib/data/teams";
@@ -12,8 +13,6 @@ import { useSaveStatus, type SaveState } from "@/app/_hooks/useSaveStatus";
 import { useKeyboardShortcutsContext } from "@/app/_context/KeyboardShortcutsContext";
 import { SHORTCUT_CATEGORIES } from "@/app/_hooks/useKeyboardShortcuts";
 import { toast } from "sonner";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Skeleton } from "@/components/ui/skeleton";
 import dynamic from "next/dynamic";
 
 // Editor.js and Excalidraw touch the DOM on import, so they can't render on the server.
@@ -137,97 +136,8 @@ const Workspace = ({ params }: any) => {
     };
   }, [registerShortcuts, unregisterShortcuts, handleSave, setView, shortcutConfigs]);
 
-  // Show loading state while fetching file data
-  if (isLoadingFile) {
-    return (
-      <div className="h-screen bg-white dark:bg-gray-900">
-        {/* Header skeleton */}
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex justify-between items-center">
-          <div className="flex gap-2 items-center">
-            <Skeleton className="h-10 w-10 rounded" />
-            <Skeleton className="h-6 w-48" />
-          </div>
-          <div className="flex gap-4 items-center">
-            <Skeleton className="h-8 w-8 rounded" />
-            <Skeleton className="h-8 w-20" />
-            <Skeleton className="h-8 w-16" />
-          </div>
-        </div>
-
-        {/* Main loading content */}
-        <div className="h-[calc(100vh-73px)] flex items-center justify-center bg-gray-50 dark:bg-gray-800">
-          <div className="text-center space-y-4">
-            <div data-testid="loading-spinner">
-              <LoadingSpinner size="lg" />
-            </div>
-            <div className="space-y-2">
-              <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
-                Loading your workspace...
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Please wait while we fetch your file data
-              </p>
-            </div>
-
-            {/* Skeleton representation of workspace */}
-            <div className="mt-8 flex gap-4 max-w-4xl">
-              <div className="flex-1 space-y-4">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-32 w-full" />
-              </div>
-              <div className="w-1 bg-gray-300 dark:bg-gray-600" />
-              <div className="flex-1 space-y-4">
-                <div className="flex justify-center space-x-2">
-                  <Skeleton className="h-8 w-8 rounded" />
-                  <Skeleton className="h-8 w-8 rounded" />
-                  <Skeleton className="h-8 w-8 rounded" />
-                  <Skeleton className="h-8 w-8 rounded" />
-                </div>
-                <Skeleton className="h-48 w-full rounded-lg" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state if file loading failed
-  if (loadingError) {
-    return (
-      <div className="h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center space-y-4 max-w-md">
-          <div className="text-red-500 dark:text-red-400">
-            <svg className="h-16 w-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-            Failed to Load File
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            {loadingError}
-          </p>
-          <div className="flex gap-2 justify-center">
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Try Again
-            </button>
-            <button
-              onClick={() => window.history.back()}
-              className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
-            >
-              Go Back
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (isLoadingFile) return <WorkspaceSkeleton />;
+  if (loadingError) return <WorkspaceError message={loadingError} />;
 
   return (
     <WorkspaceLayout
@@ -247,7 +157,12 @@ const Workspace = ({ params }: any) => {
           user={user}
         />
       }
-      doc={<Editor fileData={fileData} fileId={params.fileId} saveSignal={saveSignal} onStatus={reportDoc} />}
+      doc={
+        <div className="ws-doc-inner">
+          {fileData && <DocEyebrow updatedAt={fileData.updated_at} />}
+          <Editor fileData={fileData} fileId={params.fileId} saveSignal={saveSignal} onStatus={reportDoc} />
+        </div>
+      }
       canvas={
         <WSCanvas
           fileData={fileData}

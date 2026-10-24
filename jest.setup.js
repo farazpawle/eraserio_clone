@@ -46,7 +46,7 @@ jest.mock('next/navigation', () => ({
 
 // jsdom has no PointerEvent, so fireEvent.pointerDown loses `button`/`ctrlKey`.
 // Radix menus open only on pointerdown with button 0, so give them a real one.
-if (typeof window.PointerEvent === 'undefined') {
+if (typeof window !== 'undefined' && typeof window.PointerEvent === 'undefined') {
   window.PointerEvent = class PointerEvent extends MouseEvent {}
 }
 
@@ -78,20 +78,22 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
   disconnect: jest.fn(),
 }))
 
-// Mock window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: jest.fn().mockImplementation(query => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(), // deprecated
-    removeListener: jest.fn(), // deprecated
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
-})
+// Mock window.matchMedia (tests that opt into the node environment, such as API routes, have no window)
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: jest.fn().mockImplementation(query => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: jest.fn(), // deprecated
+      removeListener: jest.fn(), // deprecated
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    })),
+  })
+}
 
 // Suppress console errors during tests
 const originalError = console.error

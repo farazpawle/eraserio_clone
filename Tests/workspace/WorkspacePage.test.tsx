@@ -44,7 +44,7 @@ jest.mock('@/app/_context/KeyboardShortcutsContext', () => ({
 jest.mock('sonner', () => ({ toast: { error: jest.fn(), success: jest.fn() } }))
 
 const fileRow = { id: 'f1', team_id: 't1', name: 'Plan', document: null, whiteboard: null } as any
-const panel = (testId: string) => screen.getByTestId(testId).parentElement!.parentElement!
+const panel = (testId: string) => screen.getByTestId(testId).closest('.ws-doc, .ws-canvas')!.parentElement!
 
 // The page re-registers shortcuts as state changes, so always use the latest call.
 const shortcut = (key: string, altKey = true) =>

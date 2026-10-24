@@ -14,6 +14,7 @@ const WSCanvas = dynamic(() => import("../../workspace/_components/WSCanvas"), {
 import { toast } from "sonner";
 import type { ResolvedShare } from "@/lib/data/shares";
 import type { Json } from "@/types/database";
+import { sharedCanvasFileStore } from "@/lib/data/canvasFiles";
 import { useEditorView } from "@/app/_hooks/useEditorView";
 import { useSaveStatus, type SaveState } from "@/app/_hooks/useSaveStatus";
 
@@ -53,6 +54,7 @@ const SharedFileView = ({ token, share }: { token: string; share: ResolvedShare 
   // Stable identities: the panes must not see a new save function on every render.
   const saveDocument = useMemo(() => saveVia("document"), [saveVia]);
   const saveWhiteboard = useMemo(() => saveVia("whiteboard"), [saveVia]);
+  const fileStore = useMemo(() => sharedCanvasFileStore(token), [token]);
   const reportDoc = useCallback((state: SaveState) => report("doc", state), [report]);
   const reportCanvas = useCallback((state: SaveState) => report("canvas", state), [report]);
 
@@ -109,14 +111,16 @@ const SharedFileView = ({ token, share }: { token: string; share: ResolvedShare 
         </div>
       }
       doc={
-        <Editor
-          fileId={file.id}
-          fileData={file}
-          saveSignal={saveSignal}
-          onStatus={reportDoc}
-          readOnly={isReadOnly}
-          onSave={saveDocument}
-        />
+        <div className="ws-doc-inner">
+          <Editor
+            fileId={file.id}
+            fileData={file}
+            saveSignal={saveSignal}
+            onStatus={reportDoc}
+            readOnly={isReadOnly}
+            onSave={saveDocument}
+          />
+        </div>
       }
       canvas={
         <WSCanvas
@@ -126,6 +130,7 @@ const SharedFileView = ({ token, share }: { token: string; share: ResolvedShare 
           onStatus={reportCanvas}
           readOnly={isReadOnly}
           onSave={saveWhiteboard}
+          fileStore={fileStore}
         />
       }
       initialLeftWidth={50}
