@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { BRAND_NAME } from '@/lib/brand'
 import { ALLOWED } from '@/lib/diagram/parse/settings'
 import { STARTERS } from '@/lib/diagram/templates'
@@ -42,9 +43,9 @@ export default function DiagramSyntaxPage() {
               <li key={key}>
                 <code>{key}</code> (default <code>{DEFAULT_SETTINGS[key as keyof typeof ALLOWED]}</code>):{' '}
                 {values.map((v) => (
-                  <code key={v} className="mr-2">
-                    {v}
-                  </code>
+                  <Fragment key={v}>
+                    <code className="mr-1">{v}</code>{' '}
+                  </Fragment>
                 ))}
               </li>
             ))}
@@ -53,19 +54,20 @@ export default function DiagramSyntaxPage() {
 
         <section className="space-y-3">
           <h2 className="text-lg font-semibold">Shapes</h2>
+          {/* Spaces between the names let a narrow screen wrap the row instead of scrolling sideways. */}
           <p className="text-sm">
             {SHAPES.map((s) => (
-              <code key={s} className="mr-2">
-                {s}
-              </code>
+              <Fragment key={s}>
+                <code className="mr-1">{s}</code>{' '}
+              </Fragment>
             ))}
           </p>
           <h2 className="pt-2 text-lg font-semibold">Colours</h2>
           <p className="text-sm">
             {COLOR_NAMES.map((c) => (
-              <code key={c} className="mr-2">
-                {c}
-              </code>
+              <Fragment key={c}>
+                <code className="mr-1">{c}</code>{' '}
+              </Fragment>
             ))}
           </p>
         </section>
