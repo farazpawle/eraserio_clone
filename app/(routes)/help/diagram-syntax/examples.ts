@@ -1,6 +1,6 @@
 export const EXAMPLES: { title: string; code: string; note?: string }[] = [
   {
-    title: 'Settings',
+    title: 'Settings example',
     code: ['title My diagram', 'direction down', 'colorMode bold', 'styleMode shadow', 'typeface mono', 'A > B'].join('\n'),
     note: 'Setting lines can go anywhere. A diagram without them uses the defaults.',
   },
