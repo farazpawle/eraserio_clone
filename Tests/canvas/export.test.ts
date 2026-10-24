@@ -45,6 +45,18 @@ describe('exportCanvas', () => {
     expect(downloads[0]).toMatch(/^My_Plan_\d{4}-\d{2}-\d{2}\.png$/)
   })
 
+  // The scene keeps deleted elements (a diagram redraw deletes its old shapes); they must not be drawn.
+  it.each(['svg', 'png'] as const)('leaves deleted elements out of the %s', async (format) => {
+    const withDeleted: Scene = {
+      ...scene,
+      elements: [...scene.elements, { id: 'gone', type: 'rectangle', isDeleted: true }] as unknown as Scene['elements'],
+    }
+    await exportCanvas(format, withDeleted, 'x')
+
+    const mock = format === 'svg' ? mockExportToSvg : mockExportToCanvas
+    expect(mock.mock.calls[0][0].elements.map((e: { id: string }) => e.id)).toEqual(['e1'])
+  })
+
   it('rejects when the PNG could not be produced', async () => {
     mockExportToCanvas.mockResolvedValue({ toBlob: (cb: (b: Blob | null) => void) => cb(null) })
     await expect(exportCanvas('png', scene, 'x')).rejects.toThrow(/png/i)

@@ -19,15 +19,17 @@ function download(blob: Blob, name: string) {
 export async function exportCanvas(format: CanvasExportFormat, scene: Scene, fileName: string): Promise<void> {
   const { exportToCanvas, exportToSvg } = await import('@excalidraw/excalidraw')
   const name = generateExportFileName(fileName, format)
+  // The scene keeps deleted elements (every diagram redraw leaves some); the export functions would draw them.
+  const elements = scene.elements.filter((el) => !el.isDeleted)
 
   if (format === 'svg') {
-    const svg = await exportToSvg({ elements: scene.elements, appState: {}, files: scene.files })
+    const svg = await exportToSvg({ elements, appState: {}, files: scene.files })
     download(new Blob([svg.outerHTML], { type: 'image/svg+xml' }), `${name}.svg`)
     return
   }
 
   const canvas = await exportToCanvas({
-    elements: scene.elements,
+    elements,
     appState: {},
     files: scene.files,
     getDimensions: () => ({ width: 1920, height: 1080 }),
