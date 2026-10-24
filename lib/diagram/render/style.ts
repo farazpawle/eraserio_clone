@@ -11,7 +11,6 @@ export type ElementStyle = {
   roughness: 0 | 1 | 2
   strokeWidth: 1 | 2
   fontFamily: number
-  shadow: boolean
 }
 
 const DARK = '#1e1e1e'
@@ -89,7 +88,6 @@ export function styleFor(
     roughness: watercolor ? 2 : 0,
     strokeWidth: outline && !group ? 2 : 1,
     fontFamily: FONT[settings.typeface],
-    shadow: settings.styleMode === 'shadow',
   }
 }
 

@@ -178,10 +178,10 @@ describe('DiagramCodePanel', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
-  it('renders the header slot and a custom title', () => {
-    setup({ title: 'Flowchart', header: <span>Style bar</span> })
+  it('renders the header slot under the "Diagram code" heading', () => {
+    setup({ header: <span>Style bar</span> })
 
-    expect(screen.getByRole('heading', { name: 'Flowchart' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Diagram code' })).toBeInTheDocument()
     expect(screen.getByText('Style bar')).toBeInTheDocument()
   })
 })

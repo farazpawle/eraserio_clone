@@ -32,13 +32,9 @@ describe('colour modes', () => {
 })
 
 describe('style modes', () => {
-  it('plain: roughness 0, no shadow', () => {
-    const st = styleFor({}, s({ styleMode: 'plain' }))
-    expect([st.roughness, st.shadow]).toEqual([0, false])
-  })
-  it('shadow: roughness 0, shadow', () => {
-    const st = styleFor({}, s({ styleMode: 'shadow' }))
-    expect([st.roughness, st.shadow]).toEqual([0, true])
+  it('plain and shadow: roughness 0 (the shadow backing is drawn by render)', () => {
+    expect(styleFor({}, s({ styleMode: 'plain' })).roughness).toBe(0)
+    expect(styleFor({}, s({ styleMode: 'shadow' })).roughness).toBe(0)
   })
   it('watercolor: hachure, roughness 2', () => {
     const st = styleFor({}, s({ styleMode: 'watercolor' }))
