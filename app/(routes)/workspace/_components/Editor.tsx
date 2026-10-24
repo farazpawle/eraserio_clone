@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useCallback } from "react";
 import EditorJS from "@editorjs/editorjs";
 // @ts-ignore
 import List from "@editorjs/list";
@@ -10,6 +10,7 @@ import Header from "@editorjs/header";
 
 import Checklist from "@editorjs/checklist";
 import { toast } from "sonner";
+import { useSaveSignal, type SaveState } from "@/app/_hooks/useSaveStatus";
 import { createClient } from "@/lib/supabase/client";
 import { saveDocument } from "@/lib/data/files";
 import type { SharedFile } from "@/lib/data/shares";
@@ -37,53 +38,59 @@ const rawData = {
   version: "2.8.1",
 };
 
-const Editor = ({ onSaveTrigger, fileId, fileData, triggerSave, readOnly, onSave }: {
-  onSaveTrigger?: any,
+const Editor = ({ saveSignal, onStatus, fileId, fileData, readOnly, onSave }: {
+  saveSignal?: number,
+  onStatus?: (state: SaveState) => void,
   fileId: any,
   fileData?: SharedFile,
-  triggerSave?: number,
   readOnly?: boolean,
   onSave?: (content: Json) => Promise<void>
 }) => {
   const db = useMemo(() => createClient(), []);
   const ref = useRef<EditorJS>();
-  const [document, setDocument] = useState(rawData);
-  const onSaveDocument = useCallback(() => {
-    if (ref.current) {
-      ref.current
-        .save()
-        .then((outputData) =>
-          onSave ? onSave(outputData as unknown as Json) : saveDocument(db, fileId, outputData as unknown as Json)
-        )
-        .then(() => {
-          toast.success('Document saved successfully');
-        })
-        .catch((error) => {
-          console.error("Saving failed: ", error);
-          toast.error(error?.message ?? 'Failed to save document');
-        });
-    }
-  }, [db, fileId, onSave]);
+  // Editor.js can fire onChange while it renders the saved blocks; only edits after it is ready count.
+  const armed = useRef(false);
 
-  useEffect(() => {
-    
-   fileData&&initEditor();
-  }, [fileData]);
-
-  useEffect(() => {
-    if (onSaveTrigger) {
-      onSaveDocument();
+  const onSaveDocument = useCallback(async () => {
+    if (readOnly || !ref.current) return;
+    onStatus?.('saving');
+    try {
+      const outputData = await ref.current.save();
+      await (onSave ? onSave(outputData as unknown as Json) : saveDocument(db, fileId, outputData as unknown as Json));
+      onStatus?.('saved');
+    } catch (error: any) {
+      console.error("Saving failed: ", error);
+      onStatus?.('error');
+      toast.error(error?.message ?? 'Failed to save document');
     }
-  }, [onSaveTrigger, onSaveDocument]);
+  }, [db, fileId, onSave, onStatus, readOnly]);
 
+  useSaveSignal(saveSignal, onSaveDocument);
+
+  // One editor per file. fileData changes for other reasons too (a rename), and a second
+  // editor in the same holder would break the first.
   useEffect(() => {
-    if (triggerSave && triggerSave > 0 && !readOnly) {
-      onSaveDocument();
-    }
-  }, [triggerSave, onSaveDocument, readOnly]);
+    if (!fileData) return;
+    armed.current = false;
+    const editor = initEditor();
+    ref.current = editor;
+    editor.isReady.then(() => {
+      armed.current = true;
+    }).catch(() => {});
+
+    return () => {
+      armed.current = false;
+      try {
+        editor.destroy?.();
+      } catch {
+        // Destroying an editor that never finished starting is harmless.
+      }
+      ref.current = undefined;
+    };
+  }, [fileData?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const initEditor = () => {
-    const editor = new EditorJS({
+    return new EditorJS({
       /**
        * Id of Element that should contain Editor instance
        */
@@ -92,7 +99,7 @@ const Editor = ({ onSaveTrigger, fileId, fileData, triggerSave, readOnly, onSave
           class: Header,
           config: {
             placeholder: readOnly ? "" : "Enter a header",
-            levels: [2, 3, 4],
+            levels: [1, 2, 3, 4],
             defaultLevel: 3,
           },
           shortcut: readOnly ? undefined : "CMD+SHIFT+H",
@@ -112,13 +119,15 @@ const Editor = ({ onSaveTrigger, fileId, fileData, triggerSave, readOnly, onSave
       holder: "editorjs",
       data: (fileData?.document ?? rawData) as any,
       readOnly: readOnly || false,
+      onChange: () => {
+        if (armed.current && !readOnly) onStatus?.('unsaved');
+      },
     });
-    ref.current = editor;
   };
 
   return (
     <div>
-      <div id="editorjs" className="ml-20"></div>
+      <div id="editorjs"></div>
     </div>
   );
 };
