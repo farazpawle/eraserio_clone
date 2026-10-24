@@ -129,7 +129,7 @@ const WSHeader = ({
       </header>
 
       {showFileTools && (
-        <FileShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} file={fileData} />
+        <FileShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} file={fileData} teamName={teamName} />
       )}
     </>
   );

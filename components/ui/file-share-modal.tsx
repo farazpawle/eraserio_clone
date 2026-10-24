@@ -2,56 +2,52 @@
 
 import * as React from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Switch } from '@/components/ui/switch'
-import {
-  Link,
-  Copy,
-  Check,
-  Eye,
-  Edit,
-  MessageSquare,
-  Trash2,
-  Calendar
-} from 'lucide-react'
+import { Check, Copy, Edit, Eye, Link as LinkIcon, MessageSquare, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
-import { createShareLink, listShares, revokeShare, type Share, type SharePermission } from '@/lib/data/shares'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import moment from 'moment'
-import { FILE } from '@/app/dashboard/_components/FileList'
+import { createClient } from '@/lib/supabase/client'
+import { sendInvitation, type InviteRole } from '@/lib/data/invitations'
+import { createShareLink, listShares, revokeShare, type Share, type SharePermission } from '@/lib/data/shares'
+import type { FILE } from '@/app/dashboard/_components/FileList'
 
 interface FileShareModalProps {
   isOpen: boolean
   onClose: () => void
   file: FILE
+  teamName?: string
 }
 
-const FileShareModal = ({ isOpen, onClose, file }: FileShareModalProps) => {
+const field =
+  'h-10 w-full rounded-md border border-g-line-2 bg-g-panel-2 px-3 text-base text-g-text outline-none focus-visible:ring-2 focus-visible:ring-g-accent md:text-sm'
+const label = 'text-xs text-g-muted'
+const primary =
+  'inline-flex h-10 flex-none items-center justify-center gap-2 rounded-md bg-g-accent px-4 text-sm font-semibold text-g-accent-ink hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent focus-visible:ring-offset-2 focus-visible:ring-offset-g-panel disabled:opacity-60'
+const iconButton =
+  'inline-flex h-9 w-9 items-center justify-center rounded-md border border-g-line-2 text-g-muted hover:bg-g-hover hover:text-g-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent max-md:h-11 max-md:w-11'
+
+const PERMISSION_ICON = { edit: Edit, comment: MessageSquare, view: Eye } as const
+
+const FileShareModal = ({ isOpen, onClose, file, teamName }: FileShareModalProps) => {
   const db = useMemo(() => createClient(), [])
+  const team = teamName ?? 'your team'
+
+  const [email, setEmail] = useState('')
+  const [role, setRole] = useState<InviteRole>('viewer')
+  const [inviteError, setInviteError] = useState('')
+  const [isInviting, setIsInviting] = useState(false)
+
   const [permission, setPermission] = useState<SharePermission>('view')
-  const [hasExpiration, setHasExpiration] = useState(false)
-  const [expirationDays, setExpirationDays] = useState(7)
-  const [isLoading, setIsLoading] = useState(false)
-  const [copiedToken, setCopiedToken] = useState<string | null>(null)
+  const [expiresInDays, setExpiresInDays] = useState('')
+  const [isCreating, setIsCreating] = useState(false)
   const [shares, setShares] = useState<Share[]>([])
+  const [copiedToken, setCopiedToken] = useState<string | null>(null)
 
   const loadShares = useCallback(async () => {
     try {
@@ -65,26 +61,58 @@ const FileShareModal = ({ isOpen, onClose, file }: FileShareModalProps) => {
     if (isOpen) loadShares()
   }, [isOpen, loadShares])
 
-  const handleCreateShare = async () => {
-    setIsLoading(true)
+  const copy = async (text: string) => {
     try {
-      const expiresAt = hasExpiration
-        ? new Date(Date.now() + expirationDays * 24 * 60 * 60 * 1000).toISOString()
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {
+      toast.error('Failed to copy link')
+      return false
+    }
+  }
+
+  const handleInvite = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!email.trim()) {
+      setInviteError('Enter an email address')
+      return
+    }
+    setInviteError('')
+    setIsInviting(true)
+    try {
+      const invitation = await sendInvitation(db, file.team_id, email, role)
+      setEmail('')
+      setRole('viewer')
+      // No email is sent from here: the person gets the link from whoever invited them.
+      if (invitation && (await copy(`${window.location.origin}/invite/${invitation.token}`))) {
+        toast.success('Invitation created. Link copied, send it to them.')
+      }
+    } catch (error: any) {
+      setInviteError(error.message || 'Failed to create invitation')
+    } finally {
+      setIsInviting(false)
+    }
+  }
+
+  const handleCreateLink = async () => {
+    setIsCreating(true)
+    try {
+      const expiresAt = expiresInDays
+        ? new Date(Date.now() + Number(expiresInDays) * 24 * 60 * 60 * 1000).toISOString()
         : null
       await createShareLink(db, file.id, permission, expiresAt)
       toast.success('Share link created!')
       setPermission('view')
-      setHasExpiration(false)
-      setExpirationDays(7)
+      setExpiresInDays('')
       await loadShares()
     } catch (error: any) {
       toast.error(error.message || 'Failed to create share link')
     } finally {
-      setIsLoading(false)
+      setIsCreating(false)
     }
   }
 
-  const handleRevokeShare = async (shareId: string) => {
+  const handleRevoke = async (shareId: string) => {
     try {
       await revokeShare(db, shareId)
       toast.success('Share link revoked')
@@ -94,196 +122,156 @@ const FileShareModal = ({ isOpen, onClose, file }: FileShareModalProps) => {
     }
   }
 
-  const copyShareLink = async (token: string) => {
-    const shareUrl = `${window.location.origin}/shared/${token}`
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      setCopiedToken(token)
-      toast.success('Share link copied to clipboard!')
-      setTimeout(() => setCopiedToken(null), 2000)
-    } catch (error) {
-      toast.error('Failed to copy link')
-    }
-  }
-
-  const getPermissionIcon = (permission: string) => {
-    switch (permission) {
-      case 'edit':
-        return <Edit className="h-4 w-4" />
-      case 'comment':
-        return <MessageSquare className="h-4 w-4" />
-      default:
-        return <Eye className="h-4 w-4" />
-    }
-  }
-
-  const getPermissionBadgeColor = (permission: string) => {
-    switch (permission) {
-      case 'view':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-      case 'edit':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-      case 'comment':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-    }
+  const handleCopyLink = async (token: string) => {
+    if (!(await copy(`${window.location.origin}/shared/${token}`))) return
+    setCopiedToken(token)
+    toast.success('Share link copied to clipboard!')
+    setTimeout(() => setCopiedToken(null), 2000)
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Link className="h-5 w-5" />
-            Share: {file.name}
-          </DialogTitle>
-          <DialogDescription>
-            Create links that give others access to this file. Only team owners and admins can manage links.
-          </DialogDescription>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-[440px] gap-0 overflow-y-auto border-g-line bg-g-panel p-0 text-g-text sm:rounded-2xl">
+        <DialogHeader className="border-b border-g-line px-4 py-3.5 pr-12 text-left">
+          <DialogTitle className="text-base">Share this file</DialogTitle>
+          <DialogDescription className="truncate text-xs text-g-muted">{file.name}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Create New Share */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Create New Share Link</h3>
-
-            {/* Permissions */}
-            <div>
-              <Label htmlFor="permissions">Permissions</Label>
-              <Select value={permission} onValueChange={(v) => setPermission(v as SharePermission)}>
-                <SelectTrigger id="permissions">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="view">
-                    <div className="flex items-center gap-2">
-                      <Eye className="h-4 w-4" />
-                      View Only
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="comment">
-                    <div className="flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4" />
-                      Can Comment
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="edit">
-                    <div className="flex items-center gap-2">
-                      <Edit className="h-4 w-4" />
-                      Can Edit
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Expiration Settings */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="expiration">Set Expiration</Label>
-                <Switch
-                  id="expiration"
-                  checked={hasExpiration}
-                  onCheckedChange={setHasExpiration}
+        <div className="grid gap-5 p-4">
+          <form onSubmit={handleInvite} className="grid gap-3" noValidate>
+            <div className="grid gap-1.5">
+              <label htmlFor="invite-email" className={label}>
+                Invite by email
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="invite-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@company.com"
+                  autoComplete="off"
+                  aria-invalid={!!inviteError}
+                  aria-describedby="invite-help invite-error"
+                  className={`${field} min-w-0 flex-1`}
                 />
+                <button type="submit" disabled={isInviting} className={primary}>
+                  Invite
+                </button>
               </div>
-              {hasExpiration && (
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span className="text-sm">Expires in</span>
-                  <Select
-                    value={expirationDays.toString()}
-                    onValueChange={(value) => setExpirationDays(parseInt(value))}
-                  >
-                    <SelectTrigger className="w-24">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 day</SelectItem>
-                      <SelectItem value="7">7 days</SelectItem>
-                      <SelectItem value="30">30 days</SelectItem>
-                      <SelectItem value="90">90 days</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              {inviteError && (
+                <p id="invite-error" role="alert" className="text-xs text-g-danger">
+                  {inviteError}
+                </p>
               )}
             </div>
+            <div className="grid gap-1.5">
+              <label htmlFor="invite-role" className={label}>
+                Team role
+              </label>
+              <select
+                id="invite-role"
+                value={role}
+                onChange={(e) => setRole(e.target.value as InviteRole)}
+                className={field}
+              >
+                <option value="viewer">Viewer: can view</option>
+                <option value="member">Member: can edit</option>
+              </select>
+            </div>
+            <p id="invite-help" className="text-xs text-g-muted">
+              They will join {team} and see every file in it. An invitation link is copied for you to send.
+            </p>
+          </form>
 
-            <Button onClick={handleCreateShare} disabled={isLoading} className="w-full">
-              {isLoading ? (
-                <>
-                  <LoadingSpinner className="mr-2 h-4 w-4" />
-                  Creating Share...
-                </>
-              ) : (
-                <>
-                  <Link className="mr-2 h-4 w-4" />
-                  Create Share Link
-                </>
-              )}
-            </Button>
-          </div>
+          <section className="grid gap-3 border-t border-g-line pt-4" aria-labelledby="link-heading">
+            <h3 id="link-heading" className="text-sm font-semibold">
+              Anyone with the link
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-1.5">
+                <label htmlFor="link-permission" className={label}>
+                  Permission
+                </label>
+                <select
+                  id="link-permission"
+                  value={permission}
+                  onChange={(e) => setPermission(e.target.value as SharePermission)}
+                  className={field}
+                >
+                  <option value="view">Can view</option>
+                  <option value="comment">Can comment</option>
+                  <option value="edit">Can edit</option>
+                </select>
+              </div>
+              <div className="grid gap-1.5">
+                <label htmlFor="link-expires" className={label}>
+                  Expires
+                </label>
+                <select
+                  id="link-expires"
+                  value={expiresInDays}
+                  onChange={(e) => setExpiresInDays(e.target.value)}
+                  className={field}
+                >
+                  <option value="">Never</option>
+                  <option value="1">In 1 day</option>
+                  <option value="7">In 7 days</option>
+                  <option value="30">In 30 days</option>
+                  <option value="90">In 90 days</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" onClick={handleCreateLink} disabled={isCreating} className={`${primary} w-full`}>
+              <LinkIcon className="h-4 w-4" aria-hidden="true" />
+              Create link
+            </button>
 
-          {/* Active Share Links */}
-          {shares.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Active Links</h3>
-              <div className="space-y-2">
-                {shares.map((share) => (
-                  <div
-                    key={share.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <p className="font-medium">Anyone with the link</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+            {shares.length > 0 && (
+              <ul className="grid gap-2">
+                {shares.map((share) => {
+                  const Icon = PERMISSION_ICON[share.permission as SharePermission] ?? Eye
+                  return (
+                    <li
+                      key={share.id}
+                      data-testid={`share-link-${share.id}`}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-g-line p-2.5"
+                    >
+                      <div className="min-w-0">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-g-accent-soft px-2 py-0.5 text-xs font-medium capitalize text-g-accent">
+                          <Icon className="h-3 w-3" aria-hidden="true" />
+                          {share.permission}
+                        </span>
+                        <p className="mt-1 truncate text-xs text-g-muted">
                           Created {moment(share.created_at).fromNow()}
-                          {share.expires_at && (
-                            <span> • Expires {moment(share.expires_at).fromNow()}</span>
-                          )}
+                          {share.expires_at && ` · Expires ${moment(share.expires_at).fromNow()}`}
                         </p>
                       </div>
-                      <Badge className={getPermissionBadgeColor(share.permission)}>
-                        {getPermissionIcon(share.permission)}
-                        <span className="ml-1">{share.permission}</span>
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        aria-label="Copy share link"
-                        onClick={() => copyShareLink(share.token)}
-                      >
-                        {copiedToken === share.token ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        aria-label="Revoke share link"
-                        onClick={() => handleRevokeShare(share.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+                      <div className="flex flex-none gap-1.5">
+                        <button
+                          type="button"
+                          aria-label="Copy share link"
+                          onClick={() => handleCopyLink(share.token)}
+                          className={iconButton}
+                        >
+                          {copiedToken === share.token ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Revoke share link"
+                          onClick={() => handleRevoke(share.id)}
+                          className={iconButton}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </section>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
