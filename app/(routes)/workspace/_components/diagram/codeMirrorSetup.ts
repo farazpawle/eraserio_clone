@@ -3,11 +3,11 @@ import { HighlightStyle, StreamLanguage, syntaxHighlighting } from '@codemirror/
 import type { Diagnostic } from '@codemirror/lint'
 import { EditorView } from '@codemirror/view'
 import { tags } from '@lezer/highlight'
+import { ATTR_KEYS } from '@/lib/diagram/parse/flow'
 import { ALLOWED } from '@/lib/diagram/parse/settings'
 import { COLOR_NAMES, SHAPES, type DiagramError } from '@/lib/diagram/types'
 
 const SETTING_KEYS = ['title', ...Object.keys(ALLOWED)]
-const ATTRIBUTE_KEYS = ['icon', 'color', 'shape', 'label']
 
 export function toDiagnostics(
   errors: DiagramError[],
@@ -37,7 +37,7 @@ export function diagramCompletions(nodeNames: string[]): CompletionSource {
       const value = /(shape|color):\s*(\w*)$/.exec(inside)
       if (value) return done(value[2], toOptions(value[1] === 'shape' ? SHAPES : COLOR_NAMES, 'enum'))
       const key = /(?:^|,)\s*(\w*)$/.exec(inside)
-      return key ? done(key[1], toOptions(ATTRIBUTE_KEYS, 'property')) : null
+      return key ? done(key[1], toOptions(ATTR_KEYS, 'property')) : null
     }
 
     const setting = new RegExp(`^\\s*(${SETTING_KEYS.slice(1).join('|')})\\s+(\\w*)$`).exec(before)

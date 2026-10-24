@@ -1,4 +1,5 @@
-export type DiagramType = 'flowchart' | 'cloud'
+export const DIAGRAM_TYPES = ['flowchart', 'cloud'] as const
+export type DiagramType = (typeof DIAGRAM_TYPES)[number]
 export type Direction = 'right' | 'down' | 'left' | 'up'
 export type ColorMode = 'pastel' | 'bold' | 'outline'
 export type StyleMode = 'plain' | 'shadow' | 'watercolor'

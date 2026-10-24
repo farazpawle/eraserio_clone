@@ -1,14 +1,14 @@
 import React from 'react'
 import { ALLOWED, parseSettings, setSetting } from '@/lib/diagram/parse/settings'
-import type { DiagramSettings, DiagramType } from '@/lib/diagram/types'
+import { DIAGRAM_TYPES, type DiagramSettings, type DiagramType } from '@/lib/diagram/types'
 
 type SettingKey = Exclude<keyof DiagramSettings, 'title'>
 
-const LABELS: Record<string, string> = {
+const TYPE_LABELS: Record<DiagramType, string> = {
   flowchart: 'Flowchart',
   cloud: 'Cloud architecture',
 }
-const label = (value: string) => LABELS[value] ?? value[0].toUpperCase() + value.slice(1)
+const label = (value: string) => value[0].toUpperCase() + value.slice(1)
 
 const SETTING_SELECTS: { key: SettingKey; name: string }[] = [
   { key: 'direction', name: 'Direction' },
@@ -41,9 +41,9 @@ export default function DiagramStyleBar({
         onChange={(e) => e.target.value !== diagramType && onType(e.target.value as DiagramType)}
         className={selectClass}
       >
-        {(Object.keys(LABELS) as DiagramType[]).map((t) => (
+        {DIAGRAM_TYPES.map((t) => (
           <option key={t} value={t}>
-            {label(t)}
+            {TYPE_LABELS[t]}
           </option>
         ))}
       </select>

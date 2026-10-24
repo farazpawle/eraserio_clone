@@ -9,13 +9,11 @@ import type { ElkLike } from './layout/elkWorker'
 import { layoutFlow } from './layout/flow'
 import { parseFlow } from './parse/flow'
 import { toSkeletons } from './render/flow'
-import { STARTERS } from './templates'
-import type { DiagramData, DiagramError, DiagramType } from './types'
+import { DIAGRAM_TYPES, type DiagramData, type DiagramError, type DiagramType } from './types'
 
 const PADDING = 20
 const MIN_WIDTH = 200
 const MIN_HEIGHT = 120
-const DIAGRAM_TYPES: readonly string[] = Object.keys(STARTERS)
 const NOT_FOUND: DiagramError = { line: 0, message: 'Diagram not found' } // line 0: no code line
 
 type Result = { elements: ExcalidrawElement[]; errors: DiagramError[] }
@@ -38,7 +36,7 @@ export function readDiagram(el: ExcalidrawElement): DiagramData | null {
     d.version === 1 &&
     typeof d.diagramId === 'string' &&
     typeof d.code === 'string' &&
-    DIAGRAM_TYPES.includes(d.diagramType) &&
+    (DIAGRAM_TYPES as readonly string[]).includes(d.diagramType) &&
     typeof d.settings === 'object' &&
     d.settings !== null
   return valid ? (d as DiagramData) : null

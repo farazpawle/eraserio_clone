@@ -18,7 +18,7 @@ type Attrs = { label?: string; shape?: Shape; color?: ColorName; icon?: string }
 type Named = { name?: string; attrs: Attrs; error?: string }
 type EdgeOp = { token: string; kind: EdgeKind; reversed: boolean; at: number }
 
-const ATTR_KEYS = ['icon', 'color', 'shape', 'label']
+export const ATTR_KEYS = ['icon', 'color', 'shape', 'label']
 const BAD_NAME = /[[\]{}<>:,"]/
 // Longest first, so "-->" is not read as "-" and "<>" is not read as "<".
 const OPERATORS: Omit<EdgeOp, 'at'>[] = [
