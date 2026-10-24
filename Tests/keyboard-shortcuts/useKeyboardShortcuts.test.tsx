@@ -165,6 +165,26 @@ describe('useKeyboardShortcuts', () => {
     expect(mockAction).toHaveBeenCalledTimes(1);
   });
 
+  it('should trigger a shortcut marked allowInInput while typing in an input', () => {
+    const shortcuts = [
+      { key: '2', altKey: true, action: mockAction, description: 'Show both panes', allowInInput: true },
+    ];
+
+    renderHook(() => useKeyboardShortcuts({ shortcuts, enabled: true }));
+
+    const eventHandler = (document.addEventListener as jest.Mock).mock.calls[0][1];
+
+    const inputElement = document.createElement('input');
+    const event = createKeyboardEvent('2', { altKey: true });
+    Object.defineProperty(event, 'target', { value: inputElement });
+
+    act(() => {
+      eventHandler(event);
+    });
+
+    expect(mockAction).toHaveBeenCalledTimes(1);
+  });
+
   it('should allow Escape key even in input fields', () => {
     const shortcuts = [
       {

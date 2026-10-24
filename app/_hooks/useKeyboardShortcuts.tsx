@@ -10,6 +10,8 @@ interface KeyboardShortcut {
   action: () => void;
   description: string;
   category?: string;
+  // Fire even while the user is typing in a field or editor.
+  allowInInput?: boolean;
 }
 
 interface UseKeyboardShortcutsProps {
@@ -47,8 +49,12 @@ export const useKeyboardShortcuts = ({ shortcuts, enabled = true }: UseKeyboardS
           target.contentEditable === 'true' ||
           target.closest('[contenteditable="true"]'))
       ) {
-        // Allow Escape key and save-related shortcuts in input fields
-        if (event.key !== 'Escape' && (!matchingShortcut || !matchingShortcut.description.toLowerCase().includes('save'))) {
+        // Allow Escape, save-related shortcuts and shortcuts that opt in (view switching must work while typing)
+        if (
+          event.key !== 'Escape' &&
+          (!matchingShortcut ||
+            !(matchingShortcut.allowInInput || matchingShortcut.description.toLowerCase().includes('save')))
+        ) {
           return;
         }
       }

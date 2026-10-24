@@ -16,6 +16,7 @@ interface KeyboardShortcut {
   description: string;
   category?: string;
   id?: string;
+  allowInInput?: boolean;
 }
 
 interface ShortcutConfig {

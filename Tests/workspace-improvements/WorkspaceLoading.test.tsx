@@ -10,6 +10,9 @@ import { toast } from 'sonner';
 jest.mock('next/navigation');
 jest.mock('@/lib/supabase/client', () => ({ createClient: () => ({}) }));
 jest.mock('@/lib/data/files');
+// The page now also reads the signed-in user and the team name for the header.
+jest.mock('@/hooks/useUser', () => ({ useUser: () => ({ user: null }) }));
+jest.mock('@/lib/data/teams', () => ({ listMyTeams: jest.fn().mockResolvedValue([]) }));
 jest.mock('@/app/_context/KeyboardShortcutsContext');
 jest.mock('sonner');
 jest.mock('@/app/(routes)/workspace/_components/WSHeader', () => {
