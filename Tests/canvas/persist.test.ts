@@ -114,3 +114,25 @@ describe('loadSceneFiles', () => {
     expect(Object.keys(files)).toEqual(['a'])
   })
 })
+
+describe('icon images', () => {
+  const icon = (id: string, fileId: string) => image(id, fileId)
+
+  it('are not listed as stored images', () => {
+    expect(referencedFileIds([icon('i1', 'icon:aws-ec2'), image('e1', 'a')] as never)).toEqual(['a'])
+  })
+
+  it('are never uploaded: three icons and one pasted image upload one file', async () => {
+    const store = fakeStore()
+    const s = scene([icon('i1', 'icon:a'), icon('i2', 'icon:b'), icon('i3', 'icon:c'), image('e1', 'p')], ['icon:a', 'icon:b', 'icon:c', 'p'])
+    await persistCanvas({ store, uploaded: new Set(), saveElements: jest.fn() }, s)
+    expect(store.save).toHaveBeenCalledTimes(1)
+    expect(store.save).toHaveBeenCalledWith(s.files.p)
+  })
+
+  it('are not looked up in storage when a canvas holds only icons', async () => {
+    const store = fakeStore()
+    expect(await loadSceneFiles({ store, uploaded: new Set() }, [icon('i1', 'icon:a')] as never)).toEqual({})
+    expect(store.load).not.toHaveBeenCalled()
+  })
+})

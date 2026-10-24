@@ -1,15 +1,28 @@
 // The one diagram file that imports the Excalidraw runtime: browser only (load through the canvas's
 // next/dynamic import, never from server code).
 import { convertToExcalidrawElements, newElementWith } from '@excalidraw/excalidraw'
+import type { ExcalidrawElementSkeleton } from '@excalidraw/excalidraw/data/transform'
 import type {
   ExcalidrawElement,
   ExcalidrawFrameElement,
 } from '@excalidraw/excalidraw/element/types'
+import { loadRegistry } from './icons/registry'
+import { resolveIcons } from './icons/resolve'
 import type { ElkLike } from './layout/elkWorker'
 import { layoutFlow } from './layout/flow'
+import { layoutSequence } from './layout/sequence'
 import { parseFlow } from './parse/flow'
+import { parseSequence } from './parse/sequence'
 import { toSkeletons } from './render/flow'
-import { DIAGRAM_TYPES, type DiagramData, type DiagramError, type DiagramType } from './types'
+import { toSequenceSkeletons } from './render/sequence'
+import {
+  DIAGRAM_TYPES,
+  syntaxOf,
+  type DiagramData,
+  type DiagramError,
+  type DiagramSettings,
+  type DiagramType,
+} from './types'
 
 const PADDING = 20
 const MIN_WIDTH = 200
@@ -17,7 +30,6 @@ const MIN_HEIGHT = 120
 const NOT_FOUND: DiagramError = { line: 0, message: 'Diagram not found' } // line 0: no code line
 
 type Result = { elements: ExcalidrawElement[]; errors: DiagramError[] }
-type Drawing = Awaited<ReturnType<typeof draw>>
 
 export function isDiagramFrame(el: ExcalidrawElement): boolean {
   return el.type === 'frame' && el.customData?.kind === 'diagram'
@@ -42,15 +54,46 @@ export function readDiagram(el: ExcalidrawElement): DiagramData | null {
   return valid ? (d as DiagramData) : null
 }
 
-async function draw(code: string, elk?: ElkLike) {
-  const { model, errors } = parseFlow(code)
+type Origin = { x: number; y: number }
+type Drawing = {
+  settings: DiagramSettings
+  errors: DiagramError[]
+  width: number
+  height: number
+  // The shapes for a frame whose top-left content corner is `origin`.
+  skeletons: (origin: Origin, frameId: string) => ExcalidrawElementSkeleton[]
+  contentWidth: number
+  contentHeight: number
+}
+
+const framed = (contentWidth: number, contentHeight: number) => ({
+  contentWidth,
+  contentHeight,
+  width: Math.max(MIN_WIDTH, contentWidth + 2 * PADDING),
+  height: Math.max(MIN_HEIGHT, contentHeight + 2 * PADDING),
+})
+
+async function draw(code: string, type: DiagramType, elk?: ElkLike): Promise<Drawing> {
+  if (syntaxOf(type) === 'sequence') {
+    const { model, errors } = parseSequence(code)
+    const positioned = layoutSequence(model, model.settings)
+    return {
+      settings: model.settings,
+      errors,
+      ...framed(positioned.width, positioned.height),
+      skeletons: (origin, id) => toSequenceSkeletons(positioned, model.settings, origin, id),
+    }
+  }
+  const parsed = parseFlow(code)
+  // No manifest (offline, not built yet) means the names stay as typed; drawing does not wait on icons.
+  const registry = await loadRegistry().catch(() => null)
+  const { model, errors: iconErrors } = resolveIcons(parsed.model, registry)
   const positioned = await layoutFlow(model, model.settings, elk)
   return {
-    positioned,
     settings: model.settings,
-    errors,
-    width: Math.max(MIN_WIDTH, positioned.width + 2 * PADDING),
-    height: Math.max(MIN_HEIGHT, positioned.height + 2 * PADDING),
+    errors: [...parsed.errors, ...iconErrors].sort((a, b) => a.line - b.line),
+    ...framed(positioned.width, positioned.height),
+    skeletons: (origin, id) => toSkeletons(positioned, model.settings, origin, id),
   }
 }
 
@@ -72,10 +115,10 @@ const frameFields = (drawing: Drawing, frameId: string, code: string, diagramTyp
 // converter leaves bound label texts without frameId or diagramId, so every element is re-tagged.
 function children(drawing: Drawing, frame: { id: string; x: number; y: number }): ExcalidrawElement[] {
   const origin = {
-    x: frame.x + (drawing.width - drawing.positioned.width) / 2,
-    y: frame.y + (drawing.height - drawing.positioned.height) / 2,
+    x: frame.x + (drawing.width - drawing.contentWidth) / 2,
+    y: frame.y + (drawing.height - drawing.contentHeight) / 2,
   }
-  const skeletons = toSkeletons(drawing.positioned, drawing.settings, origin, frame.id)
+  const skeletons = drawing.skeletons(origin, frame.id)
   return convertToExcalidrawElements(skeletons, { regenerateIds: true }).map((el) => ({
     ...el,
     frameId: frame.id,
@@ -89,7 +132,7 @@ export async function createDiagram(
   elk?: ElkLike,
 ): Promise<Result> {
   // Fractional indices are left unset: pass the elements through api.updateScene before saving.
-  const drawing = await draw(input.code, elk)
+  const drawing = await draw(input.code, input.diagramType, elk)
   const [frame] = convertToExcalidrawElements([{ type: 'frame', children: [] }])
   // Set after converting: the converter treats an x or y of 0 as "fit to children".
   Object.assign(frame, {
@@ -119,14 +162,16 @@ export async function updateDiagram(
     return frame && data ? { frame, data } : null
   }
   // Checked before the layout too, so a missing frame costs no layout.
-  if (!target(read())) return { elements: [...read()], errors: [NOT_FOUND] }
+  const before = target(read())
+  if (!before) return { elements: [...read()], errors: [NOT_FOUND] }
 
-  const drawing = await draw(change.code, elk)
+  const type = change.diagramType ?? before.data.diagramType
+  const drawing = await draw(change.code, type, elk)
   const scene = read()
   const found = target(scene)
   if (!found) return { elements: [...scene], errors: [NOT_FOUND] }
   const { frame, data } = found
-  const fields = frameFields(drawing, frame.id, change.code, change.diagramType ?? data.diagramType)
+  const fields = frameFields(drawing, frame.id, change.code, type)
   const elements = scene.flatMap((el) => {
     if (el === frame) return [...children(drawing, frame), newElementWith(frame, fields)]
     if (isGeneratedChild(el, frame.id) && !el.isDeleted) return [newElementWith(el, { isDeleted: true })]

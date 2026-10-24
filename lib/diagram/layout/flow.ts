@@ -16,7 +16,7 @@ export function estimateNodeSize(node: FlowNode): { width: number; height: numbe
   const lines = Math.ceil(textWidth / 208)
   return {
     width: Math.min(240, Math.max(120, textWidth + 32)),
-    height: Math.max(56, lines * 20 + 24) + (node.icon ? 24 : 0),
+    height: Math.max(56, lines * 20 + 24) + (node.icon ? 32 : 0),
   }
 }
 

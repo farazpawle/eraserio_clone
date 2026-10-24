@@ -10,3 +10,4 @@
 - Browser-only libraries (Editor.js, Excalidraw) are loaded with `next/dynamic` and `ssr: false`; importing them normally crashes server rendering. Server-side Supabase clients send requests with `cache: 'no-store'` so Next.js never serves stale rows.
 - One topic per skill in `.claude/skills/`; create a new small skill when a task needs knowledge that fits none of them.
 - The local dev server (`.env.local`) talks to the live database. Browser tests write only to a throwaway file the user has approved, never to real files.
+- `public/icons/` is build output of `npm run build:icons` (vendor packs extracted into the git-ignored `icons-src/`); never edit it by hand. Diagram icons are canvas images with file id `icon:<id>` that are loaded from `/icons`, never uploaded to storage.

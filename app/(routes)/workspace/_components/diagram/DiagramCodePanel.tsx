@@ -1,23 +1,29 @@
 'use client'
 
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, type MutableRefObject } from 'react'
 import { X } from 'lucide-react'
 import { autocompletion, completionStatus } from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { setDiagnostics } from '@codemirror/lint'
 import { Annotation, Compartment, EditorState } from '@codemirror/state'
 import { EditorView, keymap } from '@codemirror/view'
-import type { DiagramError } from '@/lib/diagram/types'
+import type { Registry } from '@/lib/diagram/icons/registry'
+import type { DiagramError, DiagramType } from '@/lib/diagram/types'
 import { diagramCompletions, diagramLanguage, diagramTheme, toDiagnostics } from './codeMirrorSetup'
 
 type Props = {
   code: string
   errors: DiagramError[]
   nodeNames: string[]
+  diagramType?: DiagramType
   readOnly: boolean
   onChange(code: string): void
   onClose(): void
   header?: React.ReactNode
+  // Icon names for autocomplete (null or omitted: none yet).
+  icons?: Registry | null
+  // Kept at the 1-based line the cursor is on, for the icon picker.
+  cursorLine?: MutableRefObject<number>
 }
 
 const DEBOUNCE_MS = 150
@@ -35,10 +41,13 @@ export default function DiagramCodePanel({
   code,
   errors,
   nodeNames,
+  diagramType,
   readOnly,
   onChange,
   onClose,
   header,
+  icons,
+  cursorLine,
 }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
@@ -48,8 +57,8 @@ export default function DiagramCodePanel({
   const timer = useRef<ReturnType<typeof setTimeout>>()
   // Typing not reported yet (still inside the debounce), so closing the panel does not lose it.
   const pending = useRef<string | null>(null)
-  const latest = useRef({ onChange, onClose })
-  latest.current = { onChange, onClose }
+  const latest = useRef({ onChange, onClose, cursorLine })
+  latest.current = { onChange, onClose, cursorLine }
 
   useEffect(() => {
     const report = () => {
@@ -80,10 +89,12 @@ export default function DiagramCodePanel({
           ]),
           diagramLanguage,
           diagramTheme,
-          completionCompartment.current.of(autocompletion({ override: [diagramCompletions(nodeNames)] })),
+          completionCompartment.current.of(autocompletion({ override: [diagramCompletions(nodeNames, icons, diagramType)] })),
           readOnlyCompartment.current.of([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]),
           EditorView.contentAttributes.of({ 'aria-label': 'Diagram code', spellcheck: 'false', autocapitalize: 'off' }),
           EditorView.updateListener.of((u) => {
+            const line = latest.current.cursorLine
+            if (line && (u.selectionSet || u.docChanged)) line.current = u.state.doc.lineAt(u.state.selection.main.head).number
             if (!u.docChanged || u.transactions.some((t) => t.annotation(fromProps))) return
             clearTimeout(timer.current)
             pending.current = u.state.doc.toString()
@@ -93,6 +104,7 @@ export default function DiagramCodePanel({
       }),
     })
     view.current = editor
+    if (cursorLine) cursorLine.current = 1
     return () => {
       report()
       editor.destroy()
@@ -119,12 +131,12 @@ export default function DiagramCodePanel({
     view.current?.dispatch({
       effects: [
         readOnlyCompartment.current.reconfigure([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)]),
-        completionCompartment.current.reconfigure(autocompletion({ override: [diagramCompletions(nodeNames)] })),
+        completionCompartment.current.reconfigure(autocompletion({ override: [diagramCompletions(nodeNames, icons, diagramType)] })),
       ],
     })
     // nodeNames is read through nodeNamesKey on purpose.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [readOnly, nodeNamesKey])
+  }, [readOnly, nodeNamesKey, icons, diagramType])
 
   useEffect(() => {
     const v = view.current

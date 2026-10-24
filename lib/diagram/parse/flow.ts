@@ -53,13 +53,13 @@ function outside(text: string): boolean[] {
   return top
 }
 
-function indexOutside(text: string, token: string): number {
+export function indexOutside(text: string, token: string): number {
   const top = outside(text)
   for (let i = 0; i < text.length; i++) if (top[i] && text.startsWith(token, i)) return i
   return -1
 }
 
-function splitOutside(text: string, sep: string): string[] {
+export function splitOutside(text: string, sep: string): string[] {
   const top = outside(text)
   const parts: string[] = []
   let start = 0
@@ -73,11 +73,11 @@ function splitOutside(text: string, sep: string): string[] {
   return parts
 }
 
-function unquote(value: string): string {
+export function unquote(value: string): string {
   return /^".*"$/s.test(value) ? value.slice(1, -1) : value
 }
 
-function stripComment(line: string): string {
+export function stripComment(line: string): string {
   const at = indexOutside(line, '//')
   return at === -1 ? line : line.slice(0, at)
 }
@@ -108,7 +108,7 @@ function parseAttrs(body: string): { attrs: Attrs; error?: string } {
 }
 
 // Reads `Name` or `Name [key: value, ...]`.
-function parseNamed(text: string): Named {
+export function parseNamed(text: string): Named {
   const trimmed = text.trim()
   const open = indexOutside(trimmed, '[')
   const name = (open === -1 ? trimmed : trimmed.slice(0, open)).trim()

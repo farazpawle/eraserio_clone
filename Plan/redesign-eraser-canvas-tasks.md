@@ -4,7 +4,7 @@ Description: Atomic task list for Plan/redesign-eraser-canvas-plan.md. Stages 0�
   typed diagrams (flowchart + cloud, then sequence, ER, BPMN) on the Excalidraw canvas with ELK and a CodeMirror code panel, full cloud icon
   sets, then dashboard, login and landing redesigns. [User] tasks need a human look, a browser login or accepting icon licence terms; each says why.
 Total Tasks: 110
-Status: Stage 0 complete; stage 1 built and tested in code, waiting for the live database change, the browser check and the human look check; stage 2 complete in code (all 25 tasks, browser-checked, final review fixes in), waiting for a hand drag check and deploy; stages 3-9 not started
+Status: Stage 0 complete; stage 1 built and tested in code, waiting for the live database change, the browser check and the human look check; stage 2 complete in code (all 25 tasks, browser-checked, final review fixes in), waiting for a hand drag check and deploy; stage 3 built and tested in code without the real icon packs (tasks 3.2-3.8 done), waiting for the pack download (3.1), the icon build and the browser check; stage 4 built and tested in code (all 6 tasks), waiting for the browser check on an approved throwaway file; stages 5-9 not started
 Updated: 2026-10-24
 ---
 
@@ -126,26 +126,28 @@ Step plan (13 test-first tasks covering 1.1–1.19): `Plan/stage-1-editor-plan.m
 
 ## Stage 3 — Cloud icons (full sets)
 
-- [ ] 3.1 [User] Download the official icon packs and accept their terms (AWS Architecture Icons, Azure Architecture Icons, Google Cloud icons, Kubernetes community icons); Azure needs a terms click-through only a person can accept.
-- [ ] 3.2 Write `scripts/build-icons.mjs`. It reads the downloaded zips and writes optimised SVGs to `public/icons/<provider>/<name>.svg`, plus `public/icons/manifest.json` with id, provider, label and keywords.
-- [ ] 3.3 Write failing tests for the icon registry: lookup by exact id, search by keyword, unknown name → the generic fallback icon plus an error.
-- [ ] 3.4 Implement `getIcon(id)` and `searchIcons(query, limit)` in `lib/diagram/icons/registry.ts` (loads the manifest once, lazily).
-- [ ] 3.5 Draw `icon:` attributes as Excalidraw image elements whose file id is `icon:<id>`, filled from `public/icons` on load and on paste.
-- [ ] 3.6 Add icon names to the code panel's autocomplete (top 20 matches with previews).
-- [ ] 3.7 Add an icon picker in the style bar that inserts `icon: <id>` on the selected node's line.
-- [ ] 3.8 Add the Kubernetes CC-BY-4.0 attribution and the AWS, Microsoft and Google icon notices to `app/privacy` (or a new credits section).
-- [ ] 3.9 Measure the manifest size and the icon load on a 50-icon diagram; keep the manifest under 300 KB gzipped.
+- [ ] 3.1 [User] Download the official icon packs, accept their terms and extract each into `icons-src/aws`, `icons-src/azure`, `icons-src/gcp`, `icons-src/k8s` (git-ignored): AWS Architecture Icons, Azure Architecture Icons, Google Cloud icons, Kubernetes community icons. Azure needs a terms click-through only a person can accept. Then run `npm run build:icons` and check the printed counts per provider (the per-provider file rules are written from the vendors' documented layouts, not from the real files).
+- [x] 3.2 Write `scripts/build-icons.mjs`. It reads the extracted pack folders (not zips: no new package needed) and writes optimised SVGs to `public/icons/<provider>/<name>.svg`, plus `public/icons/manifest.json` with id, provider, label and keywords. (Done: `npm run build:icons`, logic in `lib/diagram/icons/build.mjs`, 9 tests; waits for 3.1 to run on real packs.)
+- [x] 3.3 Write failing tests for the icon registry: lookup by exact id, search by keyword, unknown name → the generic fallback icon plus an error.
+- [x] 3.4 Implement `getIcon(id)` and `searchIcons(query, limit)` in `lib/diagram/icons/registry.ts` (loads the manifest once, lazily).
+- [x] 3.5 Draw `icon:` attributes as Excalidraw image elements whose file id is `icon:<id>`, filled from `public/icons` on load and on paste.
+- [x] 3.6 Add icon names to the code panel's autocomplete (top 20 matches with previews).
+- [x] 3.7 Add an icon picker in the style bar that inserts `icon: <id>` on the selected node's line.
+- [x] 3.8 Add the Kubernetes CC-BY-4.0 attribution and the AWS, Microsoft and Google icon notices to `app/privacy` (or a new credits section).
+- [ ] 3.9 (manifest checks written and skipped until the icons are built; browser load measurement needs 3.1 and a login) Measure the manifest size and the icon load on a 50-icon diagram; keep the manifest under 300 KB gzipped.
 
 **Verify:** every icon id in the manifest resolves, missing icons fall back, and the editor's first load doesn't download the icon files.
 
 ## Stage 4 — Sequence diagrams
 
-- [ ] 4.1 Write failing parser tests for participants, messages (solid and dashed), activation, and loop/alt/opt/par blocks with labels and nesting.
-- [ ] 4.2 Implement `parseSequence(code): ParseResult<SequenceModel>` in `lib/diagram/parse/sequence.ts`.
-- [ ] 4.3 Write failing layout tests: participant columns in order of first use, message rows top to bottom, block frames around their rows, activation bars.
-- [ ] 4.4 Implement `layoutSequence(model, settings): PositionedSequence` in `lib/diagram/layout/sequence.ts` (plain column/row maths; ELK is not used).
-- [ ] 4.5 Implement `toSequenceSkeletons(positioned, settings, origin)` in `lib/diagram/render/sequence.ts`, with tests.
-- [ ] 4.6 Register the sequence type in the block, panel autocomplete and style bar, with a starter template.
+Step plan (7 test-first tasks covering 4.1–4.6): `Plan/stage-4-sequence-plan.md`. User decision 2026-10-24: the style bar's Type menu swaps in the sequence example (undo restores the old text).
+
+- [x] 4.1 Write failing parser tests for participants, messages (solid and dashed), activation, and loop/alt/opt/par blocks with labels and nesting.
+- [x] 4.2 Implement `parseSequence(code): ParseResult<SequenceModel>` in `lib/diagram/parse/sequence.ts`.
+- [x] 4.3 Write failing layout tests: participant columns in order of first use, message rows top to bottom, block frames around their rows, activation bars.
+- [x] 4.4 Implement `layoutSequence(model, settings): PositionedSequence` in `lib/diagram/layout/sequence.ts` (plain column/row maths; ELK is not used).
+- [x] 4.5 Implement `toSequenceSkeletons(positioned, settings, origin)` in `lib/diagram/render/sequence.ts`, with tests.
+- [x] 4.6 Register the sequence type in the block, panel autocomplete and style bar, with a starter template.
 
 **Verify:** a 12-participant, 60-message fixture draws with no overlaps, and its lifelines stretch to the last message.
 

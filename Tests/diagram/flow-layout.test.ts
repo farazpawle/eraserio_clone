@@ -22,7 +22,7 @@ describe('estimateNodeSize', () => {
     expect(estimateNodeSize({ ...node, label: 'x'.repeat(20) })).toEqual({ width: 192, height: 56 })
     // 60 chars: 480px of text -> 3 lines -> 84 high; width capped at 240
     expect(estimateNodeSize({ ...node, label: 'x'.repeat(60) })).toEqual({ width: 240, height: 84 })
-    expect(estimateNodeSize({ ...node, icon: 'aws-ec2' })).toEqual({ width: 120, height: 80 })
+    expect(estimateNodeSize({ ...node, icon: 'aws-ec2' })).toEqual({ width: 120, height: 88 })
   })
 })
 

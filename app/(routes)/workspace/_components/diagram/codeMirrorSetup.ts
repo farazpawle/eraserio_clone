@@ -3,11 +3,15 @@ import { HighlightStyle, StreamLanguage, syntaxHighlighting } from '@codemirror/
 import type { Diagnostic } from '@codemirror/lint'
 import { EditorView } from '@codemirror/view'
 import { tags } from '@lezer/highlight'
+import { iconUrl, type Registry } from '@/lib/diagram/icons/registry'
 import { ATTR_KEYS } from '@/lib/diagram/parse/flow'
 import { ALLOWED } from '@/lib/diagram/parse/settings'
-import { COLOR_NAMES, SHAPES, type DiagramError } from '@/lib/diagram/types'
+import { COLOR_NAMES, SHAPES, syntaxOf, type DiagramError, type DiagramType } from '@/lib/diagram/types'
 
 const SETTING_KEYS = ['title', ...Object.keys(ALLOWED)]
+const SEQUENCE_WORDS = ['activate', 'deactivate', 'loop', 'alt', 'opt', 'par']
+const SEQUENCE_ATTRS = ['label', 'color']
+const ACTIVATION_LINE = /^\s*(?:de)?activate\s+(.*)$/
 
 export function toDiagnostics(
   errors: DiagramError[],
@@ -21,7 +25,8 @@ export function toDiagnostics(
 
 const toOptions = (labels: readonly string[], type: string) => labels.map((label) => ({ label, type }))
 
-export function diagramCompletions(nodeNames: string[]): CompletionSource {
+export function diagramCompletions(nodeNames: string[], icons?: Registry | null, type: DiagramType = 'flowchart'): CompletionSource {
+  const sequence = syntaxOf(type) === 'sequence'
   return (context: CompletionContext) => {
     const line = context.state.doc.lineAt(context.pos)
     const before = line.text.slice(0, context.pos - line.from)
@@ -34,11 +39,35 @@ export function diagramCompletions(nodeNames: string[]): CompletionSource {
     // Inside an unclosed [ ]: attribute keys, or the values of shape / color.
     if (before.lastIndexOf('[') > before.lastIndexOf(']')) {
       const inside = before.slice(before.lastIndexOf('[') + 1)
+      const icon = /icon:\s*([\w-]*)$/.exec(inside)
+      if (icon) {
+        if (!icons || sequence) return null
+        // No validFor and no filtering: matches can come from the label or keywords, so every keystroke asks again.
+        return {
+          from: context.pos - icon[1].length,
+          filter: false,
+          options: icons.searchIcons(icon[1], 20).map((e) => ({
+            label: e.id,
+            detail: e.label,
+            type: 'constant',
+            info: () => {
+              const img = document.createElement('img')
+              img.src = iconUrl(e.id)
+              img.alt = ''
+              img.width = img.height = 24
+              return img
+            },
+          })),
+        }
+      }
       const value = /(shape|color):\s*(\w*)$/.exec(inside)
       if (value) return done(value[2], toOptions(value[1] === 'shape' ? SHAPES : COLOR_NAMES, 'enum'))
       const key = /(?:^|,)\s*(\w*)$/.exec(inside)
-      return key ? done(key[1], toOptions(ATTR_KEYS, 'property')) : null
+      return key ? done(key[1], toOptions(sequence ? SEQUENCE_ATTRS : ATTR_KEYS, 'property')) : null
     }
+
+    const activation = sequence && ACTIVATION_LINE.exec(before)
+    if (activation) return done(activation[1], toOptions(nodeNames, 'variable'))
 
     const setting = new RegExp(`^\\s*(${SETTING_KEYS.slice(1).join('|')})\\s+(\\w*)$`).exec(before)
     if (setting) {
@@ -49,14 +78,15 @@ export function diagramCompletions(nodeNames: string[]): CompletionSource {
     if (before.slice(before.lastIndexOf(']') + 1).includes(':')) return null
 
     const word = /^\s*(\w*)$/.exec(before)
-    const keys = word ? toOptions(SETTING_KEYS, 'keyword') : []
+    const keys = word ? toOptions(sequence ? [...SETTING_KEYS, ...SEQUENCE_WORDS] : SETTING_KEYS, 'keyword') : []
     // Names may hold spaces and hyphens: the typed part starts after the last operator or comma.
     const name = before.split(/[><,{]| - /).pop()!.trimStart()
     return done(word ? word[1] : name, [...keys, ...toOptions(nodeNames, 'variable')])
   }
 }
 
-const SETTING_KEY_START = new RegExp(`^(?:${SETTING_KEYS.join('|')})\\b`)
+// ponytail: sequence words are coloured in every diagram type (a flowchart node named "loop" looks like a keyword); the token function does not know the type.
+const SETTING_KEY_START = new RegExp(`^(?:${[...SETTING_KEYS, ...SEQUENCE_WORDS].join('|')})\\b`)
 const OPERATOR = /^(?:<>|-->|>|<|-)/
 
 export const diagramLanguage = StreamLanguage.define<{ inBrackets: boolean }>({

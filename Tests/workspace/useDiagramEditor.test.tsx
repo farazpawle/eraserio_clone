@@ -263,6 +263,7 @@ describe('useDiagramEditor', () => {
     act(() => hook.result.current.open(id))
 
     act(() => hook.result.current.setCode('A > B > C'))
+    await act(async () => {}) // the layout starts after the icon list has been looked up
     const drawn = { id: 'drawn-meanwhile', type: 'rectangle', frameId: null, isDeleted: false, version: 1 }
     setScene([...current(), drawn])
     await finish(0)
@@ -444,5 +445,55 @@ describe('drag notice', () => {
     const { feed, moved } = await dragged({ readOnly: true })
     feed(moved(5))
     expect(noticeCalls()).toHaveLength(0)
+  })
+})
+
+describe('switching diagram type', () => {
+  const sceneOf = async (code: string, diagramType: 'flowchart' | 'sequence') => {
+    const { elements } = await createDiagram({ code, diagramType, at: { x: 0, y: 0 } })
+    return elements as El[]
+  }
+  const redrawnFrame = (api: El) => frameOf(api.updateScene.mock.calls[0][0].elements)
+
+  it('swaps in the sequence starter when leaving the flow syntax', async () => {
+    const scene = await sceneOf('A > B', 'flowchart')
+    const { api, hook, select } = setup(scene)
+    select(frameOf(scene).id)
+
+    act(() => hook.result.current.setType('sequence'))
+    await waitFor(() => expect(api.updateScene).toHaveBeenCalled())
+
+    expect(redrawnFrame(api).customData).toMatchObject({ diagramType: 'sequence', code: STARTERS.sequence })
+  })
+
+  it('swaps in the flowchart starter when leaving a sequence diagram', async () => {
+    const scene = await sceneOf('A > B', 'sequence')
+    const { api, hook, select } = setup(scene)
+    select(frameOf(scene).id)
+
+    act(() => hook.result.current.setType('flowchart'))
+    await waitFor(() => expect(api.updateScene).toHaveBeenCalled())
+
+    expect(redrawnFrame(api).customData).toMatchObject({ diagramType: 'flowchart', code: STARTERS.flowchart })
+  })
+
+  it('keeps the text between flowchart and cloud', async () => {
+    const scene = await sceneOf('A > B', 'flowchart')
+    const { api, hook, select } = setup(scene)
+    select(frameOf(scene).id)
+
+    act(() => hook.result.current.setType('cloud'))
+    await waitFor(() => expect(api.updateScene).toHaveBeenCalled())
+
+    expect(redrawnFrame(api).customData).toMatchObject({ diagramType: 'cloud', code: 'A > B' })
+  })
+
+  it('shows the sequence parser errors for a sequence diagram', async () => {
+    const scene = await sceneOf('A >', 'sequence')
+    const { hook, select } = setup(scene)
+    select(frameOf(scene).id)
+
+    expect(hook.result.current.errors).toHaveLength(1)
+    expect(hook.result.current.errors[0].line).toBe(1)
   })
 })

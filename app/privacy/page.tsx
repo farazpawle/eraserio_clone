@@ -11,7 +11,7 @@ export default function PrivacyPage() {
           <Image src="/logo-black-_1_.svg" width={140} height={40} alt="logo" className="dark:invert" />
         </Link>
         <h1 className="text-2xl font-bold mb-2">Privacy policy</h1>
-        <p className="text-sm text-gray-500 mb-8">Last updated: 22 October 2026</p>
+        <p className="text-sm text-gray-500 mb-8">Last updated: 24 October 2026</p>
 
         <h2 className="text-lg font-semibold mt-6 mb-2">What we collect</h2>
         <ul className="list-disc pl-5 space-y-1">
@@ -47,6 +47,37 @@ export default function PrivacyPage() {
           You can delete your files and teams in the app at any time. To delete your account and everything linked
           to it, ask the operator of this site.
         </p>
+
+        <h2 className="text-lg font-semibold mt-6 mb-2">Credits</h2>
+        <p>
+          The cloud architecture icons offered in diagrams belong to their owners and are used under each owner&apos;s
+          icon terms. The owners are not affiliated with this site.
+        </p>
+        <ul className="list-disc pl-5 space-y-1 mt-2">
+          <li>Amazon Web Services, Inc. owns the AWS Architecture Icons; AWS is a trademark of Amazon.com, Inc.</li>
+          <li>Microsoft Corporation owns the Microsoft Azure icons; Azure is a trademark of Microsoft.</li>
+          <li>Google LLC owns the Google Cloud icons; Google Cloud is a trademark of Google LLC.</li>
+          <li>
+            <a
+              href="https://github.com/kubernetes/community/tree/master/icons"
+              className="underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Kubernetes community icons
+            </a>{" "}
+            © The Kubernetes Authors, licensed under{" "}
+            <a
+              href="https://creativecommons.org/licenses/by/4.0/"
+              className="underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              CC BY 4.0
+            </a>
+            .
+          </li>
+        </ul>
       </article>
     </main>
   );

@@ -11,6 +11,7 @@ const ALL_EXAMPLES = [
   ...EXAMPLES,
   { title: 'Starter: flowchart', code: STARTERS.flowchart },
   { title: 'Starter: cloud', code: STARTERS.cloud },
+  { title: 'Starter: sequence', code: STARTERS.sequence },
 ]
 
 function Code({ children }: { children: string }) {
@@ -91,6 +92,7 @@ export default function DiagramSyntaxPage() {
             <li>
               Put a label in double quotes if it contains <code>//</code>, <code>{'{'}</code> or <code>:</code>.
             </li>
+            <li>Sequence diagrams ignore <code>direction</code> and do not use icons.</li>
             <li>
               Names cannot contain <code>[ ] {'{ }'} &lt; &gt; :</code> commas or quotes.
             </li>

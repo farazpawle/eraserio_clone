@@ -2,9 +2,10 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import DiagramStyleBar from '@/app/(routes)/workspace/_components/diagram/DiagramStyleBar'
+import { createRegistry } from '@/lib/diagram/icons/registry'
 import { setSetting } from '@/lib/diagram/parse/settings'
 
-function setup(code = 'A > B', diagramType: 'flowchart' | 'cloud' = 'flowchart') {
+function setup(code = 'A > B', diagramType: 'flowchart' | 'cloud' | 'sequence' = 'flowchart') {
   const onCode = jest.fn()
   const onType = jest.fn()
   render(<DiagramStyleBar code={code} diagramType={diagramType} onCode={onCode} onType={onType} />)
@@ -66,5 +67,38 @@ describe('DiagramStyleBar', () => {
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Type' }), 'flowchart')
     expect(onCode).not.toHaveBeenCalled()
     expect(onType).not.toHaveBeenCalled()
+  })
+
+  it('has no icon picker unless given icons and a cursor line', () => {
+    setup()
+    expect(screen.queryByRole('button', { name: 'Icon' })).not.toBeInTheDocument()
+  })
+
+  it('shows the icon picker when given them', () => {
+    const icons = createRegistry({ version: 1, icons: [] })
+    render(<DiagramStyleBar code="A" diagramType="cloud" onCode={jest.fn()} onType={jest.fn()} icons={icons} cursorLine={{ current: 1 }} />)
+    expect(screen.getByRole('button', { name: 'Icon' })).toBeInTheDocument()
+  })
+})
+
+describe('DiagramStyleBar for sequence diagrams', () => {
+  it('lists Sequence in the Type menu', () => {
+    setup()
+    expect(screen.getByRole('option', { name: 'Sequence' })).toBeInTheDocument()
+  })
+
+  it('hides Direction and the icon picker', () => {
+    const registry = createRegistry({ version: 1, icons: [] })
+    render(
+      <DiagramStyleBar code="A > B" diagramType="sequence" onCode={jest.fn()} onType={jest.fn()} icons={registry} cursorLine={{ current: 1 }} />,
+    )
+    expect(screen.queryByRole('combobox', { name: 'Direction' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /icon/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Colour' })).toBeInTheDocument()
+  })
+
+  it('still shows Direction for a flowchart', () => {
+    setup()
+    expect(screen.getByRole('combobox', { name: 'Direction' })).toBeInTheDocument()
   })
 })

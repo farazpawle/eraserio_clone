@@ -9,6 +9,7 @@ let mockProps: any
 const mockLoadSceneFiles = jest.fn()
 const mockPersistCanvas = jest.fn()
 const mockToastError = jest.fn()
+const mockLoadIconFiles = jest.fn()
 
 jest.mock('@excalidraw/excalidraw', () => {
   const Passthrough = ({ children }: any) => children ?? null
@@ -27,6 +28,10 @@ jest.mock('@excalidraw/excalidraw', () => {
     getSceneVersion: (els: { version?: number }[]) => els.reduce((n, e) => n + (e.version ?? 0), 0),
   }
 })
+jest.mock('@/lib/diagram/icons/files', () => ({
+  ...jest.requireActual('@/lib/diagram/icons/files'),
+  loadIconFiles: (...a: unknown[]) => mockLoadIconFiles(...a),
+}))
 jest.mock('@/lib/supabase/client', () => ({ createClient: () => ({}) }))
 jest.mock('@/lib/data/files', () => ({ saveWhiteboard: jest.fn() }))
 jest.mock('@/lib/data/canvasFiles', () => ({ supabaseCanvasFileStore: () => ({ load: jest.fn(), save: jest.fn() }) }))
@@ -163,6 +168,37 @@ describe('WSCanvas', () => {
 
     expect(onStatus).not.toHaveBeenCalled()
     expect(mockPersistCanvas).not.toHaveBeenCalled()
+  })
+
+  describe('icons', () => {
+    const iconElement = { id: 'i1', type: 'image', fileId: 'icon:aws-ec2', isDeleted: false, version: 1 }
+    const iconFile = { id: 'icon:aws-ec2', mimeType: 'image/svg+xml', dataURL: 'data:image/svg+xml;base64,AA==', created: 1 }
+
+    it('adds the missing icon file once, however many changes report it', async () => {
+      mockLoadIconFiles.mockResolvedValue([iconFile])
+      const api = { addFiles: jest.fn(), getSceneElements: () => [], getSceneElementsIncludingDeleted: () => [] }
+      await mount()
+      act(() => mockProps.excalidrawAPI(api))
+
+      await act(async () => mockProps.onChange([iconElement], { selectedElementIds: {} }, {}))
+      await act(async () => mockProps.onChange([{ ...iconElement, version: 2 }], { selectedElementIds: {} }, {}))
+
+      expect(mockLoadIconFiles).toHaveBeenCalledTimes(1)
+      expect(mockLoadIconFiles).toHaveBeenCalledWith(['aws-ec2'])
+      expect(api.addFiles).toHaveBeenCalledTimes(1)
+      expect(api.addFiles).toHaveBeenCalledWith([iconFile])
+    })
+
+    it('loads nothing when the canvas has no icons or the file is already there', async () => {
+      const api = { addFiles: jest.fn(), getSceneElements: () => [], getSceneElementsIncludingDeleted: () => [] }
+      await mount()
+      act(() => mockProps.excalidrawAPI(api))
+
+      await act(async () => mockProps.onChange([element(1)], { selectedElementIds: {} }, files))
+      await act(async () => mockProps.onChange([iconElement], { selectedElementIds: {} }, { 'icon:aws-ec2': iconFile }))
+
+      expect(mockLoadIconFiles).not.toHaveBeenCalled()
+    })
   })
 
   describe('diagrams', () => {

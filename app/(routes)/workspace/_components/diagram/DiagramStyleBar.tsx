@@ -1,5 +1,7 @@
-import React from 'react'
+import React, { type MutableRefObject } from 'react'
+import type { Registry } from '@/lib/diagram/icons/registry'
 import { ALLOWED, parseSettings, setSetting } from '@/lib/diagram/parse/settings'
+import IconPicker from './IconPicker'
 import { DIAGRAM_TYPES, type DiagramSettings, type DiagramType } from '@/lib/diagram/types'
 
 type SettingKey = Exclude<keyof DiagramSettings, 'title'>
@@ -7,6 +9,7 @@ type SettingKey = Exclude<keyof DiagramSettings, 'title'>
 const TYPE_LABELS: Record<DiagramType, string> = {
   flowchart: 'Flowchart',
   cloud: 'Cloud architecture',
+  sequence: 'Sequence',
 }
 const label = (value: string) => value[0].toUpperCase() + value.slice(1)
 
@@ -25,13 +28,21 @@ export default function DiagramStyleBar({
   diagramType,
   onCode,
   onType,
+  icons,
+  cursorLine,
 }: {
   code: string
   diagramType: DiagramType
   onCode: (code: string) => void
   onType: (type: DiagramType) => void
+  // The icon picker needs both: the registry to search (null while loading) and the code panel's cursor line.
+  icons?: Registry | null
+  cursorLine?: MutableRefObject<number>
 }) {
   const { settings } = parseSettings(code.split(/\r?\n/))
+
+  // Sequence diagrams always run top to bottom and have no icons.
+  const sequence = diagramType === 'sequence'
 
   return (
     <div className="order-last flex basis-full flex-wrap items-center gap-1.5">
@@ -47,7 +58,7 @@ export default function DiagramStyleBar({
           </option>
         ))}
       </select>
-      {SETTING_SELECTS.map(({ key, name }) => (
+      {SETTING_SELECTS.filter(({ key }) => !(sequence && key === 'direction')).map(({ key, name }) => (
         <select
           key={key}
           aria-label={name}
@@ -62,6 +73,7 @@ export default function DiagramStyleBar({
           ))}
         </select>
       ))}
+      {!sequence && icons !== undefined && cursorLine && <IconPicker icons={icons} code={code} cursorLine={cursorLine} onCode={onCode} />}
     </div>
   )
 }

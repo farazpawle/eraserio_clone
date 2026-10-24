@@ -13,6 +13,14 @@ export type ElementStyle = {
   fontFamily: number
 }
 
+export const fillOf = (style: ElementStyle) => ({
+  strokeColor: style.strokeColor,
+  backgroundColor: style.backgroundColor,
+  fillStyle: style.fillStyle,
+  roughness: style.roughness,
+  strokeWidth: style.strokeWidth,
+})
+
 const DARK = '#1e1e1e'
 // Text that sits straight on the canvas (edge labels, hachure fills); the dark theme's filter lightens it.
 export const CANVAS_TEXT = DARK

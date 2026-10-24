@@ -43,3 +43,6 @@ next-env.d.ts
 !.env.example
 .vscode/memories.db
 script.ps1
+
+# vendor icon packs, extracted by hand; public/icons is the committed build output
+/icons-src/

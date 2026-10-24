@@ -114,18 +114,32 @@ describe('toSkeletons nodes', () => {
     expect(el.label.fontFamily).toBe(st.fontFamily)
   })
 
-  it('draws an icon tag inside the box above the label', () => {
-    const sk = make(flow({ nodes: [node('A', 'rectangle', 0, { icon: 'aws-ec2', height: 80 })], edges: [] }))
+  it('draws a node icon as a 32px image, centred at the top of the box, above the label', () => {
+    const sk = make(flow({ nodes: [node('A', 'rectangle', 0, { icon: 'aws-ec2', height: 88 })], edges: [] }))
     const icon = byId(sk, `${ID}:i:A`)
-    expect(icon.type).toBe('text')
-    expect(icon.text).toBe('[aws-ec2]')
-    expect(icon.y).toBeGreaterThanOrEqual(210)
-    expect(icon.y).toBeLessThan(210 + 80)
+    expect(icon).toMatchObject({ type: 'image', fileId: 'icon:aws-ec2', width: 32, height: 32, status: 'saved' })
+    expect(icon.x + 16).toBeCloseTo(100 + 60) // box centre
+    expect(icon.y).toBe(210 + 8)
+    expect(icon.y + 32).toBeLessThan(210 + 88 - 25) // clear of a one-line label at the bottom
+    expect(sk.some((e) => e.type === 'text' && String(e.text).startsWith('['))).toBe(false)
+  })
+
+  it('draws a group icon as a 24px image in the top-right corner', () => {
+    const g = { id: 'G', label: 'G', icon: 'aws-vpc', line: 1, x: 0, y: 0, width: 400, height: 200 }
+    const icon = byId(make(flow({ groups: [g], nodes: [], edges: [] })), `${ID}:gi:G`)
+    expect(icon).toMatchObject({ type: 'image', fileId: 'icon:aws-vpc', width: 24, height: 24 })
+    expect(icon.x + 24).toBe(100 + 400 - 8)
+    expect(icon.y).toBe(200 + 8)
+  })
+
+  it('draws a group without an icon with no image', () => {
+    const g = { id: 'G', label: 'G', line: 1, x: 0, y: 0, width: 400, height: 200 }
+    expect(make(flow({ groups: [g], nodes: [], edges: [] })).some((e) => e.type === 'image')).toBe(false)
   })
 
   // A label wrapped onto two lines and centred ran into the tag (browser smoke test).
   it.each(['rectangle', 'cylinder'] as const)('puts a %s label with an icon at the bottom, clear of the tag', (shape) => {
-    const sk = make(flow({ nodes: [node('A', shape, 0, { icon: 'aws-ec2', height: 80 })], edges: [] }))
+    const sk = make(flow({ nodes: [node('A', shape, 0, { icon: 'aws-ec2', height: 88 })], edges: [] }))
     expect(byId(sk, `${ID}:n:A`).label.verticalAlign).toBe('bottom')
   })
 

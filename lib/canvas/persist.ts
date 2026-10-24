@@ -2,14 +2,16 @@ import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types'
 import type { BinaryFiles } from '@excalidraw/excalidraw/types'
 import type { Json } from '@/types/database'
 import type { CanvasFileStore } from '@/lib/data/canvasFiles'
+import { isIconFileId } from '@/lib/diagram/icons/files'
 
 export type Scene = { elements: readonly ExcalidrawElement[]; files: BinaryFiles }
 
-// Images still on the canvas. Deleted elements stay in the list for undo, but their images are not needed.
+// Stored images still on the canvas (diagram icons come from /icons, not storage). Deleted elements
+// stay in the list for undo, but their images are not needed.
 export function referencedFileIds(elements: readonly ExcalidrawElement[]): string[] {
   const ids = new Set<string>()
   for (const el of elements) {
-    if (el.type === 'image' && !el.isDeleted && el.fileId) ids.add(el.fileId)
+    if (el.type === 'image' && !el.isDeleted && el.fileId && !isIconFileId(el.fileId)) ids.add(el.fileId)
   }
   return Array.from(ids)
 }

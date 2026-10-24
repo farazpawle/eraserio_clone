@@ -1,10 +1,13 @@
 import type { ExcalidrawElementSkeleton } from '@excalidraw/excalidraw/data/transform'
+import { iconFileId } from '../icons/files'
 import { type Box, type DiagramSettings, type EdgeKind, type PositionedFlow } from '../types'
 import { outlinePoints } from './shapes'
-import { CANVAS_TEXT, styleFor, type ElementStyle } from './style'
+import { CANVAS_TEXT, fillOf, styleFor, type ElementStyle } from './style'
 
 const SHADOW_OFFSET = 6
-const ICON_FONT_SIZE = 12
+const NODE_ICON = 32
+const GROUP_ICON = 24
+const ICON_INSET = 8
 const NATIVE = { rectangle: 'rectangle', diamond: 'diamond', ellipse: 'ellipse', oval: 'ellipse' } as const
 
 const HEADS: Record<EdgeKind, { start: 'arrow' | null; end: 'arrow' | null }> = {
@@ -40,14 +43,6 @@ export function toSkeletons(
     ...extra,
   })
 
-  const fillOf = (style: ElementStyle) => ({
-    strokeColor: style.strokeColor,
-    backgroundColor: style.backgroundColor,
-    fillStyle: style.fillStyle,
-    roughness: style.roughness,
-    strokeWidth: style.strokeWidth,
-  })
-
   // Outermost group first, so inner groups are drawn on top.
   const depth = (id: string | undefined): number => {
     const parent = positioned.groups.find((g) => g.id === id)?.parent
@@ -68,6 +63,19 @@ export function toSkeletons(
       label: label(g.label, style, { verticalAlign: 'top', textAlign: 'left' }),
       ...tag(),
     })
+    // Top-right: the group's label sits top-left.
+    if (g.icon)
+      out.push({
+        type: 'image',
+        id: `${diagramId}:gi:${g.id}`,
+        fileId: iconFileId(g.icon) as never,
+        x: b.x + b.width - ICON_INSET - GROUP_ICON,
+        y: b.y + ICON_INSET,
+        width: GROUP_ICON,
+        height: GROUP_ICON,
+        status: 'saved',
+        ...tag(),
+      })
   }
 
   const nodes = positioned.nodes.map((n) => ({ n, b: shift(n), style: styleFor(n, settings) }))
@@ -99,7 +107,7 @@ export function toSkeletons(
     const id = `${diagramId}:n:${n.id}`
     boxes.set(n.id, b)
     targets.set(n.id, id)
-    // The icon tag sits at the top, so its label goes to the bottom: a centred two-line label ran into it.
+    // The icon sits at the top, so its label goes to the bottom: a centred two-line label ran into it.
     const nodeLabel = label(n.label, style, n.icon ? { verticalAlign: 'bottom' } : {})
     const native = NATIVE[n.shape as keyof typeof NATIVE]
     if (native) {
@@ -123,21 +131,18 @@ export function toSkeletons(
         ...tag(),
       })
     }
-    if (n.icon) {
-      const text = `[${n.icon}]`
+    if (n.icon)
       out.push({
-        type: 'text',
+        type: 'image',
         id: `${diagramId}:i:${n.id}`,
-        text,
-        // Rough centring: the real text width is only known after Excalidraw measures it.
-        x: b.x + b.width / 2 - text.length * ICON_FONT_SIZE * 0.3,
-        y: b.y + 6,
-        fontSize: ICON_FONT_SIZE,
-        fontFamily: style.fontFamily as 1,
-        strokeColor: style.textColor,
+        fileId: iconFileId(n.icon) as never, // the skeleton type wants Excalidraw's branded FileId
+        x: b.x + (b.width - NODE_ICON) / 2,
+        y: b.y + ICON_INSET,
+        width: NODE_ICON,
+        height: NODE_ICON,
+        status: 'saved',
         ...tag(),
       })
-    }
   }
 
   const edgeStyle = styleFor({}, settings)

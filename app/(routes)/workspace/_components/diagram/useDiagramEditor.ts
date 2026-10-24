@@ -5,9 +5,9 @@ import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/t
 import { toast } from 'sonner'
 import { claimCopies, createDiagram, isDiagramFrame, isGeneratedChild, readDiagram, updateDiagram } from '@/lib/diagram/block'
 import type { ElkLike } from '@/lib/diagram/layout/elkWorker'
-import { parseFlow } from '@/lib/diagram/parse/flow'
+import { parseDiagram } from '@/lib/diagram/parse'
 import { STARTERS } from '@/lib/diagram/templates'
-import type { DiagramData, DiagramError, DiagramType } from '@/lib/diagram/types'
+import { syntaxOf, type DiagramData, type DiagramError, type DiagramType } from '@/lib/diagram/types'
 
 type Active = { frameId: string; data: DiagramData } | null
 type View = { scrollX: number; scrollY: number; zoom: { value: number }; width: number; height: number }
@@ -90,7 +90,7 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
     if (!data) return
     applied.current.set(frame.id, stamp(data))
     setActive({ frameId: frame.id, data })
-    setErrors(parseFlow(data.code).errors)
+    setErrors(parseDiagram(data.diagramType, data.code).errors)
   }
 
   const open = (frameId: string) => {
@@ -135,7 +135,10 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
 
   const setType = (diagramType: DiagramType) => {
     const current = activeRef.current
-    if (current) void redraw({ code: current.data.code, diagramType })
+    if (!current) return
+    // Another syntax would turn the old text into errors, so it gets that type's example (undo brings the text back).
+    const code = syntaxOf(diagramType) === syntaxOf(current.data.diagramType) ? current.data.code : STARTERS[diagramType]
+    void redraw({ code, diagramType })
   }
 
   const insert = async () => {

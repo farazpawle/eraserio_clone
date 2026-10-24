@@ -7,9 +7,12 @@ import {
   readDiagram,
   updateDiagram,
 } from '@/lib/diagram/block'
+import { resetRegistryCache } from '@/lib/diagram/icons/registry'
 import { STARTERS } from '@/lib/diagram/templates'
 import { parseFlow } from '@/lib/diagram/parse/flow'
-import { DEFAULT_SETTINGS } from '@/lib/diagram/types'
+import { parseDiagram } from '@/lib/diagram/parse'
+import { parseSequence } from '@/lib/diagram/parse/sequence'
+import { DEFAULT_SETTINGS, type DiagramType } from '@/lib/diagram/types'
 
 // Loose view of an element: the union type hides fields the tests read.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -331,10 +334,84 @@ describe('readDiagram', () => {
 
 describe('STARTERS', () => {
   it('parse without errors', () => {
-    for (const code of Object.values(STARTERS)) expect(parseFlow(code).errors).toEqual([])
+    for (const [type, code] of Object.entries(STARTERS)) expect(parseDiagram(type as DiagramType, code).errors).toEqual([])
     expect(parseFlow(STARTERS.flowchart).model.nodes).toHaveLength(5)
     const cloud = parseFlow(STARTERS.cloud).model
     expect(cloud.groups).toHaveLength(1)
     expect(cloud.nodes).toHaveLength(4)
+  })
+})
+
+describe('sequence diagrams', () => {
+  it('starter has participants, a block and an activation', () => {
+    const { model } = parseSequence(STARTERS.sequence)
+    expect(model.participants.length).toBeGreaterThanOrEqual(3)
+    expect(model.items.some((i) => i.kind === 'block')).toBe(true)
+    expect(model.items.some((i) => i.kind === 'activate')).toBe(true)
+  })
+
+  it('createDiagram draws participants and arrows inside a sequence frame', async () => {
+    const { elements, errors } = await createDiagram({ code: 'A > B: hi', diagramType: 'sequence', at: { x: 0, y: 0 } })
+    expect(errors).toEqual([])
+    const frame = frameOf(elements)
+    expect(readDiagram(frame)?.diagramType).toBe('sequence')
+    const kids = childrenOf(elements, frame.id)
+    expect(kids.filter((e) => e.type === 'arrow')).toHaveLength(1)
+    expect(textsOf(kids)).toEqual(['A', 'B', 'hi'])
+    for (const el of kids) expect(el.customData.diagramId).toBe(frame.id)
+  })
+
+  it('updateDiagram redraws a flowchart frame as a sequence', async () => {
+    const { elements } = await createDiagram({ code: 'X > Y', diagramType: 'flowchart', at: { x: 0, y: 0 } })
+    const frame = frameOf(elements)
+    const result = await updateDiagram(elements, frame.id, { code: 'A > B: hi', diagramType: 'sequence' })
+    expect(readDiagram(frameOf(result.elements))?.diagramType).toBe('sequence')
+    expect(textsOf(childrenOf(result.elements, frame.id))).toEqual(['A', 'B', 'hi'])
+  })
+
+  it('draws empty code as an empty minimum-size frame', async () => {
+    const { elements, errors } = await createDiagram({ code: '', diagramType: 'sequence', at: { x: 0, y: 0 } })
+    expect(errors).toEqual([])
+    expect(frameOf(elements).width).toBe(200)
+    expect(childrenOf(elements, frameOf(elements).id)).toHaveLength(0)
+  })
+})
+
+describe('parseDiagram', () => {
+  it('returns names and errors for each syntax', () => {
+    expect(parseDiagram('sequence', 'A > B').names).toEqual(['A', 'B'])
+    expect(parseDiagram('cloud', 'X > Y').names).toEqual(['X', 'Y'])
+    expect(parseDiagram('sequence', 'A >').errors).toHaveLength(1)
+    expect(parseDiagram('flowchart', 'A >').errors).toHaveLength(1)
+  })
+})
+
+describe('icons', () => {
+  const manifest = {
+    version: 1,
+    icons: [{ id: 'aws-ec2', provider: 'aws', label: 'Amazon EC2', keywords: [], aliases: [] }],
+  }
+  const g = globalThis as { fetch?: unknown }
+  const draw = (code: string) => createDiagram({ code, diagramType: 'cloud', at: { x: 0, y: 0 } })
+
+  beforeEach(resetRegistryCache)
+  afterEach(() => {
+    delete g.fetch
+  })
+
+  it('reports an unknown icon on its line and still draws the node', async () => {
+    g.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => manifest })
+    const { elements, errors } = await draw('A [icon: aws-ec2]\nB [icon: aws-nope]')
+    expect(errors).toEqual([{ line: 2, message: expect.stringContaining('aws-nope') }])
+    const kids = childrenOf(elements, frameOf(elements).id)
+    expect(textsOf(kids)).toEqual(['A', 'B'])
+    expect(kids.filter((e) => e.type === 'image').map((e) => e.fileId).sort()).toEqual(['icon:aws-ec2', 'icon:generic'])
+  })
+
+  it('still draws, with no icon error, when the manifest cannot be loaded', async () => {
+    g.fetch = jest.fn().mockRejectedValue(new Error('offline'))
+    const { elements, errors } = await draw('A [icon: aws-nope]')
+    expect(errors).toEqual([])
+    expect(textsOf(childrenOf(elements, frameOf(elements).id))).toEqual(['A'])
   })
 })

@@ -41,6 +41,15 @@ describe('DiagramCodePanel', () => {
     expect(screen.getByText('Diagram up to date')).toBeInTheDocument()
   })
 
+  it('keeps the cursor line up to date for the icon picker', () => {
+    const cursorLine = { current: 99 }
+    const { view } = setup({ code: 'A\nB\nC', cursorLine })
+    expect(cursorLine.current).toBe(1)
+
+    act(() => view.dispatch({ selection: { anchor: view.state.doc.line(3).from } }))
+    expect(cursorLine.current).toBe(3)
+  })
+
   it('reports typing once, 150 ms after the last key', () => {
     jest.useFakeTimers()
     const { onChange, typeAtEnd } = setup()
