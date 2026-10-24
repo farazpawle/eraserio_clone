@@ -18,7 +18,7 @@ const SETTING_SELECTS: { key: SettingKey; name: string }[] = [
 ]
 
 const selectClass =
-  'h-8 min-w-0 rounded-md border border-g-line bg-g-panel px-1.5 text-xs text-g-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent max-md:h-11 max-md:flex-auto'
+  'h-8 min-w-0 rounded-md border border-g-line bg-g-panel px-1.5 text-xs text-g-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent max-md:h-11 max-md:flex-auto max-md:text-base'
 
 export default function DiagramStyleBar({
   code,
