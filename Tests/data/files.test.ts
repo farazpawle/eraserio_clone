@@ -68,4 +68,16 @@ describe('files data', () => {
     await deleteFile(db, 'f1')
     expect(calls[0]).toEqual([['from', 'files'], ['delete'], ...writeTail])
   })
+
+  it('still succeeds when cleaning up the file’s canvas images fails', async () => {
+    const { db } = fakeDb({ data: { id: 'f1' } })
+    const failing = Object.assign(db, {
+      storage: { from: () => ({ list: () => Promise.reject(new Error('storage down')) }) },
+    })
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await expect(deleteFile(failing, 'f1')).resolves.toBeUndefined()
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
+  })
 })

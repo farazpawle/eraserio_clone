@@ -1,5 +1,6 @@
 import type { Json, Tables } from '@/types/database'
 import { type Db, requireName, unwrap } from './db'
+import { deleteCanvasFiles } from './canvasFiles'
 
 export type FileRow = Tables<'files'>
 export type FileSummary = Omit<FileRow, 'document' | 'whiteboard'>
@@ -37,4 +38,11 @@ export const saveWhiteboard = (db: Db, id: string, whiteboard: Json) => updateFi
 
 export async function deleteFile(db: Db, id: string) {
   unwrap(await db.from('files').delete().eq('id', id).select('id').single())
+  // The row is gone; leftover images are only wasted space, so a failure here is not the user's problem.
+  // ponytail: deleting a whole team still leaves its images behind; sweep them if storage grows.
+  try {
+    await deleteCanvasFiles(db, id)
+  } catch (error) {
+    console.warn('Could not remove canvas images for deleted file', { id, error })
+  }
 }

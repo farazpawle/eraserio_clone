@@ -57,6 +57,24 @@ begin
 end;
 $$;
 
+-- Passes when a statement touches 0 rows or is refused with "permission denied".
+create function rls_test.untouched(p_sql text, p_msg text) returns void
+language plpgsql as $$
+declare
+  n bigint := 0;
+  v_state text;
+begin
+  begin
+    execute p_sql;
+    get diagnostics n = row_count;
+  exception when others then
+    get stacked diagnostics v_state = returned_sqlstate;
+    n := case when v_state = '42501' then 0 else 1 end;
+  end;
+  perform rls_test.check(n = 0, p_msg);
+end;
+$$;
+
 create function rls_test.as_user(p_uid uuid) returns void
 language sql as $$
   select set_config('request.jwt.claims',
@@ -75,6 +93,14 @@ select rls_test.check((select count(*) from public.profiles where id in (:A, :B,
   'sign-up trigger created 3 profiles');
 select rls_test.check((select full_name from public.profiles where id = :B) = 'bob',
   'profile name falls back to email prefix');
+
+select rls_test.check((select not public from storage.buckets where id = 'canvas-files'),
+  'canvas-files bucket is private');
+select rls_test.check((select file_size_limit from storage.buckets where id = 'canvas-files') = 5242880,
+  'canvas-files bucket limits images to 5 MiB');
+select rls_test.check((select allowed_mime_types from storage.buckets where id = 'canvas-files')
+  = array['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'],
+  'canvas-files bucket allows only image types');
 
 -- ── A sets up a team, file, share, invitations, settings ──
 set local role authenticated;
@@ -99,6 +125,29 @@ select rls_test.check(rls_test.rows(format('update public.files set document = %
 select rls_test.refused(format('update public.files set team_id = gen_random_uuid() where id = %L', :'file_id'),
   'owner cannot move a file to another team');
 
+-- Canvas images live in storage at "<file id>/<image id>".
+-- Direct deletes from storage tables need this switch (the Storage API sets it itself).
+select set_config('storage.allow_delete_query', 'true', true);
+insert into storage.objects (bucket_id, name) values ('canvas-files', :'file_id' || '/abc123');
+select rls_test.check((select count(*) from storage.objects where bucket_id = 'canvas-files') = 1,
+  'owner can store and read a canvas image');
+select rls_test.refused(format('insert into storage.objects (bucket_id, name) values (%L, %L)', 'canvas-files', gen_random_uuid()::text || '/abc'),
+  'owner cannot store an image for a file that does not exist');
+select rls_test.refused(format('insert into storage.objects (bucket_id, name) values (%L, %L)', 'canvas-files', :'file_id' || '/../x'),
+  'image names with path tricks are refused');
+select rls_test.refused(format('insert into storage.objects (bucket_id, name) values (%L, %L)', 'canvas-files', :'file_id' || '/a/b'),
+  'image names with extra folders are refused');
+select rls_test.refused(format('insert into storage.objects (bucket_id, name) values (%L, %L)', 'canvas-files', upper(:'file_id') || '/x'),
+  'image names with an upper-case file id are refused');
+select rls_test.refused(format('insert into storage.objects (bucket_id, name) values (%L, %L)', 'canvas-files', :'file_id' || E'/abc\n'),
+  'image names with a trailing newline are refused');
+select rls_test.refused(format('insert into storage.objects (bucket_id, name) values (%L, %L)', 'canvas-files', :'file_id' || '/' || repeat('a', 65)),
+  'image ids longer than 64 characters are refused');
+select rls_test.refused(format('insert into storage.objects (bucket_id, name) values (%L, %L)', 'canvas-files', :'file_id' || '/a.b'),
+  'image ids with a dot are refused');
+select rls_test.refused(format('insert into storage.objects (bucket_id, name) values (%L, %L)', 'canvas-files', 'not-a-uuid/abc'),
+  'image names that do not start with a file id are refused');
+
 -- ── B (outsider) sees and changes nothing of A's ──
 select rls_test.as_user(:B);
 
@@ -120,6 +169,14 @@ select rls_test.check(rls_test.rows('update public.file_shares set is_active = t
   'B cannot change A''s shares');
 select rls_test.check(rls_test.rows('update public.user_settings set theme = ''light''') = 0,
   'B cannot change A''s settings');
+select rls_test.check((select count(*) from storage.objects where bucket_id = 'canvas-files') = 0,
+  'B cannot read A''s canvas images');
+select rls_test.check(rls_test.rows(format('update storage.objects set name = name where bucket_id = %L', 'canvas-files')) = 0,
+  'B cannot change A''s canvas images');
+select rls_test.check(rls_test.rows(format('delete from storage.objects where bucket_id = %L', 'canvas-files')) = 0,
+  'B cannot delete A''s canvas images');
+select rls_test.refused(format('insert into storage.objects (bucket_id, name) values (%L, %L)', 'canvas-files', :'file_id' || '/b1'),
+  'B cannot store an image in A''s file');
 
 select rls_test.refused(format('insert into public.files (team_id, name) values (%L, %L)', :'team_id', 'B file'),
   'B cannot create a file in A''s team');
@@ -147,6 +204,13 @@ select set_config('request.jwt.claims', '{"role":"anon"}', true);
 select rls_test.refused('select 1 from public.files limit 1', 'anon cannot read files');
 select rls_test.refused('select 1 from public.profiles limit 1', 'anon cannot read profiles');
 select rls_test.refused(format('select public.accept_invitation(%L)', :'carol_token'), 'anon cannot accept invitations');
+select rls_test.refused(format('insert into storage.objects (bucket_id, name) values (%L, %L)', 'canvas-files', :'file_id' || '/anon1'),
+  'anon cannot store a canvas image');
+select rls_test.untouched('select 1 from storage.objects', 'anon cannot read canvas images');
+select rls_test.untouched(format('update storage.objects set name = name where bucket_id = %L', 'canvas-files'),
+  'anon cannot change canvas images');
+select rls_test.untouched(format('delete from storage.objects where bucket_id = %L', 'canvas-files'),
+  'anon cannot delete canvas images');
 
 -- ── C accepts the viewer invitation ──
 set local role authenticated;
@@ -163,6 +227,14 @@ select rls_test.refused(format('insert into public.files (team_id, name) values 
   'viewer cannot create files');
 select rls_test.check((select count(*) from public.team_invitations) = 0, 'viewer cannot read invitations');
 select rls_test.check((select count(*) from public.file_shares) = 0, 'viewer cannot read shares');
+select rls_test.check((select count(*) from storage.objects where bucket_id = 'canvas-files') = 1,
+  'viewer C reads the team''s canvas images');
+select rls_test.refused(format('insert into storage.objects (bucket_id, name) values (%L, %L)', 'canvas-files', :'file_id' || '/c1'),
+  'viewer cannot store a canvas image');
+select rls_test.check(rls_test.rows(format('delete from storage.objects where bucket_id = %L', 'canvas-files')) = 0,
+  'viewer cannot delete canvas images');
+select rls_test.check(rls_test.rows(format('update storage.objects set name = name where bucket_id = %L', 'canvas-files')) = 0,
+  'viewer cannot change canvas images');
 select rls_test.check(rls_test.rows(format('delete from public.team_members where user_id = %L', :A)) = 0,
   'viewer cannot remove the owner');
 
@@ -173,9 +245,28 @@ select rls_test.refused(format('update public.team_members set role = %L where u
 select rls_test.check(rls_test.rows(format('update public.team_members set role = %L where user_id = %L', 'member', :C)) = 1,
   'owner can change a member''s role');
 
+-- C is a member now: members can add and remove canvas images.
+select rls_test.as_user(:C);
+insert into storage.objects (bucket_id, name) values ('canvas-files', :'file_id' || '/member1');
+select rls_test.check(rls_test.rows(format('delete from storage.objects where name = %L', :'file_id' || '/member1')) = 1,
+  'member can store and delete a canvas image');
+
 -- ── B still isolated after C joined ──
 select rls_test.as_user(:B);
 select rls_test.check((select count(*) from public.profiles) = 1, 'B still reads only own profile');
+
+-- B with a team of their own still cannot touch A's canvas images.
+insert into public.teams (name) values ('Bob team') returning id as bteam \gset
+insert into public.files (team_id, name) values (:'bteam', 'Bob file') returning id as bfile \gset
+insert into storage.objects (bucket_id, name) values ('canvas-files', :'bfile' || '/b1');
+select rls_test.check((select count(*) from storage.objects where bucket_id = 'canvas-files') = 1,
+  'B reads only the canvas images of their own team');
+select rls_test.check(rls_test.rows(format('update storage.objects set name = name where name = %L', :'file_id' || '/abc123')) = 0,
+  'B cannot change A''s canvas image from B''s own team');
+select rls_test.check(rls_test.rows(format('delete from storage.objects where name = %L', :'file_id' || '/abc123')) = 0,
+  'B cannot delete A''s canvas image from B''s own team');
+select rls_test.refused(format('insert into storage.objects (bucket_id, name) values (%L, %L)', 'canvas-files', :'file_id' || '/b2'),
+  'B cannot store an image in A''s file even with a team of their own');
 
 reset role;
 rollback;
