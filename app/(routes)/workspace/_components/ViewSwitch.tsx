@@ -1,11 +1,12 @@
 "use client";
 import React from "react";
+import { Columns2, FileText, PenTool, type LucideIcon } from "lucide-react";
 import type { EditorView } from "@/app/_hooks/useEditorView";
 
-const TABS: { value: EditorView; label: string }[] = [
-  { value: "doc", label: "Document" },
-  { value: "both", label: "Both" },
-  { value: "canvas", label: "Canvas" },
+const TABS: { value: EditorView; label: string; Icon: LucideIcon }[] = [
+  { value: "doc", label: "Document", Icon: FileText },
+  { value: "both", label: "Both", Icon: Columns2 },
+  { value: "canvas", label: "Canvas", Icon: PenTool },
 ];
 
 // Document / Both / Canvas. "Both" needs two panes side by side, so phones do not get it.
@@ -33,7 +34,7 @@ const ViewSwitch = ({
     <div
       role="tablist"
       aria-label="View"
-      className="inline-flex flex-none gap-0.5 rounded-lg border border-g-line bg-g-panel-2 p-[3px]"
+      className="inline-flex flex-none gap-0.5 rounded-lg border border-g-line bg-g-panel-2 p-[3px] max-md:p-0.5"
     >
       {tabs.map((tab, i) => {
         const selected = tab.value === value;
@@ -46,11 +47,14 @@ const ViewSwitch = ({
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(tab.value)}
             onKeyDown={(e) => move(e, i)}
-            className={`h-[30px] rounded-md px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent max-md:h-[38px] max-md:min-w-11 max-md:px-2.5 ${
+            title={tab.label}
+            className={`inline-flex items-center justify-center h-[30px] rounded-md px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent max-md:h-11 max-md:min-w-11 max-md:px-2.5 ${
               selected ? "bg-g-hover text-g-text shadow-sm" : "text-g-muted hover:text-g-text"
             }`}
           >
-            {tab.label}
+            {/* Small phones get icons only; the label stays for screen readers. */}
+            <tab.Icon className="hidden h-[18px] w-[18px] max-sm:block" aria-hidden="true" />
+            <span className="max-sm:sr-only">{tab.label}</span>
           </button>
         );
       })}

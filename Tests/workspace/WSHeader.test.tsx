@@ -1,10 +1,17 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import WSHeader from '@/app/(routes)/workspace/_components/WSHeader'
 
-jest.mock('@/app/(routes)/workspace/_components/ExportMenu', () => ({ __esModule: true, default: () => <div data-testid="export-menu" /> }))
-jest.mock('@/app/(routes)/workspace/_components/UserMenu', () => ({ __esModule: true, default: () => <div data-testid="user-menu" /> }))
+jest.mock('@/app/(routes)/workspace/_components/ExportMenu', () => ({
+  __esModule: true,
+  default: () => <div data-testid="export-menu" />,
+  ExportItems: () => <div data-testid="export-items" />,
+}))
+jest.mock('@/app/(routes)/workspace/_components/UserMenu', () => ({
+  __esModule: true,
+  default: ({ children }: { children?: React.ReactNode }) => <div data-testid="user-menu">{children}</div>,
+}))
 jest.mock('@/components/ui/file-share-modal', () => ({
   __esModule: true,
   default: ({ isOpen }: { isOpen: boolean }) => (isOpen ? <div data-testid="share-modal" /> : null),
@@ -87,6 +94,19 @@ describe('WSHeader', () => {
     expect(screen.getByTestId('user-menu')).toBeInTheDocument()
   })
 
+  it('on small phones moves Export into the account menu and drops the logo (the menu links to the dashboard)', () => {
+    setup()
+    // CSS picks one: the header Export button from 640px up, the menu copy below.
+    expect(screen.getByTestId('export-menu').parentElement).toHaveClass('max-sm:hidden')
+    expect(within(screen.getByTestId('user-menu')).getByTestId('export-items')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Back to dashboard' })).toHaveClass('max-sm:hidden')
+  })
+
+  it('keeps the logo on small phones when there is no account menu', () => {
+    setup({ user: null })
+    expect(screen.getByRole('link', { name: 'Back to dashboard' })).not.toHaveClass('max-sm:hidden')
+  })
+
   it('hides save, status, rename, share and export when read-only', () => {
     setup({ readOnly: true })
 
@@ -96,6 +116,7 @@ describe('WSHeader', () => {
     expect(screen.getByText('Plan')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument()
     expect(screen.queryByTestId('export-menu')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('export-items')).not.toBeInTheDocument()
   })
 
   it('has no share or export for a link holder (no file data), but keeps Save for edit links', () => {

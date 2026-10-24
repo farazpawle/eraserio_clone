@@ -17,7 +17,8 @@ import { useTheme } from "@/app/_context/ThemeContext";
 import type { AppUser } from "@/hooks/useUser";
 
 // Avatar menu: the editor's only place to switch between light and dark.
-const UserMenu = ({ user }: { user: AppUser | null }) => {
+// `children` are extra items the header moves in here when it runs out of room.
+const UserMenu = ({ user, children }: { user: AppUser | null; children?: React.ReactNode }) => {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   if (!user) return null;
@@ -47,6 +48,7 @@ const UserMenu = ({ user }: { user: AppUser | null }) => {
           <DropdownMenuRadioItem value="dark" className="max-md:min-h-11">Dark</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="system" className="max-md:min-h-11">System</DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
+        {children}
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-pointer gap-2 max-md:min-h-11" onClick={() => router.push("/dashboard")}>
           <LayoutGrid className="h-4 w-4" />

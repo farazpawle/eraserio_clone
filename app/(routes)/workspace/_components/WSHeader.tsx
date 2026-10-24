@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
-import { Share2 } from "lucide-react";
+import { Save, Share2 } from "lucide-react";
 import FileShareModal from "@/components/ui/file-share-modal";
 import type { FileRow } from "@/lib/data/files";
 import type { Scene } from "@/lib/canvas/persist";
@@ -10,8 +10,9 @@ import type { EditorView } from "@/app/_hooks/useEditorView";
 import type { SaveState } from "@/app/_hooks/useSaveStatus";
 import FileNameField from "./FileNameField";
 import ViewSwitch from "./ViewSwitch";
-import ExportMenu from "./ExportMenu";
+import ExportMenu, { ExportItems } from "./ExportMenu";
 import UserMenu from "./UserMenu";
+import { DropdownMenuGroup, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
 const STATUS: Record<SaveState, { label: string; dot: string }> = {
   saved: { label: "Saved", dot: "bg-g-ok" },
@@ -52,15 +53,19 @@ const WSHeader = ({
 }: WSHeaderProps) => {
   const [isShareOpen, setIsShareOpen] = useState(false);
   const showFileTools = !!fileData && !readOnly;
+  const hasUserMenu = !!user && !readOnly;
+  // Below 640px the header has no room for everything: Export moves into the account menu,
+  // and the logo goes because that menu also links back to the dashboard.
+  const exportInMenu = hasUserMenu && showFileTools && !!getScene;
   const { label, dot } = STATUS[status];
 
   return (
     <>
-      <header className="flex h-[52px] flex-none items-center gap-3 border-b border-g-line bg-g-panel px-3 max-sm:gap-2 max-sm:px-2">
+      <header className="flex h-[52px] flex-none items-center gap-3 border-b border-g-line bg-g-panel px-3 max-sm:gap-1 max-sm:px-2">
         <Link
           href="/dashboard"
           aria-label="Back to dashboard"
-          className="grid h-8 w-8 flex-none place-items-center rounded-lg bg-g-accent text-g-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent focus-visible:ring-offset-2 focus-visible:ring-offset-g-panel max-md:h-11 max-md:w-11"
+          className={`${hasUserMenu ? "max-sm:hidden " : ""}grid h-8 w-8 flex-none place-items-center rounded-lg bg-g-accent text-g-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent focus-visible:ring-offset-2 focus-visible:ring-offset-g-panel max-md:h-11 max-md:w-11`}
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
             <path d="M5 4h14v16H3z" fill="currentColor" />
@@ -86,7 +91,7 @@ const WSHeader = ({
 
         <ViewSwitch value={view} onChange={onViewChange} narrow={narrow} />
 
-        <div className="flex flex-none items-center gap-2">
+        <div className="flex flex-none items-center gap-2 max-sm:gap-1">
           {!readOnly && (
             <span
               role="status"
@@ -99,18 +104,33 @@ const WSHeader = ({
             </span>
           )}
 
-          {user && !readOnly && <UserMenu user={user} />}
+          {hasUserMenu && (
+            <UserMenu user={user}>
+              {exportInMenu && (
+                <DropdownMenuGroup className="sm:hidden">
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel>Export</DropdownMenuLabel>
+                  <ExportItems file={fileData} getScene={getScene} />
+                </DropdownMenuGroup>
+              )}
+            </UserMenu>
+          )}
 
-          {showFileTools && getScene && <ExportMenu file={fileData} getScene={getScene} />}
+          {showFileTools && getScene && (
+            <div className={exportInMenu ? "flex max-sm:hidden" : "flex"}>
+              <ExportMenu file={fileData} getScene={getScene} />
+            </div>
+          )}
 
           {!readOnly && (
             <button
               type="button"
               onClick={onSave}
               disabled={status === "saving"}
-              className="inline-flex h-9 items-center rounded-md border border-g-line-2 bg-g-panel-2 px-3 text-sm font-medium text-g-text hover:bg-g-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent disabled:opacity-60 max-md:min-h-11"
+              className="inline-flex h-9 items-center rounded-md border border-g-line-2 bg-g-panel-2 px-3 text-sm font-medium text-g-text hover:bg-g-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent disabled:opacity-60 max-md:min-h-11 max-md:min-w-11 max-md:justify-center"
             >
-              Save
+              <Save className="hidden h-[18px] w-[18px] max-sm:block" aria-hidden="true" />
+              <span className="max-sm:sr-only">Save</span>
             </button>
           )}
 
@@ -122,7 +142,7 @@ const WSHeader = ({
               className="inline-flex h-9 items-center gap-2 rounded-md bg-g-accent px-3 text-sm font-semibold text-g-accent-ink hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent focus-visible:ring-offset-2 focus-visible:ring-offset-g-panel max-md:min-h-11 max-md:min-w-11 max-md:justify-center"
             >
               <Share2 className="h-[18px] w-[18px]" />
-              <span className="hidden sm:inline">Share</span>
+              <span className="hidden md:inline">Share</span>
             </button>
           )}
         </div>
