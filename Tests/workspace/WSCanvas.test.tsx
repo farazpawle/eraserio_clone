@@ -178,10 +178,12 @@ describe('WSCanvas', () => {
       return view
     }
 
-    it('offers a Diagram button to editors', async () => {
+    it('offers a Diagram button to editors, plus an icon button for phones', async () => {
       await mount()
 
       expect(screen.getByRole('button', { name: 'Diagram' })).toBeInTheDocument()
+      // CSS shows only one of the two: the text button from 768px up, the icon button below.
+      expect(screen.getByRole('button', { name: 'Insert diagram' })).toHaveClass('md:hidden')
       expect(screen.queryByRole('button', { name: 'Diagram code' })).not.toBeInTheDocument()
     })
 
@@ -189,6 +191,7 @@ describe('WSCanvas', () => {
       await mountWith([], { readOnly: true })
 
       expect(screen.queryByRole('button', { name: 'Diagram' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Insert diagram' })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Diagram code' })).not.toBeInTheDocument()
     })
 

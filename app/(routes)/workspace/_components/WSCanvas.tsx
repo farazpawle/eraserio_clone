@@ -151,7 +151,7 @@ const WSCanvas = ({
             readOnly
               ? undefined
               : () => (
-                  <button type="button" className={canvasButton} onClick={() => void diagram.insert()}>
+                  <button type="button" className={`${canvasButton} max-md:hidden`} onClick={() => void diagram.insert()}>
                     <Workflow className="h-4 w-4" aria-hidden />
                     Diagram
                   </button>
@@ -185,6 +185,19 @@ const WSCanvas = ({
           </MainMenu>
         </Excalidraw>
       </div>
+      {/* Excalidraw's phone toolbar fills the top row, so on phones the Diagram button floats over the canvas,
+          left of Excalidraw's library / lock / hand column. */}
+      {!readOnly && (
+        <button
+          type="button"
+          aria-label="Insert diagram"
+          title="Insert diagram"
+          className="absolute right-12 top-20 z-10 flex h-11 w-11 items-center justify-center rounded-lg border border-g-line bg-g-panel text-g-text shadow-sm hover:bg-g-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent md:hidden"
+          onClick={() => void diagram.insert()}
+        >
+          <Workflow className="h-5 w-5" aria-hidden />
+        </button>
+      )}
       {/* Excalidraw hides its top-right UI from viewers on phones, so this sits over the canvas. */}
       {viewerDiagrams.length > 0 && !diagram.active && (
         <button
