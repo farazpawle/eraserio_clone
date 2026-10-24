@@ -72,6 +72,13 @@ Parent plan: `Plan/redesign-eraser-canvas-plan.md`. Each item becomes its own pl
   - a reduced-motion rule fails when the animation class is on `<html>`;
   - don't name a page-picker switch "Screen" next to the size switch.
 
+## 9. Next.js major upgrade (found during stage 0, 2026-10-24)
+
+- **What:** move the app from Next.js 14.2.x to 15 or 16.
+- **Why it waits:** stage 0 only budgeted a 14.2.x patch bump (it fixes the one CVE the task named, CVE-2025-29927). An `npm audit` run during that bump found several unpatched critical and high Next.js holes with no 14.2.x fix, including two remote-code-execution bugs (one through the image-optimization API, one specific to Windows-hosted servers like this app's VPS) and a handful of denial-of-service and cache-poisoning issues. The fix for all of them is Next 15.5.28+ or 16.4.3+, which is a breaking major upgrade (async request APIs, React 19, and every library that depends on Next/React), too large to fit inside "foundations."
+- **Needs:** its own plan and task file; expect middleware and data-fetching rewrites, a React 19 bump, and a compatibility pass on Excalidraw, Radix and the Supabase SSR client.
+- **Open question for the user:** when to schedule it — given the severity (critical RCEs), recommend treating it as the next plan after this redesign ships, not left indefinite.
+
 ## How to use this file
 
 When an item is picked up, write its plan with the writing-plans and plan-files skills. Then mark it here as `Planned → Plan/<file>.md`, and delete the entry once it ships.
