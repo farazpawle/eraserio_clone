@@ -21,3 +21,57 @@ export const DEFAULT_SETTINGS: DiagramSettings = {
 
 export type DiagramError = { line: number; message: string }
 export type ParseResult<M> = { model: M; errors: DiagramError[] }
+
+export const SHAPES = [
+  'rectangle',
+  'cylinder',
+  'diamond',
+  'document',
+  'ellipse',
+  'hexagon',
+  'oval',
+  'parallelogram',
+  'star',
+  'trapezoid',
+  'triangle',
+] as const
+export type Shape = (typeof SHAPES)[number]
+
+export const COLOR_NAMES = [
+  'blue',
+  'green',
+  'red',
+  'orange',
+  'purple',
+  'yellow',
+  'teal',
+  'pink',
+  'gray',
+] as const
+export type ColorName = (typeof COLOR_NAMES)[number]
+
+export type FlowNode = {
+  id: string
+  label: string
+  shape: Shape
+  color?: ColorName
+  icon?: string
+  parent?: string
+  line: number
+}
+export type FlowGroup = {
+  id: string
+  label: string
+  color?: ColorName
+  icon?: string
+  parent?: string
+  line: number
+}
+export type EdgeKind = 'arrow' | 'both' | 'line' | 'dashed'
+export type FlowEdge = { from: string; to: string; kind: EdgeKind; label?: string; line: number }
+export type FlowModel = {
+  settings: DiagramSettings
+  nodes: FlowNode[]
+  groups: FlowGroup[]
+  edges: FlowEdge[]
+}

@@ -21,7 +21,7 @@ function matchSetting(line: string): { key: keyof DiagramSettings; value: string
   return { key, value }
 }
 
-function listOf(values: readonly string[]): string {
+export function listOf(values: readonly string[]): string {
   return `${values.slice(0, -1).join(', ')} or ${values[values.length - 1]}`
 }
 
