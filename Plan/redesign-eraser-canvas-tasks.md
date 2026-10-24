@@ -38,6 +38,8 @@ Each stage gets a detailed test-first step plan (writing-plans) when it starts. 
 
 ## Stage 1 — New editor (Graphite shell)
 
+Step plan (13 test-first tasks covering 1.1–1.19): `Plan/stage-1-editor-plan.md`. User decisions 2026-10-24: "Invite by email" creates a team invitation; the Save button stays and gets a status label.
+
 - [ ] 1.1 Rebuild the header in `WSHeader.tsx`: logo, breadcrumb (team / file name, editable), Document/Both/Canvas switch, saved status, avatars, Export, Share.
 - [ ] 1.2 Add a `useEditorView` hook (`"doc" | "both" | "canvas"`, remembered per file in localStorage, falling back safely when storage is blocked) with a unit test.
 - [ ] 1.3 Lay out the workspace page as a grid driven by the view (both = doc 40% + canvas; tabs only at ≤ 767px), keeping the existing resizable divider.
