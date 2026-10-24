@@ -235,6 +235,11 @@
   max-height: calc(100% - 72px);
 }
 
+/* Dark scrollbars and select menus in the panel; without it they stay light on the dark theme. */
+.dark .diagram-code {
+  color-scheme: dark;
+}
+
 .diagram-code-editor {
   min-height: 220px;
   overflow: auto;
@@ -251,8 +256,9 @@
     border-radius: var(--g-radius) var(--g-radius) 0 0;
   }
 
+  /* Small enough that the header (two rows of selects) and footer fit a 50vh sheet on a short phone. */
   .diagram-code-editor {
-    min-height: 120px;
+    min-height: 96px;
   }
 
   /* 16px stops iOS from zooming in when the editor is focused. */

@@ -18,7 +18,7 @@ const SETTING_SELECTS: { key: SettingKey; name: string }[] = [
 ]
 
 const selectClass =
-  'h-8 min-w-0 rounded-md border border-g-line bg-g-panel px-1.5 text-xs text-g-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent max-md:h-11 max-md:flex-1'
+  'h-8 min-w-0 rounded-md border border-g-line bg-g-panel px-1.5 text-xs text-g-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent max-md:h-11 max-md:flex-auto'
 
 export default function DiagramStyleBar({
   code,
@@ -34,7 +34,7 @@ export default function DiagramStyleBar({
   const { settings } = parseSettings(code.split(/\r?\n/))
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 max-md:order-last max-md:basis-full">
+    <div className="order-last flex basis-full flex-wrap items-center gap-1.5">
       <select
         aria-label="Type"
         value={diagramType}
