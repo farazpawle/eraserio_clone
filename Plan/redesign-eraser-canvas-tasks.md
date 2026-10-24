@@ -14,7 +14,7 @@ Each stage gets a detailed test-first step plan (writing-plans) when it starts. 
 
 **Model:** stages marked **Opus (hard)** run on Opus; every other stage runs on Sonnet (high effort). The end-of-stage review always runs on Opus.
 
-**Versions (as of stage 0, 2026-10-24):** next 14.2.35, @excalidraw/excalidraw 0.18.1. elkjs and codemirror are not installed yet — they arrive in Stage 2.
+**Versions (as of stage 0, 2026-10-24):** next 14.2.35, @excalidraw/excalidraw 0.18.1. elkjs 0.12.0 (Stage 2, Task 3). codemirror is not installed yet — it arrives later in Stage 2.
 
 ## Stage 0 — Foundations
 

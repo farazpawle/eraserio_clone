@@ -75,3 +75,13 @@ export type FlowModel = {
   groups: FlowGroup[]
   edges: FlowEdge[]
 }
+
+export type Box = { x: number; y: number; width: number; height: number }
+// Absolute coordinates; the top-left of the whole diagram is 0,0.
+export type PositionedFlow = {
+  nodes: (FlowNode & Box)[]
+  groups: (FlowGroup & Box)[]
+  edges: FlowEdge[]
+  width: number
+  height: number
+}
