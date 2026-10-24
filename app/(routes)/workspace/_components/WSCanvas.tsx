@@ -3,7 +3,8 @@ import { Excalidraw, MainMenu, WelcomeScreen, getSceneVersion } from "@excalidra
 // 0.18 no longer injects its styles via JS; this must be imported explicitly.
 import "@excalidraw/excalidraw/index.css";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";
-import type { BinaryFiles } from "@excalidraw/excalidraw/types";
+import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from "@excalidraw/excalidraw/types";
+import { Workflow } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { saveWhiteboard } from "@/lib/data/files";
 import { supabaseCanvasFileStore, type CanvasFileStore } from "@/lib/data/canvasFiles";
@@ -14,6 +15,13 @@ import { useTheme } from "@/app/_context/ThemeContext";
 import { useSaveSignal, type SaveState } from "@/app/_hooks/useSaveStatus";
 import { CanvasLoading } from "@/components/ui/canvas-loading";
 import { toast } from "sonner";
+import { isDiagramFrame } from "@/lib/diagram/block";
+import { parseFlow } from "@/lib/diagram/parse/flow";
+import DiagramCodePanel from "./diagram/DiagramCodePanel";
+import { useDiagramEditor } from "./diagram/useDiagramEditor";
+
+const canvasButton =
+  "flex h-9 items-center gap-1.5 rounded-lg border border-g-line bg-g-panel px-3 text-sm text-g-text hover:bg-g-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent max-md:h-11";
 
 const WSCanvas = ({
   saveSignal,
@@ -45,6 +53,16 @@ const WSCanvas = ({
   const saving = useRef(false);
   const [initialFiles, setInitialFiles] = useState<BinaryFiles | null>(null);
   const initialElements = useMemo(() => (fileData?.whiteboard ?? []) as unknown as ExcalidrawElement[], [fileData?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const container = useRef<HTMLDivElement>(null);
+  const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null);
+  const diagram = useDiagramEditor(api, { readOnly: !!readOnly });
+  const activeCode = diagram.active?.data.code;
+  const nodeNames = useMemo(() => (activeCode === undefined ? [] : parseFlow(activeCode).model.nodes.map((n) => n.id)), [activeCode]);
+  // Viewers cannot change the scene, so the diagrams they can read are the ones it opened with.
+  const viewerDiagrams = useMemo(
+    () => (readOnly ? initialElements.filter((el) => isDiagramFrame(el) && !el.isDeleted) : []),
+    [readOnly, initialElements]
+  );
 
   // Excalidraw only reads initialData when it mounts, so the images must be here first.
   useEffect(() => {
@@ -64,7 +82,8 @@ const WSCanvas = ({
     };
   }, [fileData?.id, store, initialElements]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleChange = (elements: readonly ExcalidrawElement[], _appState: unknown, files: BinaryFiles) => {
+  const handleChange = (elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
+    diagram.onSceneChange(elements, appState);
     const next = { elements, files };
     scene.current = next;
     if (sceneRef) sceneRef.current = next;
@@ -105,17 +124,33 @@ const WSCanvas = ({
 
   useSaveSignal(saveSignal, save);
 
+  const closePanel = () => {
+    diagram.close();
+    container.current?.focus();
+  };
+
   if (!fileData || !initialFiles) {
     return <CanvasLoading message="Loading canvas..." />;
   }
 
   return (
-    <div className="h-full relative">
+    <div ref={container} tabIndex={-1} className="h-full relative outline-none">
       <div className="h-full">
         <Excalidraw
+          excalidrawAPI={setApi}
           theme={actualTheme}
           initialData={{ elements: initialElements, files: initialFiles }}
           onChange={handleChange}
+          renderTopRightUI={
+            readOnly
+              ? undefined
+              : () => (
+                  <button type="button" className={canvasButton} onClick={() => void diagram.insert()}>
+                    <Workflow className="h-4 w-4" aria-hidden />
+                    Diagram
+                  </button>
+                )
+          }
           viewModeEnabled={readOnly || false}
           UIOptions={{
             canvasActions: {
@@ -144,6 +179,44 @@ const WSCanvas = ({
           </MainMenu>
         </Excalidraw>
       </div>
+      {/* Excalidraw hides its top-right UI from viewers on phones, so this sits over the canvas. */}
+      {viewerDiagrams.length > 0 && !diagram.active && (
+        <button
+          type="button"
+          className={`${canvasButton} absolute right-3 top-3 z-10`}
+          onClick={() => diagram.open(viewerDiagrams[0].id)}
+        >
+          <Workflow className="h-4 w-4" aria-hidden />
+          Diagram code
+        </button>
+      )}
+      {diagram.active && (
+        <DiagramCodePanel
+          key={diagram.active.frameId}
+          code={diagram.active.data.code}
+          errors={diagram.errors}
+          nodeNames={nodeNames}
+          readOnly={!!readOnly}
+          onChange={diagram.setCode}
+          onClose={closePanel}
+          header={
+            viewerDiagrams.length > 1 && (
+              <select
+                aria-label="Diagram"
+                value={diagram.active.frameId}
+                onChange={(e) => diagram.open(e.target.value)}
+                className="h-8 max-w-[10rem] rounded-md border border-g-line bg-g-panel px-2 text-xs text-g-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-g-accent max-md:h-11"
+              >
+                {viewerDiagrams.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {(d as { name?: string | null }).name || "Diagram"}
+                  </option>
+                ))}
+              </select>
+            )
+          }
+        />
+      )}
     </div>
   );
 };

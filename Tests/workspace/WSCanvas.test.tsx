@@ -1,7 +1,9 @@
 import React from 'react'
 import { act, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
 import WSCanvas from '@/app/(routes)/workspace/_components/WSCanvas'
+import { DEFAULT_SETTINGS } from '@/lib/diagram/types'
 
 let mockProps: any
 const mockLoadSceneFiles = jest.fn()
@@ -13,8 +15,9 @@ jest.mock('@excalidraw/excalidraw', () => {
   return {
     Excalidraw: (props: any) => {
       mockProps = props
-      return <div data-testid="excalidraw" />
+      return <div data-testid="excalidraw">{props.renderTopRightUI?.(false, {})}</div>
     },
+    CaptureUpdateAction: { IMMEDIATELY: 'IMMEDIATELY', NEVER: 'NEVER', EVENTUALLY: 'EVENTUALLY' },
     MainMenu: Object.assign(Passthrough, { DefaultItems: { ClearCanvas: () => null, ChangeCanvasBackground: () => null } }),
     WelcomeScreen: Object.assign(Passthrough, {
       Hints: { ToolbarHint: () => null },
@@ -39,6 +42,21 @@ const fileData = { id: 'f1', name: 'Plan', document: null, whiteboard: [element(
 const files = { a: { id: 'a' } }
 const store = { load: jest.fn(), save: jest.fn() }
 
+// jsdom has no layout; CodeMirror measures text with these.
+const rect = { x: 0, y: 0, top: 0, left: 0, bottom: 0, right: 0, width: 0, height: 0, toJSON: () => ({}) }
+Range.prototype.getClientRects = () => [] as unknown as DOMRectList
+Range.prototype.getBoundingClientRect = () => rect as DOMRect
+
+const diagramFrame = (id: string, name: string, code: string) => ({
+  id,
+  type: 'frame',
+  name,
+  frameId: null,
+  isDeleted: false,
+  version: 1,
+  customData: { kind: 'diagram', version: 1, diagramId: id, diagramType: 'flowchart', code, settings: DEFAULT_SETTINGS },
+})
+
 const mount = async (props: Record<string, unknown> = {}) => {
   const view = render(<WSCanvas fileId="f1" fileData={fileData} fileStore={store} {...props} />)
   await screen.findByTestId('excalidraw')
@@ -46,7 +64,7 @@ const mount = async (props: Record<string, unknown> = {}) => {
 }
 
 const change = (version: number, fileMap = files) =>
-  act(() => mockProps.onChange([element(version)], {}, fileMap))
+  act(() => mockProps.onChange([element(version)], { selectedElementIds: {} }, fileMap))
 
 describe('WSCanvas', () => {
   beforeEach(() => {
@@ -145,5 +163,61 @@ describe('WSCanvas', () => {
 
     expect(onStatus).not.toHaveBeenCalled()
     expect(mockPersistCanvas).not.toHaveBeenCalled()
+  })
+
+  describe('diagrams', () => {
+    const withDiagrams = (...frames: ReturnType<typeof diagramFrame>[]) => {
+      const whiteboard = [element(1), ...frames]
+      const api = { getSceneElements: () => whiteboard, getSceneElementsIncludingDeleted: () => whiteboard }
+      return { data: { ...fileData, id: `f-${frames.length}`, whiteboard }, api }
+    }
+    const mountWith = async (frames: ReturnType<typeof diagramFrame>[], props: Record<string, unknown> = {}) => {
+      const { data, api } = withDiagrams(...frames)
+      const view = await mount({ fileData: data, ...props })
+      act(() => mockProps.excalidrawAPI(api))
+      return view
+    }
+
+    it('offers a Diagram button to editors', async () => {
+      await mount()
+
+      expect(screen.getByRole('button', { name: 'Diagram' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Diagram code' })).not.toBeInTheDocument()
+    })
+
+    it('gives viewers no Diagram button, and no code button without diagrams', async () => {
+      await mountWith([], { readOnly: true })
+
+      expect(screen.queryByRole('button', { name: 'Diagram' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Diagram code' })).not.toBeInTheDocument()
+    })
+
+    it('lets viewers read a diagram code, read-only, and returns focus to the canvas on close', async () => {
+      const user = userEvent.setup()
+      await mountWith([diagramFrame('d1', 'Checkout', 'Cart > Pay')], { readOnly: true })
+
+      await user.click(screen.getByRole('button', { name: 'Diagram code' }))
+
+      const panel = screen.getByRole('complementary', { name: 'Diagram code' })
+      expect(panel).toHaveTextContent('Cart > Pay')
+      expect(panel.querySelector('.cm-content')).toHaveAttribute('contenteditable', 'false')
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: 'Hide diagram code' }))
+      expect(screen.queryByRole('complementary', { name: 'Diagram code' })).not.toBeInTheDocument()
+      expect(document.activeElement).toContainElement(screen.getByTestId('excalidraw'))
+    })
+
+    it('lets viewers pick between several diagrams by name', async () => {
+      const user = userEvent.setup()
+      await mountWith([diagramFrame('d1', 'Checkout', 'Cart > Pay'), diagramFrame('d2', 'Login', 'User > Auth')], {
+        readOnly: true,
+      })
+      await user.click(screen.getByRole('button', { name: 'Diagram code' }))
+
+      await user.selectOptions(screen.getByRole('combobox', { name: 'Diagram' }), 'Login')
+
+      expect(screen.getByRole('complementary', { name: 'Diagram code' })).toHaveTextContent('User > Auth')
+    })
   })
 })
