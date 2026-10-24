@@ -9,3 +9,4 @@
 - The canvas is Excalidraw only (no React Flow or tldraw). A typed diagram is an Excalidraw frame with `customData.kind = "diagram"` holding its code; parsing, layout (ELK) and element generation live in `lib/diagram/` as pure TypeScript with no React or DOM imports. See `Plan/redesign-eraser-canvas-plan.md`.
 - Browser-only libraries (Editor.js, Excalidraw) are loaded with `next/dynamic` and `ssr: false`; importing them normally crashes server rendering. Server-side Supabase clients send requests with `cache: 'no-store'` so Next.js never serves stale rows.
 - One topic per skill in `.claude/skills/`; create a new small skill when a task needs knowledge that fits none of them.
+- The local dev server (`.env.local`) talks to the live database. Browser tests write only to a throwaway file the user has approved, never to real files.
