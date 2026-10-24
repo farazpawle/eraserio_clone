@@ -19,16 +19,31 @@ export function viewCentre(s: View): { x: number; y: number } {
 
 const NOTICE_KEY = 'diagram-drag-notice-seen'
 
+type Positions = ReadonlyMap<string, { x: number; y: number }>
+
+const isGenerated = (el: ExcalidrawElement) => !!el.frameId && el.customData?.diagramId === el.frameId
+
+// Where each diagram frame and each of its generated shapes is. Excalidraw moves shapes by
+// mutating them in place, so positions must be copied: kept element references would always
+// match the current scene.
+export function diagramPositions(elements: readonly ExcalidrawElement[]): Map<string, { x: number; y: number }> {
+  const out = new Map<string, { x: number; y: number }>()
+  for (const el of elements) {
+    if (!el.isDeleted && (isDiagramFrame(el) || isGenerated(el))) out.set(el.id, { x: el.x, y: el.y })
+  }
+  return out
+}
+
 // True when a generated shape moved on its own while its frame stayed put. Our own redraw
 // never counts: it gives the shapes new ids and deletes the old ones.
-export function movedDiagramChildren(prev: readonly ExcalidrawElement[], next: readonly ExcalidrawElement[]): boolean {
-  const before = new Map(prev.map((el) => [el.id, el]))
+export function movedDiagramChildren(prev: Positions, next: readonly ExcalidrawElement[]): boolean {
+  const now = diagramPositions(next)
   for (const el of next) {
-    if (el.isDeleted || !el.frameId || el.customData?.diagramId !== el.frameId) continue
-    const old = before.get(el.id)
+    if (el.isDeleted || !isGenerated(el)) continue
+    const old = prev.get(el.id)
     if (!old || (old.x === el.x && old.y === el.y)) continue
-    const oldFrame = before.get(el.frameId)
-    const frame = next.find((f) => f.id === el.frameId)
+    const oldFrame = prev.get(el.frameId!)
+    const frame = now.get(el.frameId!)
     if (oldFrame && frame && oldFrame.x === frame.x && oldFrame.y === frame.y) return true
   }
   return false
@@ -56,8 +71,8 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
   const ticket = useRef(0)
   // The type and code each frame holds from our own redraws. A frame holding anything else was changed by undo.
   const applied = useRef(new Map<string, string>())
-  // The scene of the previous change event, and whether the drag notice was shown on this page.
-  const prevScene = useRef<readonly ExcalidrawElement[] | null>(null)
+  // Positions from the previous change event, and whether the drag notice was shown on this page.
+  const prevPositions = useRef<Positions | null>(null)
   const noticeShown = useRef(false)
   const optsRef = useRef(opts)
   optsRef.current = opts
@@ -139,9 +154,13 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
     noticeShown.current = true
     try {
       if (localStorage.getItem(NOTICE_KEY)) return
-      localStorage.setItem(NOTICE_KEY, '1')
     } catch {
       // Storage blocked: the page-session flag above still limits it to one notice.
+    }
+    try {
+      localStorage.setItem(NOTICE_KEY, '1')
+    } catch {
+      // Could not remember it (full or private mode): still show it.
     }
     toast('Shapes in this diagram are redrawn from its code')
   }
@@ -156,10 +175,9 @@ export function useDiagramEditor(api: ExcalidrawImperativeAPI | null, opts: { re
       }
     }
 
-    const prev = prevScene.current
-    prevScene.current = elements
-    if (!optsRef.current.readOnly && prev && prev !== elements && !noticeShown.current && movedDiagramChildren(prev, elements)) {
-      noticeDrag()
+    if (!optsRef.current.readOnly && !noticeShown.current) {
+      if (prevPositions.current && movedDiagramChildren(prevPositions.current, elements)) noticeDrag()
+      prevPositions.current = diagramPositions(elements)
     }
 
     const selected = Object.keys(appState.selectedElementIds).length > 0 && selectedDiagram(elements, appState.selectedElementIds)

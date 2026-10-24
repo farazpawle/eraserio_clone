@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { createDiagram } from '@/lib/diagram/block'
 import { getElk, type ElkLike } from '@/lib/diagram/layout/elkWorker'
 import { STARTERS } from '@/lib/diagram/templates'
-import { movedDiagramChildren, useDiagramEditor, viewCentre } from '@/app/(routes)/workspace/_components/diagram/useDiagramEditor'
+import { diagramPositions, movedDiagramChildren, useDiagramEditor, viewCentre } from '@/app/(routes)/workspace/_components/diagram/useDiagramEditor'
 
 jest.mock('sonner', () => ({ toast: Object.assign(jest.fn(), { error: jest.fn() }) }))
 
@@ -257,13 +257,13 @@ describe('movedDiagramChildren', () => {
   it('is true when one generated shape moves and its frame stays', async () => {
     const scene = await sceneWithDiagram()
     const child = scene.find((e) => e.frameId && e.type !== 'frame')
-    expect(movedDiagramChildren(scene, nudge(scene, (e) => e.id === child.id))).toBe(true)
+    expect(movedDiagramChildren(diagramPositions(scene), nudge(scene, (e) => e.id === child.id))).toBe(true)
   })
 
   it('is false when the whole frame moves with its shapes', async () => {
     const scene = await sceneWithDiagram()
     const frame = frameOf(scene)
-    expect(movedDiagramChildren(scene, nudge(scene, (e) => e.id === frame.id || e.frameId === frame.id))).toBe(false)
+    expect(movedDiagramChildren(diagramPositions(scene), nudge(scene, (e) => e.id === frame.id || e.frameId === frame.id))).toBe(false)
   })
 
   it('is false for our own redraw (new ids, old ones deleted)', async () => {
@@ -271,7 +271,7 @@ describe('movedDiagramChildren', () => {
     const frame = frameOf(scene)
     const redrawn = scene.map((e) => (e.frameId === frame.id ? { ...e, isDeleted: true } : e))
     const fresh = scene.filter((e) => e.frameId === frame.id).map((e) => ({ ...e, id: `new-${e.id}`, x: e.x + 40 }))
-    expect(movedDiagramChildren(scene, [...redrawn, ...fresh])).toBe(false)
+    expect(movedDiagramChildren(diagramPositions(scene), [...redrawn, ...fresh])).toBe(false)
   })
 
   it('ignores shapes the user drew inside the frame', async () => {
@@ -279,7 +279,7 @@ describe('movedDiagramChildren', () => {
     const frame = frameOf(scene)
     const own = { id: 'own', type: 'rectangle', x: 0, y: 0, frameId: frame.id, isDeleted: false }
     const before = [...scene, own]
-    expect(movedDiagramChildren(before, nudge(before, (e) => e.id === 'own'))).toBe(false)
+    expect(movedDiagramChildren(diagramPositions(before), nudge(before, (e) => e.id === 'own'))).toBe(false)
   })
 })
 
@@ -329,6 +329,26 @@ describe('drag notice', () => {
     const { feed, moved } = await dragged()
     feed(moved(5))
     feed(moved(9))
+    expect(noticeCalls()).toHaveLength(1)
+  })
+
+  it('still shows when only writing the flag throws', async () => {
+    jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota')
+    })
+    const { feed, moved } = await dragged()
+    feed(moved(5))
+    expect(noticeCalls()).toHaveLength(1)
+  })
+
+  it('fires when Excalidraw moves a shape in place and re-emits the same array', async () => {
+    const scene = await sceneWithDiagram()
+    const child = scene.find((e) => e.frameId && e.type !== 'frame')
+    const { hook } = setup(scene)
+    const feed = () => act(() => hook.result.current.onSceneChange(scene, APP_STATE as El))
+    feed()
+    child.x += 12 // mutate, same element object and same array
+    feed()
     expect(noticeCalls()).toHaveLength(1)
   })
 
