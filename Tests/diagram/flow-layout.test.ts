@@ -102,14 +102,31 @@ describe('layoutFlow', () => {
     expect(flow.nodes.map((n) => n.id).sort()).toEqual(['A', 'B', 'Client'])
   })
 
+  it('gives an empty group a finite, non-zero box', async () => {
+    const flow = await layout(['G {', '}'])
+    const [g] = flow.groups
+    expect(g.id).toBe('G')
+    for (const v of [g.x, g.y, g.width, g.height]) expect(Number.isFinite(v)).toBe(true)
+    expect(g.width).toBeGreaterThan(0)
+    expect(g.height).toBeGreaterThan(0)
+  })
+
   it('lays out 150 nodes in 10 groups in under 1500 ms', async () => {
     const big = model(bigFlow(150))
     expect(big.nodes).toHaveLength(150)
     expect(big.groups).toHaveLength(10)
     await layoutFlow(model('A > B'), DEFAULT_SETTINGS) // load ELK first
-    const start = performance.now()
+    // Main-thread CPU time: bundled ELK runs synchronously on this thread. Wall time
+    // includes time stolen by parallel Jest workers, and process CPU time includes
+    // V8's background GC and compiler threads; this counts only ELK's own work.
+    // @types/node 20 lacks threadCpuUsage (Node 23.9+), hence the cast.
+    const { threadCpuUsage } = process as NodeJS.Process & {
+      threadCpuUsage(previous?: NodeJS.CpuUsage): NodeJS.CpuUsage
+    }
+    const start = threadCpuUsage()
     const flow = await layoutFlow(big, big.settings)
-    const ms = performance.now() - start // measured about 620 ms
+    const used = threadCpuUsage(start)
+    const ms = (used.user + used.system) / 1000
     expect(flow.nodes).toHaveLength(150)
     expect(ms).toBeLessThan(1500)
   })

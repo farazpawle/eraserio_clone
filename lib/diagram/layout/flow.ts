@@ -31,8 +31,15 @@ export async function layoutFlow(
   const groupIds = new Set(model.groups.map((g) => g.id))
   const known = new Set([...model.groups, ...model.nodes].map((item) => item.id))
   const elkNodes = new Map<string, ElkNode>()
+  // An empty group gets the size of a group holding one smallest node (120x56 + padding).
   for (const g of model.groups)
-    elkNodes.set(g.id, { id: g.id, layoutOptions: GROUP_OPTIONS, children: [] })
+    elkNodes.set(g.id, {
+      id: g.id,
+      width: 160,
+      height: 116,
+      layoutOptions: GROUP_OPTIONS,
+      children: [],
+    })
   for (const n of model.nodes) elkNodes.set(n.id, { id: n.id, ...estimateNodeSize(n) })
 
   const root: ElkNode = {
