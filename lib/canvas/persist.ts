@@ -23,7 +23,8 @@ export async function persistCanvas(
   const fresh = referencedFileIds(scene.elements).filter((id) => !deps.uploaded.has(id) && scene.files[id])
   await Promise.all(fresh.map((id) => deps.store.save(scene.files[id])))
   fresh.forEach((id) => deps.uploaded.add(id))
-  await deps.saveElements(scene.elements as unknown as Json)
+  // Deleted elements stay in memory for undo but are not saved: each diagram redraw leaves a full set behind.
+  await deps.saveElements(scene.elements.filter((el) => !el.isDeleted) as unknown as Json)
 }
 
 export async function loadSceneFiles(

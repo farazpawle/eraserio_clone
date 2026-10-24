@@ -38,8 +38,19 @@ describe('persistCanvas', () => {
 
     expect(store.save).toHaveBeenCalledTimes(1)
     expect(store.save).toHaveBeenCalledWith(s.files.a)
-    expect(saveElements).toHaveBeenCalledWith(s.elements)
+    expect(saveElements).toHaveBeenCalledWith([s.elements[0], s.elements[2]])
     expect(order).toEqual(['upload', 'elements'])
+  })
+
+  it('leaves deleted elements out of the saved list and keeps live ones as they are', async () => {
+    const saveElements = jest.fn()
+    const live = { id: 'r1', type: 'rectangle', isDeleted: false, version: 7 }
+    const gone = { id: 'r2', type: 'rectangle', isDeleted: true, version: 9 }
+
+    await persistCanvas({ store: fakeStore(), uploaded: new Set(), saveElements }, scene([gone, live], []))
+
+    expect(saveElements).toHaveBeenCalledWith([live])
+    expect(saveElements.mock.calls[0][0][0]).toBe(live)
   })
 
   it('skips images that are already stored', async () => {
