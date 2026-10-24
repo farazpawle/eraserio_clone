@@ -4,7 +4,7 @@ Description: Atomic task list for Plan/redesign-eraser-canvas-plan.md. Stages 0�
   typed diagrams (flowchart + cloud, then sequence, ER, BPMN) on the Excalidraw canvas with ELK and a CodeMirror code panel, full cloud icon
   sets, then dashboard, login and landing redesigns. [User] tasks need a human look, a browser login or accepting icon licence terms; each says why.
 Total Tasks: 110
-Status: Stage 0 complete; stage 1 built and tested in code, waiting for the live database change, the browser check and the human look check; stages 2-9 not started
+Status: Stage 0 complete; stage 1 built and tested in code, waiting for the live database change, the browser check and the human look check; stage 2 complete in code (all 25 tasks, browser-checked, final review fixes in), waiting for a hand drag check and deploy; stages 3-9 not started
 Updated: 2026-10-24
 ---
 
@@ -14,7 +14,7 @@ Each stage gets a detailed test-first step plan (writing-plans) when it starts. 
 
 **Model:** stages marked **Opus (hard)** run on Opus; every other stage runs on Sonnet (high effort). The end-of-stage review always runs on Opus.
 
-**Versions (as of stage 0, 2026-10-24):** next 14.2.35, @excalidraw/excalidraw 0.18.1. elkjs 0.12.0 (Stage 2, Task 3). codemirror is not installed yet — it arrives later in Stage 2.
+**Versions (as of stage 2, 2026-10-24):** next 14.2.35, @excalidraw/excalidraw 0.18.1, elkjs 0.12.0, @codemirror/state 6.7.6, @codemirror/view 6.43.15, @codemirror/language 6.13.1, @codemirror/autocomplete 6.20.4, @codemirror/lint 6.9.7, @codemirror/commands 6.11.1, @lezer/highlight 1.2.5 (all pinned exactly).
 
 ## Stage 0 — Foundations
 
@@ -68,14 +68,14 @@ Step plan (13 test-first tasks covering 1.1–1.19): `Plan/stage-1-editor-plan.m
 
 ## Stage 2 — Typed diagrams core (flowchart + cloud architecture) — Opus (hard)
 
-- [ ] 2.1 Add `lib/diagram/types.ts`:
+- [x] 2.1 Add `lib/diagram/types.ts`:
   - `DiagramType`;
   - `DiagramSettings` (direction, colorMode, styleMode, typeface, title);
   - `DiagramError {line, message}`;
   - `ParseResult<M> {model: M, errors: DiagramError[]}`.
-- [ ] 2.2 Write failing tests for the settings-line parser (every value, unknown values → an error on that line).
-- [ ] 2.3 Implement `parseSettings(lines): {settings, rest}` in `lib/diagram/parse/settings.ts`.
-- [ ] 2.4 Write failing tests for the flow parser:
+- [x] 2.2 Write failing tests for the settings-line parser (every value, unknown values → an error on that line).
+- [x] 2.3 Implement `parseSettings(lines): {settings, rest}` in `lib/diagram/parse/settings.ts`.
+- [x] 2.4 Write failing tests for the flow parser:
   - nodes and their attributes;
   - nested groups;
   - all 5 edge kinds;
@@ -84,43 +84,43 @@ Step plan (13 test-first tasks covering 1.1–1.19): `Plan/stage-1-editor-plan.m
   - a missing `}`;
   - an unknown attribute;
   - one error per bad line, with the rest still parsed.
-- [ ] 2.5 Implement `parseFlow(code): ParseResult<FlowModel>` in `lib/diagram/parse/flow.ts`.
-- [ ] 2.6 Add `elkjs` and write failing layout tests: positions for every node, groups contain their children, `direction` changes the axis, the 150-node fixture finishes in under 1.5 s.
-- [ ] 2.7 Implement `layoutFlow(model, settings): Promise<PositionedFlow>` in `lib/diagram/layout/flow.ts` (layered algorithm, `INCLUDE_CHILDREN`, orthogonal edges).
-- [ ] 2.8 Add `lib/diagram/layout/elkWorker.ts` so the browser runs ELK in a web worker while tests call it directly.
-- [ ] 2.9 Write failing tests for colour and style mapping:
+- [x] 2.5 Implement `parseFlow(code): ParseResult<FlowModel>` in `lib/diagram/parse/flow.ts`.
+- [x] 2.6 Add `elkjs` and write failing layout tests: positions for every node, groups contain their children, `direction` changes the axis, the 150-node fixture finishes in under 1.5 s.
+- [x] 2.7 Implement `layoutFlow(model, settings): Promise<PositionedFlow>` in `lib/diagram/layout/flow.ts` (layered algorithm, `INCLUDE_CHILDREN`, orthogonal edges).
+- [x] 2.8 Add `lib/diagram/layout/elkWorker.ts` so the browser runs ELK in a web worker while tests call it directly.
+- [x] 2.9 Write failing tests for colour and style mapping:
   - colorMode pastel, bold and outline give fill and stroke values;
   - styleMode plain, shadow and watercolor give fill style, roughness and shadow;
   - typeface rough, clean and mono give the Excalidraw font family.
-- [ ] 2.10 Implement `styleFor(node, settings)` in `lib/diagram/render/style.ts`. Shadow is an offset backing shape; watercolor is a hachure fill at higher roughness.
-- [ ] 2.11 Write failing tests for element generation:
+- [x] 2.10 Implement `styleFor(node, settings)` in `lib/diagram/render/style.ts`. Shadow is an offset backing shape; watercolor is a hachure fill at higher roughness.
+- [x] 2.11 Write failing tests for element generation:
   - every shape kind;
   - labels bound to their shapes;
   - edge arrows bound to both ends, elbow style;
   - edge labels;
   - group outlines;
   - every element tagged with `customData.diagramId`.
-- [ ] 2.12 Implement `toSkeletons(positioned, settings, origin): ExcalidrawElementSkeleton[]` in `lib/diagram/render/flow.ts`.
-- [ ] 2.13 Write failing tests for the diagram block:
+- [x] 2.12 Implement `toSkeletons(positioned, settings, origin): ExcalidrawElementSkeleton[]` in `lib/diagram/render/flow.ts`.
+- [x] 2.13 Write failing tests for the diagram block:
   - `createDiagram` makes a frame with code and settings in `customData`;
   - `updateDiagram` replaces only that frame's children;
   - a duplicate gets a new `diagramId`.
-- [ ] 2.14 Implement `createDiagram`, `updateDiagram` and `readDiagram` in `lib/diagram/block.ts` on top of `convertToExcalidrawElements`.
-- [ ] 2.15 Add CodeMirror 6 and build `DiagramCodePanel.tsx`:
+- [x] 2.14 Implement `createDiagram`, `updateDiagram` and `readDiagram` in `lib/diagram/block.ts` on top of `convertToExcalidrawElements`.
+- [x] 2.15 Add CodeMirror 6 and build `DiagramCodePanel.tsx`:
   - syntax highlighting;
   - error underlines with each line's message;
   - autocomplete for attributes, settings and node names;
   - a 150 ms debounce before redrawing.
-- [ ] 2.16 Open the code panel on double-click or select of a diagram frame; close it with Escape or the close button, returning focus.
-- [ ] 2.17 Add a "Diagram" button to the canvas toolbar that inserts a starter flowchart at the centre of the view.
-- [ ] 2.18 Add `DiagramStyleBar.tsx` (type, direction, colour, style, font) that rewrites the settings lines in the code.
-- [ ] 2.19 Show the notice "Shapes in this diagram are redrawn from its code" the first time someone drags a shape inside a diagram.
-- [ ] 2.20 Write the syntax help page `Docs/diagram-syntax.md`, and link to it from the panel.
-- [ ] 2.21 Write a failing test, then make it pass: for a viewer (read-only file or share link) the code panel is read-only and the style bar and Diagram button are hidden.
-- [ ] 2.22 Write a failing test: label text on every colorMode fill reaches 4.5:1 contrast in both light and dark canvas themes.
-- [ ] 2.23 Show the code panel as a bottom sheet at ≤ 767px (canvas still visible above it), as in the prototype.
-- [ ] 2.24 Smoke test that Excalidraw's built-in "paste Mermaid" still works and turns into normal shapes, not a typed diagram.
-- [ ] 2.25 Smoke test in the browser: type a 15-node cloud diagram, change every style option, undo and redo, copy and paste the diagram, save, reload, export PNG and SVG.
+- [x] 2.16 Open the code panel on double-click or select of a diagram frame; close it with Escape or the close button, returning focus.
+- [x] 2.17 Add a "Diagram" button to the canvas toolbar that inserts a starter flowchart at the centre of the view.
+- [x] 2.18 Add `DiagramStyleBar.tsx` (type, direction, colour, style, font) that rewrites the settings lines in the code.
+- [x] 2.19 Show the notice "Shapes in this diagram are redrawn from its code" the first time someone drags a shape inside a diagram.
+- [x] 2.20 Write the syntax help page and link to it from the panel. (Done as the public page `/help/diagram-syntax` instead of `Docs/diagram-syntax.md`: users cannot open files in `Docs/`.)
+- [x] 2.21 Write a failing test, then make it pass: for a viewer (read-only file or share link) the code panel is read-only and the style bar and Diagram button are hidden.
+- [x] 2.22 Write a failing test: label text on every colorMode fill reaches 4.5:1 contrast in both light and dark canvas themes.
+- [x] 2.23 Show the code panel as a bottom sheet at ≤ 767px (canvas still visible above it), as in the prototype.
+- [x] 2.24 Smoke test that Excalidraw's built-in "paste Mermaid" still works and turns into normal shapes, not a typed diagram.
+- [x] 2.25 Smoke test in the browser: type a 15-node cloud diagram, change every style option, undo and redo, copy and paste the diagram, save, reload, export PNG and SVG.
 
 **Verify:** all parser, layout and render tests pass. With the code panel open, typing stays smooth on a 150-node diagram, and a reload shows the same diagram.
 
