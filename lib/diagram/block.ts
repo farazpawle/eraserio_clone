@@ -9,12 +9,14 @@ import type { ElkLike } from './layout/elkWorker'
 import { layoutFlow } from './layout/flow'
 import { parseFlow } from './parse/flow'
 import { toSkeletons } from './render/flow'
+import { STARTERS } from './templates'
 import type { DiagramData, DiagramError, DiagramType } from './types'
 
 const PADDING = 20
 const MIN_WIDTH = 200
 const MIN_HEIGHT = 120
-const DIAGRAM_TYPES: readonly string[] = ['flowchart', 'cloud'] satisfies DiagramType[]
+const DIAGRAM_TYPES: readonly string[] = Object.keys(STARTERS)
+const NOT_FOUND: DiagramError = { line: 0, message: 'Diagram not found' } // line 0: no code line
 
 type Result = { elements: ExcalidrawElement[]; errors: DiagramError[] }
 type Drawing = Awaited<ReturnType<typeof draw>>
@@ -82,6 +84,7 @@ export async function createDiagram(
   input: { code: string; diagramType: DiagramType; at: { x: number; y: number } },
   elk?: ElkLike,
 ): Promise<Result> {
+  // Fractional indices are left unset: pass the elements through api.updateScene before saving.
   const drawing = await draw(input.code, elk)
   const [frame] = convertToExcalidrawElements([{ type: 'frame', children: [] }])
   // Set after converting: the converter treats an x or y of 0 as "fit to children".
@@ -94,8 +97,10 @@ export async function createDiagram(
   return { elements: [...children(drawing, frame), frame], errors: drawing.errors }
 }
 
-// Returns the whole new scene: old children deleted (version bumped, for sync), new ones placed
-// right before the frame, every other element the same object.
+// Returns the whole new scene: old generated children deleted (version bumped, for sync), new
+// ones placed right before the frame, every other element (shapes the user put in the frame too)
+// the same object. Fractional indices are repaired by api.updateScene: pass the scene through it
+// before saving.
 export async function updateDiagram(
   scene: readonly ExcalidrawElement[],
   frameId: string,
@@ -104,13 +109,16 @@ export async function updateDiagram(
 ): Promise<Result> {
   const frame = scene.find((el) => el.id === frameId) as ExcalidrawFrameElement | undefined
   const data = frame && readDiagram(frame)
-  if (!frame || !data) return { elements: [...scene], errors: [] }
+  if (!frame || frame.isDeleted || !data) return { elements: [...scene], errors: [NOT_FOUND] }
 
   const drawing = await draw(change.code, elk)
   const fields = frameFields(drawing, frame.id, change.code, change.diagramType ?? data.diagramType)
+  // Generated children carry the diagramId; shapes the user dropped into the frame do not.
+  const generated = (el: ExcalidrawElement) =>
+    el.frameId === frame.id && el.customData?.diagramId === frame.id && !el.isDeleted
   const elements = scene.flatMap((el) => {
     if (el === frame) return [...children(drawing, frame), newElementWith(frame, fields)]
-    if (el.frameId === frame.id && !el.isDeleted) return [newElementWith(el, { isDeleted: true })]
+    if (generated(el)) return [newElementWith(el, { isDeleted: true })]
     return [el]
   })
   return { elements, errors: drawing.errors }
@@ -127,7 +135,9 @@ export function claimCopies(scene: readonly ExcalidrawElement[]): ExcalidrawElem
   const copies = new Set(scene.filter(isCopy).map((el) => el.id))
   if (copies.size === 0) return null
   return scene.map((el) => {
-    const owner = copies.has(el.id) ? el.id : el.frameId && copies.has(el.frameId) ? el.frameId : null
+    // Only generated children carry a diagramId; shapes the user added to the copy stay as they are.
+    const generated = el.frameId && copies.has(el.frameId) && el.customData?.diagramId !== undefined
+    const owner = copies.has(el.id) ? el.id : generated ? el.frameId : null
     if (!owner) return el
     return newElementWith(el, {
       customData: { ...el.customData, diagramId: owner },

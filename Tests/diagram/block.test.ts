@@ -148,6 +148,10 @@ describe('updateDiagram', () => {
     expect(Math.max(...shapes.map((e) => e.x + e.width))).toBeCloseTo(
       newFrame.x + newFrame.width - 20,
     )
+    expect(Math.min(...shapes.map((e) => e.y))).toBeCloseTo(newFrame.y + 20)
+    expect(Math.max(...shapes.map((e) => e.y + e.height))).toBeCloseTo(
+      newFrame.y + newFrame.height - 20,
+    )
     // New children sit right before their frame.
     const at = elements.indexOf(newFrame)
     expect(elements.slice(at - fresh.length, at)).toEqual(fresh)
@@ -167,6 +171,29 @@ describe('updateDiagram', () => {
     expect(errors.map((e) => e.line)).toEqual([2])
     expect(textsOf(childrenOf(elements, frame.id))).toEqual(['A', 'B', 'C'])
     expect(readDiagram(elements.find((e) => e.id === frame.id)!)?.code).toBe('A > B\nA >\nC')
+  })
+
+  it('keeps shapes the user drew inside the frame', async () => {
+    const { frame, all } = await scene()
+    const mine = { id: 'mine', type: 'rectangle', x: 5, y: 5, frameId: frame.id } as El
+    const { elements } = await updateDiagram([mine, ...all], frame.id, { code: 'A > C' })
+    expect(elements[0]).toBe(mine)
+  })
+
+  it('reports a missing, non-diagram or deleted frame and changes nothing', async () => {
+    const { frame, rect, all } = await scene()
+    const deleted = all.map((el) => (el === frame ? { ...frame, isDeleted: true } : el))
+    const notFound = [{ line: 0, message: 'Diagram not found' }]
+    for (const [sc, id] of [
+      [all, 'nope'],
+      [all, rect.id],
+      [deleted, frame.id],
+    ] as const) {
+      const { elements, errors } = await updateDiagram(sc, id, { code: 'A' })
+      expect(errors).toEqual(notFound)
+      expect(elements).toEqual(sc)
+      elements.forEach((el, i) => expect(el).toBe(sc[i]))
+    }
   })
 
   it('can switch the diagram type', async () => {
@@ -212,6 +239,15 @@ describe('claimCopies', () => {
       expect(el.groupIds).toEqual([copyFrame.id])
     }
     expect(claimCopies(claimed!)).toBeNull()
+  })
+
+  it('leaves user shapes inside a pasted copy untagged', async () => {
+    const { elements: original } = await createDiagram({ code: 'A', diagramType: 'flowchart', at: { x: 0, y: 0 } })
+    const copy = duplicate(original)
+    const copyFrame = frameOf(copy)
+    const mine = { id: 'mine', type: 'rectangle', frameId: copyFrame.id, groupIds: [] } as El
+    const claimed = claimCopies([...original, ...copy, mine])!
+    expect(claimed[claimed.length - 1]).toBe(mine)
   })
 
   it('returns null for a scene without copies', async () => {
