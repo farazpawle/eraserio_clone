@@ -3,7 +3,7 @@ import { CompletionContext } from '@codemirror/autocomplete'
 import { readFileSync } from 'fs'
 import { EditorState, Text } from '@codemirror/state'
 import { contrastRatio } from '@/lib/diagram/render/style'
-import { diagramCompletions, toDiagnostics } from '@/app/(routes)/workspace/_components/diagram/codeMirrorSetup'
+import { diagramCompletions, diagramLanguage, toDiagnostics } from '@/app/(routes)/workspace/_components/diagram/codeMirrorSetup'
 
 // `|` in the text marks the cursor.
 async function complete(text: string, names: string[] = ['Web Server', 'Database']) {
@@ -74,6 +74,17 @@ describe('code colour tokens', () => {
     const value = (name: string) => new RegExp(`--g-${name}: (#[0-9a-f]{6})`).exec(themes[theme])![1]
     for (const token of ['code-keyword', 'code-string', 'code-ok', 'c-purple', 'accent', 'faint', 'muted']) {
       expect(contrastRatio(value(token), value('panel'))).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+})
+
+describe('diagramLanguage', () => {
+  it('marks every setting key at the start of a line as a keyword', () => {
+    for (const key of ['title', 'direction', 'colorMode', 'styleMode', 'typeface']) {
+      const tree = diagramLanguage.parser.parse(`${key} x`)
+      const names: string[] = []
+      tree.iterate({ enter: (n) => void names.push(n.name) })
+      expect(names).toContain('keyword')
     }
   })
 })

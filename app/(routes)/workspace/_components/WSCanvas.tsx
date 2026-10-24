@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { isDiagramFrame } from "@/lib/diagram/block";
 import { parseFlow } from "@/lib/diagram/parse/flow";
 import DiagramCodePanel from "./diagram/DiagramCodePanel";
+import DiagramStyleBar from "./diagram/DiagramStyleBar";
 import { useDiagramEditor } from "./diagram/useDiagramEditor";
 
 const canvasButton =
@@ -205,7 +206,15 @@ const WSCanvas = ({
           onChange={diagram.setCode}
           onClose={closePanel}
           header={
-            viewerDiagrams.length > 1 && (
+            !readOnly ? (
+              <DiagramStyleBar
+                code={diagram.active.data.code}
+                diagramType={diagram.active.data.diagramType}
+                onCode={diagram.setCode}
+                onType={diagram.setType}
+              />
+            ) : (
+              viewerDiagrams.length > 1 && (
               <select
                 aria-label="Diagram"
                 value={diagram.active.frameId}
@@ -218,6 +227,7 @@ const WSCanvas = ({
                   </option>
                 ))}
               </select>
+              )
             )
           }
         />

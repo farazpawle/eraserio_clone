@@ -7,7 +7,6 @@ import { ALLOWED } from '@/lib/diagram/parse/settings'
 import { COLOR_NAMES, SHAPES, type DiagramError } from '@/lib/diagram/types'
 
 const SETTING_KEYS = ['title', ...Object.keys(ALLOWED)]
-const SETTING_KEY_WORD = `(?:${SETTING_KEYS.join('|')})`
 const ATTRIBUTE_KEYS = ['icon', 'color', 'shape', 'label']
 
 export function toDiagnostics(
@@ -57,7 +56,7 @@ export function diagramCompletions(nodeNames: string[]): CompletionSource {
   }
 }
 
-const SETTING_KEY_START = new RegExp(`^${SETTING_KEY_WORD}\\b`)
+const SETTING_KEY_START = new RegExp(`^(?:${SETTING_KEYS.join('|')})\\b`)
 const OPERATOR = /^(?:<>|-->|>|<|-)/
 
 export const diagramLanguage = StreamLanguage.define<{ inBrackets: boolean }>({
@@ -75,7 +74,7 @@ export const diagramLanguage = StreamLanguage.define<{ inBrackets: boolean }>({
       return 'bracket'
     }
     if (state.inBrackets && stream.match(/^\w+(?=\s*:)/)) return 'propertyName'
-    if (stream.sol() && stream.match(/^(?:title|direction|colorMode|styleMode|typeface)\b/)) return 'keyword'
+    if (stream.sol() && stream.match(SETTING_KEY_START)) return 'keyword'
     if (stream.match(OPERATOR)) return 'operator'
     stream.next()
     return null

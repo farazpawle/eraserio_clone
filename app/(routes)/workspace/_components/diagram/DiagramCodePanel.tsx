@@ -132,7 +132,7 @@ export default function DiagramCodePanel({
       aria-label="Diagram code"
       className="diagram-code flex flex-col overflow-hidden rounded-[var(--g-radius)] border border-g-line bg-g-panel text-g-text shadow-[var(--g-shadow)]"
     >
-      <header className="flex items-center gap-2 border-b border-g-line py-2 pl-3.5 pr-2">
+      <header className="flex flex-wrap items-center gap-2 border-b border-g-line py-2 pl-3.5 pr-2">
         <h2 className="m-0 flex-1 text-[13px] font-semibold">{title}</h2>
         {header}
         <button
