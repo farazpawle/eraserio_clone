@@ -108,9 +108,11 @@ export function toSkeletons(
     const id = `${diagramId}:n:${n.id}`
     boxes.set(n.id, b)
     targets.set(n.id, id)
+    // The icon tag sits at the top, so its label goes to the bottom: a centred two-line label ran into it.
+    const nodeLabel = label(n.label, style, n.icon ? { verticalAlign: 'bottom' } : {})
     const native = NATIVE[n.shape as keyof typeof NATIVE]
     if (native) {
-      out.push({ type: native, id, ...b, ...fillOf(style), label: label(n.label, style), ...tag() })
+      out.push({ type: native, id, ...b, ...fillOf(style), label: nodeLabel, ...tag() })
     } else {
       out.push({
         type: 'line',
@@ -126,7 +128,7 @@ export function toSkeletons(
         ...b,
         strokeColor: 'transparent',
         backgroundColor: 'transparent',
-        label: label(n.label, style),
+        label: nodeLabel,
         ...tag(),
       })
     }

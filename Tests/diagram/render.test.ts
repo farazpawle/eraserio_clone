@@ -115,6 +115,17 @@ describe('toSkeletons nodes', () => {
     expect(icon.y).toBeGreaterThanOrEqual(210)
     expect(icon.y).toBeLessThan(210 + 80)
   })
+
+  // A label wrapped onto two lines and centred ran into the tag (browser smoke test).
+  it.each(['rectangle', 'cylinder'] as const)('puts a %s label with an icon at the bottom, clear of the tag', (shape) => {
+    const sk = make(flow({ nodes: [node('A', shape, 0, { icon: 'aws-ec2', height: 80 })], edges: [] }))
+    expect(byId(sk, `${ID}:n:A`).label.verticalAlign).toBe('bottom')
+  })
+
+  it('keeps a label without an icon centred', () => {
+    const sk = make(flow({ nodes: [node('A', 'rectangle', 0)], edges: [] }))
+    expect(byId(sk, `${ID}:n:A`).label.verticalAlign).toBeUndefined()
+  })
 })
 
 describe('toSkeletons edges', () => {
